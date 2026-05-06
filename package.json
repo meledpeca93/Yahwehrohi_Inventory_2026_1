@@ -1,0 +1,87 @@
+{
+  "name": "yahweh-rohi-inventory",
+  "version": "0.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "start:api": "node server/server.js",
+    "build": "ng build",
+    "build:desktop": "ng build --configuration development --base-href ./",
+    "watch": "ng build --watch --configuration development",
+    "desktop:dev": "node scripts/electron-dev.js",
+    "desktop": "npm run build:desktop && electron .",
+    "db:export": "node scripts/export-sql-server-database.js",
+    "dist:win": "npm run build:desktop && electron-builder --win --x64",
+    "dist:mac": "npm run build:desktop && electron-builder --mac",
+    "test": "ng test",
+    "test:db": "node server/test-db-connection.js"
+  },
+  "build": {
+    "appId": "com.yahwehrohi.inventory",
+    "productName": "Yahweh Rohi Inventory",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "server/**/*",
+      "package.json",
+      ".env"
+    ],
+    "asarUnpack": [
+      "node_modules/@tesseract.js-data/**/*",
+      "node_modules/tesseract.js-core/**/*",
+      "node_modules/tesseract.js/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Yahweh Rohi Inventory"
+    }
+  },
+  "private": true,
+  "packageManager": "npm@11.9.0",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/spa": "^1.0.0",
+    "chart.js": "^4.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mssql": "^12.2.0",
+    "rxjs": "~7.8.0",
+    "tesseract.js": "^7.0.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.6",
+    "@angular/cli": "^21.2.6",
+    "@angular/compiler-cli": "^21.2.0",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.8.1",
+    "jsdom": "^28.0.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}

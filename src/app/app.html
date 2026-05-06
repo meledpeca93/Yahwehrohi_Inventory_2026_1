@@ -1,0 +1,4578 @@
+@if (!isAuthenticated()) {
+  <main class="login-shell">
+    <section class="login-card" aria-label="Inicio de sesion">
+      <header class="login-header">
+        <div class="login-brand">
+          <span class="login-logo">YR</span>
+          <span>Yahweh Rohi</span>
+        </div>
+        <nav class="login-nav" aria-label="Enlaces informativos">
+          <a href="#inventario">Acerca</a>
+          <a href="#costos">Costos</a>
+          <a href="#ventas">Ventas</a>
+          <a href="#historial">Historial</a>
+        </nav>
+        <button class="login-chip" type="button" (click)="login()">Sign in</button>
+      </header>
+
+      <div class="login-content">
+        <form class="login-form" (submit)="$event.preventDefault(); login()">
+          <div class="avatar" aria-hidden="true">
+            <span></span>
+          </div>
+
+          <label class="login-field">
+            Usuario
+            <select [value]="loginUser()" (change)="selectLoginUser($event)">
+              <option value="">Selecciona un usuario</option>
+              @for (user of loginUsers(); track user.id) {
+                <option [value]="user.usuario">{{ user.usuario }} - {{ user.nombre }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="login-field">
+            Contrasena
+            <input
+              type="password"
+              autocomplete="current-password"
+              placeholder="PASSWORD"
+              [value]="loginPassword()"
+              (input)="updateLoginPassword($event)"
+            />
+          </label>
+
+          @if (loginError()) {
+            <p class="login-error">{{ loginError() }}</p>
+          }
+
+          <button class="login-button" type="submit" [disabled]="loginLoading()">
+            {{ loginLoading() ? 'Validando...' : 'Iniciar sesion' }}
+          </button>
+
+          <div class="login-actions">
+            <label>
+              <input type="checkbox" />
+              Recordarme
+            </label>
+            <a href="#recuperar">Olvide mi contrasena</a>
+          </div>
+        </form>
+
+        <section class="welcome-panel">
+          <div class="aurora" aria-hidden="true"></div>
+          <div class="welcome-copy">
+            <h1>Welcome.</h1>
+            <p>Control de inventario, facturacion, compras, ventas y cambios de precio en un solo lugar.</p>
+            <span>Haz clic en iniciar sesion para entrar.</span>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+} @else {
+<main class="app-shell" [attr.data-theme]="activeThemeId()">
+  <aside class="sidebar" aria-label="Navegacion principal">
+    <div class="brand">
+      <span class="brand-mark">YR</span>
+      <span>{{ title() }}</span>
+    </div>
+
+    <nav class="nav-list">
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'dashboard'"
+        (click)="setPage('dashboard')"
+      >
+        Dashboard
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'billing'"
+        (click)="setPage('billing')"
+      >
+        Facturacion
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'invoices'"
+        (click)="setPage('invoices')"
+      >
+        Facturas
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'credits'"
+        (click)="openCreditsPage()"
+      >
+        Creditos
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'attendance'"
+        (click)="setPage('attendance')"
+      >
+        Asistencia
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'payroll'"
+        (click)="setPage('payroll')"
+      >
+        Planillas
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'inventory-sheet'"
+        (click)="setPage('inventory-sheet')"
+      >
+        Inventario
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'purchases'"
+        (click)="setPage('purchases')"
+      >
+        Compras
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'costs'"
+        (click)="setPage('costs')"
+      >
+        Costos
+      </button>
+      <button
+        class="nav-item"
+        type="button"
+        [class.active]="activePage() === 'history'"
+        (click)="setPage('history')"
+      >
+        Historico
+      </button>
+    </nav>
+
+    <div class="theme-menu">
+      <button
+        class="theme-toggle"
+        type="button"
+        [attr.aria-expanded]="themeMenuOpen()"
+        (click)="toggleThemeMenu()"
+      >
+        Temas
+      </button>
+
+      @if (themeMenuOpen()) {
+        <div class="theme-options" aria-label="Selector de temas">
+          @for (theme of themes; track theme.id) {
+            <button
+              class="theme-option"
+              type="button"
+              [class.active]="activeThemeId() === theme.id"
+              (click)="setTheme(theme.id)"
+            >
+              <span class="theme-swatch" [attr.data-theme-swatch]="theme.id"></span>
+              <span>
+                <strong>{{ theme.name }}</strong>
+                <small>{{ theme.tone }}</small>
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <button class="nav-item logout-item" type="button" (click)="openLogoutCutModal()">Cerrar sesion</button>
+  </aside>
+
+  @if (logoutCutModalOpen() && !openingCutModalOpen()) {
+    <div class="customer-modal-backdrop" role="presentation" (click)="closeLogoutCutModal()">
+      <section
+        class="customer-modal logout-cut-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Corte de cierre de sesion"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="analytics-heading">
+          <div>
+            <p class="eyebrow">Cierre de sesion</p>
+            <h2 class="daily-sales-title">Corte del cajero</h2>
+          </div>
+          <button class="ghost-button" type="button" (click)="closeLogoutCutModal()">Cancelar</button>
+        </div>
+
+        @if (logoutCutLoading()) {
+          <section class="cut-detail-panel empty">
+            <strong>Calculando ventas del dia...</strong>
+          </section>
+        } @else if (logoutCutPreview(); as cut) {
+          <section class="logout-cut-summary">
+            <article class="expected-cash-card">
+              <span>Esperado en caja</span>
+              <strong>{{ cut.cashTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Ventas del dia</span>
+              <strong>{{ cut.totalSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Efectivo</span>
+              <strong>{{ cut.cashSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Transferencias</span>
+              <strong>{{ cut.transferSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Creditos</span>
+              <strong>{{ cut.creditSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Abonos credito</span>
+              <strong>{{ cut.creditPayments | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+          </section>
+
+          <label class="logout-cash-count-field">
+            Conteo fisico del cajero
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [value]="logoutPhysicalCashCount()"
+              (input)="updateLogoutPhysicalCashCount($event)"
+            />
+          </label>
+
+          @if (logoutCutError()) {
+            <p class="login-error">{{ logoutCutError() }}</p>
+          }
+
+          <div class="logout-cut-actions">
+            <button class="ghost-button" type="button" (click)="closeLogoutCutModal()">Cancelar</button>
+            <button class="logout-skip-button" type="button" [disabled]="logoutCutSaving()" (click)="closeSessionWithoutCut()">
+              Salir sin corte
+            </button>
+            <button class="daily-sales-button" type="button" [disabled]="logoutCutSaving()" (click)="saveLogoutCutAndClose()">
+              {{ logoutCutSaving() ? 'Guardando corte...' : 'Guardar corte y cerrar' }}
+            </button>
+          </div>
+        } @else {
+          <p class="login-error">{{ logoutCutError() || 'No se pudo cargar el corte.' }}</p>
+        }
+      </section>
+    </div>
+  }
+
+  @if (openingCutModalOpen()) {
+    <div class="customer-modal-backdrop mandatory-modal-backdrop" role="presentation">
+      <section
+        class="customer-modal logout-cut-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Inicio de caja"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="analytics-heading">
+          <div>
+            <p class="eyebrow">Inicio de sesion</p>
+            <h2 class="daily-sales-title">Inicio de caja</h2>
+          </div>
+        </div>
+
+        <section class="opening-cash-card">
+          <span>Cantidad inicial en caja</span>
+          <strong>Registra el efectivo con el que inicia el cajero</strong>
+        </section>
+
+        <label class="logout-cash-count-field">
+          Monto inicial
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            autofocus
+            [value]="openingCashAmount()"
+            (input)="updateOpeningCashAmount($event)"
+          />
+        </label>
+
+        @if (openingCutError()) {
+          <p class="login-error">{{ openingCutError() }}</p>
+        }
+
+        <div class="logout-cut-actions">
+          <button class="daily-sales-button" type="button" [disabled]="openingCutSaving()" (click)="saveOpeningCut()">
+            {{ openingCutSaving() ? 'Guardando...' : 'Guardar inicio de caja' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (activePage() === 'inventory-sheet') {
+    <!-- PAGINA: INVENTARIO | FUNCION PRINCIPAL: ADMINISTRAR PRODUCTOS, COSTOS, STOCK Y ALERTAS DE INVENTARIO. -->
+    <section class="inventory-workspace">
+      @if (inventorySuccessMessage()) {
+        <div class="inventory-toast" role="status" aria-live="polite">
+          <span class="sale-toast-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M20 6L9 17l-5-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+              />
+            </svg>
+          </span>
+          <div class="sale-toast-copy">
+            <strong>Cambio realizado</strong>
+            <span>{{ inventorySuccessMessage() }}</span>
+          </div>
+        </div>
+      }
+
+      <header class="inventory-topbar">
+        <div>
+          <p class="eyebrow">Hoja de inventario</p>
+          <h1>Control maestro de productos y existencias</h1>
+          <p>Gestiona stock, costos, precios, minimos, ajustes y altas de productos.</p>
+        </div>
+        <div class="inventory-header-actions">
+          <button class="ghost-button" type="button" (click)="setPage('billing')">
+            Ir a facturacion
+          </button>
+          <button class="primary-button" type="button" (click)="openInventoryModal()">
+            Agregar producto
+          </button>
+        </div>
+      </header>
+
+      @if (inventoryModalOpen()) {
+        <div class="inventory-modal-backdrop" role="presentation" (click)="closeInventoryModal()">
+          <section
+            class="inventory-modal"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-label]="inventoryEditingProductId() === null ? 'Agregar producto' : 'Modificar producto'"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="analytics-heading">
+              <div>
+                <p class="eyebrow">{{ inventoryEditingProductId() === null ? 'Nuevo producto' : 'Editar inventario' }}</p>
+                <h2>{{ inventoryEditingProductId() === null ? 'Agregar producto' : 'Modificar producto' }}</h2>
+                <p>
+                  {{
+                    inventoryEditingProductId() === null
+                      ? 'Alta rapida para comenzar a controlar existencia.'
+                      : 'Ajusta stock, costo y precio desde este formulario.'
+                  }}
+                </p>
+              </div>
+              <button class="ghost-button" type="button" (click)="closeInventoryModal()">
+                Cerrar
+              </button>
+            </div>
+
+            <div class="inventory-form">
+              <div class="inventory-image-editor">
+                <span class="inventory-image-preview" [class.has-image]="inventoryDraft().imageUrl">
+                  @if (inventoryDraft().imageUrl) {
+                    <img [src]="inventoryDraft().imageUrl" [alt]="inventoryDraft().name || 'Imagen del producto'" />
+                  } @else {
+                    <span>IMG</span>
+                  }
+                </span>
+                <div class="inventory-image-caption">
+                  <strong>{{ inventoryDraft().name || 'Producto sin nombre' }}</strong>
+                  <span>{{ inventoryDraft().sku || 'Sin codigo' }}</span>
+                </div>
+              </div>
+              <label>
+                SKU
+                <input
+                  [value]="inventoryDraft().sku"
+                  [readonly]="inventoryEditingProductId() !== null"
+                  [attr.aria-readonly]="inventoryEditingProductId() !== null"
+                  (input)="updateInventoryDraft('sku', $event)"
+                />
+              </label>
+              <label>
+                Producto
+                <input
+                  [value]="inventoryDraft().name"
+                  [readonly]="inventoryEditingProductId() !== null"
+                  [attr.aria-readonly]="inventoryEditingProductId() !== null"
+                  (input)="updateInventoryDraft('name', $event)"
+                />
+              </label>
+              <label>
+                Categoria
+                <input
+                  [value]="inventoryDraft().category"
+                  [readonly]="inventoryEditingProductId() !== null"
+                  [attr.aria-readonly]="inventoryEditingProductId() !== null"
+                  (input)="updateInventoryDraft('category', $event)"
+                />
+              </label>
+              <label>
+                Stock inicial
+                <input
+                  type="number"
+                  min="0"
+                  [value]="inventoryDraft().stock"
+                  (input)="updateInventoryDraft('stock', $event)"
+                />
+              </label>
+              <label>
+                Stock minimo
+                <input
+                  type="number"
+                  min="0"
+                  [value]="inventoryDraft().minStock"
+                  (input)="updateInventoryDraft('minStock', $event)"
+                />
+              </label>
+              <label>
+                Stock maximo
+                <input
+                  type="number"
+                  min="0"
+                  [value]="inventoryDraft().maxStock"
+                  (input)="updateInventoryDraft('maxStock', $event)"
+                />
+              </label>
+              <label>
+                Costo
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [value]="inventoryDraft().unitCost"
+                  [readonly]="inventoryEditingProductId() !== null"
+                  [attr.aria-readonly]="inventoryEditingProductId() !== null"
+                  (input)="updateInventoryDraft('unitCost', $event)"
+                />
+              </label>
+              <label>
+                Precio final
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [value]="inventoryDraft().salePrice"
+                  [readonly]="inventoryEditingProductId() !== null"
+                  [attr.aria-readonly]="inventoryEditingProductId() !== null"
+                  (input)="updateInventoryDraft('salePrice', $event)"
+                />
+              </label>
+              <button class="primary-button" type="button" (click)="saveInventoryProduct()">
+                {{ inventoryEditingProductId() === null ? 'Guardar producto' : 'Guardar cambios' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+
+      <section class="inventory-kpis" aria-label="Resumen de inventario">
+        <article class="inventory-card kpi-card">
+          <span>Productos</span>
+          <strong>{{ products().length }}</strong>
+          <small>SKUs registrados</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Unidades</span>
+          <strong>{{ totalUnits() | number }}</strong>
+          <small>Existencia total</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Valor al costo</span>
+          <strong>{{ inventoryValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Stock por costo unitario</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Valor venta</span>
+          <strong>{{ inventoryRetailValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Stock por precio final</small>
+        </article>
+      </section>
+
+      <section class="inventory-grid">
+        <button
+          class="inventory-card inventory-alert-card inventory-alert-summary"
+          type="button"
+          (click)="setPage('inventory-out-of-stock')"
+        >
+          <span>Productos agotados</span>
+          <strong>{{ outOfStockCount() }}</strong>
+          <small>Click para ver el detalle completo</small>
+        </button>
+      </section>
+
+      <section class="inventory-card inventory-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Gestion principal de inventario</h2>
+            <p>Edita existencias, minimos, costos y precios finales desde una sola hoja.</p>
+          </div>
+        </div>
+
+        <div class="inventory-table-toolbar">
+          <div class="inventory-table-actions">
+            <button class="inventory-toolbar-button" type="button" (click)="openInventoryModal()">
+              Agregar producto
+            </button>
+            <button class="inventory-toolbar-button" type="button" (click)="setMode('purchase')">
+              Entradas
+            </button>
+            <button class="inventory-toolbar-button" type="button" (click)="setMode('sale')">
+              Salidas
+            </button>
+            <button class="inventory-toolbar-button" type="button" (click)="setPage('inventory-out-of-stock')">
+              Kardex agotados
+            </button>
+          </div>
+
+          <div class="inventory-table-filters">
+            <label class="inventory-search-field">
+              <span>Buscar</span>
+              <input
+                type="search"
+                placeholder="Buscar producto o codigo"
+                [value]="searchTerm()"
+                (input)="updateSearch($event)"
+              />
+            </label>
+            <label class="inventory-category-field">
+              <span>Categoria</span>
+              <select [value]="selectedCategory()" (change)="updateCategory($event)">
+                @for (category of categories(); track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="inventory-table inventory-table-enhanced">
+            <thead>
+              <tr>
+                <th>Accion</th>
+                <th>Codigo</th>
+                <th>Producto</th>
+                <th>Categoria</th>
+                <th>Cantidad</th>
+                <th>Minimo</th>
+                <th>Costo</th>
+                <th>Precio final</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of paginatedInventoryProducts(); track product.id) {
+                <tr>
+                  <td class="inventory-actions-column">
+                    <div class="inventory-row-actions">
+                      <button type="button" (click)="openInventoryEditModal(product.id)">+</button>
+                      <button type="button" (click)="openInventoryEditModal(product.id)">-</button>
+                      <button type="button" (click)="addToCart(product.id)">Ir</button>
+                    </div>
+                  </td>
+                  <td class="inventory-code-column">
+                    <span class="inventory-code">{{ product.sku }}</span>
+                  </td>
+                  <td class="inventory-product-column">
+                    <div class="inventory-product-cell">
+                      <span class="inventory-product-thumb" [class.has-image]="product.imageUrl">
+                        @if (product.imageUrl) {
+                          <img [src]="product.imageUrl" [alt]="product.name" />
+                        } @else {
+                          <span class="inventory-product-fallback">
+                            {{ product.category.slice(0, 2).toUpperCase() }}
+                          </span>
+                        }
+                      </span>
+                      <div class="inventory-product-info">
+                        <strong>{{ product.name }}</strong>
+                        <span class="inventory-product-meta">
+                          {{ product.unitMeasure || 'Unidad' }} · margen
+                          {{ productProfitMargin(product) | percent: '1.0-1' }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="inventory-category-column">
+                    <span class="inventory-category-pill">{{ product.category }}</span>
+                  </td>
+                  <td class="inventory-number-column">
+                    <div class="inventory-number-field">
+                      <span>Stock</span>
+                      <strong>{{ product.stock | number }}</strong>
+                    </div>
+                  </td>
+                  <td class="inventory-number-column">
+                    <div class="inventory-number-field">
+                      <span>Min.</span>
+                      <strong>{{ product.minStock | number }}</strong>
+                    </div>
+                  </td>
+                  <td class="inventory-number-column">
+                    <div class="inventory-number-field currency">
+                      <span>Costo</span>
+                      <strong>{{ product.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                    </div>
+                  </td>
+                  <td class="inventory-number-column">
+                    <div class="inventory-number-field currency">
+                      <span>Venta</span>
+                      <strong>{{ product.salePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                    </div>
+                  </td>
+                  <td class="inventory-status-column">
+                    <span
+                      class="inventory-status"
+                      [class.available]="product.stock > product.minStock"
+                      [class.low]="product.stock > 0 && product.stock <= product.minStock"
+                      [class.danger]="product.stock === 0"
+                    >
+                      {{ stockStatus(product) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inventory-pagination">
+          <span>
+            Mostrando {{ inventoryPageStart() }}-{{ inventoryPageEnd() }} de
+            {{ filteredProducts().length }} productos
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousInventoryPage()" [disabled]="inventoryPage() === 1">
+              Anterior
+            </button>
+            <strong>Pagina {{ inventoryPage() }} de {{ inventoryPageCount() }}</strong>
+            <button
+              type="button"
+              (click)="nextInventoryPage()"
+              [disabled]="inventoryPage() === inventoryPageCount()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'inventory-out-of-stock') {
+    <!-- PAGINA: STOCK BAJO | FUNCION PRINCIPAL: LISTAR PRODUCTOS CON STOCK BAJO Y ACCIONES DE REABASTECIMIENTO. -->
+    <section class="inventory-workspace">
+      <header class="inventory-topbar">
+        <div>
+          <p class="eyebrow">Inventario</p>
+          <h1>Productos agotados</h1>
+          <p>Detalle de productos sin existencia para priorizar compras y ajustes de stock.</p>
+        </div>
+        <div class="inventory-header-actions">
+          <button class="ghost-button" type="button" (click)="setPage('inventory-sheet')">
+            Volver a inventario
+          </button>
+          <button class="primary-button" type="button" (click)="setPage('billing')">
+            Ir a facturacion
+          </button>
+        </div>
+      </header>
+
+      <section class="inventory-kpis" aria-label="Resumen de productos agotados">
+        <article class="inventory-card kpi-card">
+          <span>Agotados</span>
+          <strong>{{ outOfStockCount() }}</strong>
+          <small>Sin existencia</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Stock bajo</span>
+          <strong>{{ lowStockCount() }}</strong>
+          <small>Incluye agotados</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Reposicion minima</span>
+          <strong>{{ outOfStockReorderCost() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Costo estimado al minimo</small>
+        </article>
+        <article class="inventory-card kpi-card">
+          <span>Productos activos</span>
+          <strong>{{ products().length }}</strong>
+          <small>Base de inventario</small>
+        </article>
+      </section>
+
+      <section class="inventory-card inventory-table-card kardex-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Kardex de productos agotados</h2>
+            <p>Control profesional de productos sin existencia y prioridad de reposicion.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="inventory-table kardex-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Codigo</th>
+                <th>Categoria</th>
+                <th>Stock</th>
+                <th>Minimo</th>
+                <th>Costo</th>
+                <th>Precio final</th>
+                <th>Proveedor</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of paginatedOutOfStockProducts(); track product.id) {
+                <tr>
+                  <td class="inventory-product-stack">
+                    <div class="kardex-product-cell">
+                      <span class="inventory-product-thumb" [class.has-image]="product.imageUrl">
+                        @if (product.imageUrl) {
+                          <img [src]="product.imageUrl" [alt]="product.name" />
+                        } @else {
+                          <span class="inventory-product-fallback">
+                            {{ product.category.slice(0, 2).toUpperCase() }}
+                          </span>
+                        }
+                      </span>
+                      <span>
+                        <strong>{{ product.name }}</strong>
+                        <small>{{ product.unitMeasure || 'Unidad' }}</small>
+                      </span>
+                    </div>
+                  </td>
+                  <td><span class="inventory-code">{{ product.sku }}</span></td>
+                  <td><span class="inventory-category-pill">{{ product.category }}</span></td>
+                  <td class="kardex-number-cell"><strong>{{ product.stock | number }}</strong></td>
+                  <td class="kardex-number-cell"><strong>{{ product.minStock | number }}</strong></td>
+                  <td class="kardex-money-cell">{{ product.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td class="kardex-money-cell">{{ product.salePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td><span class="kardex-provider-pill">{{ product.supplier || 'Sin proveedor' }}</span></td>
+                  <td class="kardex-actions-cell">
+                    <div class="inventory-actions">
+                      <button type="button" (click)="openInventoryEditModal(product.id)">Reponer</button>
+                      <button type="button" (click)="setPage('inventory-sheet')">Inventario</button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr class="kardex-empty-row">
+                  <td colspan="9">
+                    <strong>No hay productos agotados.</strong>
+                    <span>El inventario no tiene productos con stock en cero.</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inventory-pagination kardex-pagination">
+          <span>
+            Mostrando {{ kardexPageStart() }}-{{ kardexPageEnd() }} de
+            {{ outOfStockProducts().length }} productos agotados
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousKardexPage()" [disabled]="kardexPage() === 1">
+              Anterior
+            </button>
+            <strong>Pagina {{ kardexPage() }} de {{ kardexPageCount() }}</strong>
+            <button
+              type="button"
+              (click)="nextKardexPage()"
+              [disabled]="kardexPage() === kardexPageCount()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'dashboard') {
+    <!-- PAGINA: DASHBOARD | FUNCION PRINCIPAL: MOSTRAR INDICADORES GENERALES, TARJETAS Y GRAFICOS DE TENDENCIA. -->
+    <section class="dashboard-workspace">
+      <header class="dashboard-topbar">
+        <div>
+          <h1>DASHBOARD</h1>
+          <p>Resumen integral de inventario, compras, ventas y costos</p>
+        </div>
+
+        <div class="dashboard-actions">
+          <button
+            class="dashboard-sales-alert-selector"
+            [class.dashboard-sales-alert-selector-alert]="salesDropAlert().shouldAlert"
+            [class.dashboard-sales-alert-selector-pending]="!salesDropAlert().isActive"
+            type="button"
+            [attr.title]="salesDropAlertComparisonTooltip()"
+            [attr.data-tooltip]="salesDropAlertComparisonTooltip()"
+            [attr.aria-label]="'Ventas. ' + salesDropAlertComparisonTooltip()"
+            (click)="openSalesDropAlertModal()"
+          >
+            <span>Ventas</span>
+            <strong>
+              {{ salesDropMissingPercentage() | number: '1.0-2' }}%
+            </strong>
+          </button>
+          <div class="user-pill">
+            <span>MP</span>
+            <strong>{{ currentUser()?.nombre || 'Melvin Pena' }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-kpis" aria-label="Indicadores principales">
+        <article class="analytics-card kpi-card">
+          <span>Valor total de inventario</span>
+          <strong>{{ inventoryRetailValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Suma de precio de venta por stock</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Valor total al costo</span>
+          <strong>{{ inventoryValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Suma de costo por stock</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Articulos registrados</span>
+          <strong>{{ registeredProductsCount() | number }}</strong>
+          <small>Cantidad total de productos en inventario</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Ganancia promedio</span>
+          <strong>{{ averageMargin() | percent: '1.0-2' }}</strong>
+          <small>Promedio del margen de todos los productos</small>
+        </article>
+        <article class="analytics-card kpi-card kpi-card-with-tabs">
+          <div class="kpi-card-header">
+            <span>Efectivo + transferencias</span>
+            <div class="kpi-card-tabs trend-period-tabs" aria-label="Selector de efectivo y transferencias">
+              <button
+                type="button"
+                [class.active]="dashboardCashTransferView() === 'month'"
+                (click)="setDashboardCashTransferView('month')"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="dashboardCashTransferView() === 'accumulated'"
+                (click)="setDashboardCashTransferView('accumulated')"
+              >
+                Acum.
+              </button>
+            </div>
+          </div>
+          <strong>
+            {{
+              (
+                dashboardCashTransferView() === 'month'
+                  ? dashboardSalesSummary().currentMonthCashTransferTotal
+                  : dashboardSalesSummary().cashTransferTotal
+              ) | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+            }}
+          </strong>
+          <small>
+            {{
+              dashboardCashTransferView() === 'month'
+                ? (dashboardSalesSummary().lastMonthLabel || 'Sin mes disponible')
+                : 'Historico acumulado'
+            }}
+          </small>
+        </article>
+        <article
+          class="analytics-card kpi-card dashboard-link-card kpi-card-with-tabs"
+          role="button"
+          tabindex="0"
+          (click)="openCreditsPage()"
+          (keydown.enter)="openCreditsPage()"
+          (keydown.space)="openCreditsPage()"
+        >
+          <div class="kpi-card-header">
+            <span>Ventas al credito</span>
+            <div class="kpi-card-tabs trend-period-tabs" aria-label="Selector de ventas al credito">
+              <button
+                type="button"
+                [class.active]="dashboardCreditView() === 'month'"
+                (click)="setDashboardCreditView('month'); $event.stopPropagation()"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="dashboardCreditView() === 'accumulated'"
+                (click)="setDashboardCreditView('accumulated'); $event.stopPropagation()"
+              >
+                Acum.
+              </button>
+            </div>
+          </div>
+          <strong>
+            {{
+              (
+                dashboardCreditView() === 'month'
+                  ? dashboardSalesSummary().currentMonthCreditTotal
+                  : dashboardSalesSummary().creditTotal
+              ) | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+            }}
+          </strong>
+          <small>
+            {{
+              dashboardCreditView() === 'month'
+                ? (dashboardSalesSummary().lastMonthLabel || 'Sin mes disponible')
+                : 'Historico acumulado'
+            }}
+          </small>
+        </article>
+        <article class="analytics-card kpi-card kpi-card-with-tabs">
+          <div class="kpi-card-header">
+            <span>Ventas totales</span>
+            <div class="kpi-card-tabs trend-period-tabs" aria-label="Selector de total de ventas">
+              <button
+                type="button"
+                [class.active]="dashboardSalesTotalView() === 'month'"
+                (click)="setDashboardSalesTotalView('month')"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="dashboardSalesTotalView() === 'accumulated'"
+                (click)="setDashboardSalesTotalView('accumulated')"
+              >
+                Acum.
+              </button>
+            </div>
+          </div>
+          <strong>
+            {{
+              (
+                dashboardSalesTotalView() === 'month'
+                  ? dashboardSalesSummary().lastMonthSalesTotal
+                  : dashboardSalesSummary().accumulatedSalesTotal
+              ) | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+            }}
+          </strong>
+          <small>
+            {{
+              dashboardSalesTotalView() === 'month'
+                ? (dashboardSalesSummary().lastMonthLabel || 'Sin mes disponible')
+                : 'Historico acumulado'
+            }}
+          </small>
+        </article>
+        <article class="analytics-card kpi-card kpi-card-with-tabs">
+          <div class="kpi-card-header">
+            <span>Compras totales</span>
+            <div class="kpi-card-tabs trend-period-tabs" aria-label="Selector de total de compras">
+              <button
+                type="button"
+                [class.active]="dashboardPurchasesTotalView() === 'month'"
+                (click)="setDashboardPurchasesTotalView('month')"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="dashboardPurchasesTotalView() === 'accumulated'"
+                (click)="setDashboardPurchasesTotalView('accumulated')"
+              >
+                Acum.
+              </button>
+            </div>
+          </div>
+          <strong>
+            {{
+              (
+                dashboardPurchasesTotalView() === 'month'
+                  ? dashboardSalesSummary().totalPurchases
+                  : dashboardSalesSummary().accumulatedPurchasesTotal
+              ) | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+            }}
+          </strong>
+          <small>
+            {{
+              dashboardPurchasesTotalView() === 'month'
+                ? (dashboardSalesSummary().purchaseMonthLabel || 'Sin mes disponible')
+                : 'Historico acumulado'
+            }}
+          </small>
+        </article>
+      </section>
+
+      <section class="dashboard-trend-grid" aria-label="Graficos de tendencia">
+        <article class="analytics-card trend-card ticket-trend-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Tendencia de ventas</h2>
+              <p>Ventas reales por forma de pago</p>
+            </div>
+            <div class="trend-period-tabs" aria-label="Selector de periodo de ventas">
+              <button
+                type="button"
+                [class.active]="salesTrendPeriod() === 'day'"
+                (click)="setSalesTrendPeriod('day')"
+              >
+                Dia
+              </button>
+              <button
+                type="button"
+                [class.active]="salesTrendPeriod() === 'week'"
+                (click)="setSalesTrendPeriod('week')"
+              >
+                Semana
+              </button>
+              <button
+                type="button"
+                [class.active]="salesTrendPeriod() === 'month'"
+                (click)="setSalesTrendPeriod('month')"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="salesTrendPeriod() === 'year'"
+                (click)="setSalesTrendPeriod('year')"
+              >
+                Año
+              </button>
+            </div>
+          </div>
+
+          <div class="chartjs-trend-shell">
+            <canvas #salesTrendCanvas aria-label="Tendencia de ventas por forma de pago"></canvas>
+            @if (salesTrendData().length === 0) {
+              <span class="chart-empty-label">Sin ventas registradas</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card trend-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Tendencia de compras</h2>
+              <p>Vista basada en las compras registradas en la base de datos.</p>
+            </div>
+            <div class="trend-period-tabs purchase-year-tabs" aria-label="Selector de periodo de compras del dashboard">
+              <button
+                type="button"
+                [class.active]="purchaseTrendPeriod() === 'day'"
+                (click)="setPurchaseTrendPeriod('day')"
+              >
+                Dia
+              </button>
+              <button
+                type="button"
+                [class.active]="purchaseTrendPeriod() === 'week'"
+                (click)="setPurchaseTrendPeriod('week')"
+              >
+                Semana
+              </button>
+              <button
+                type="button"
+                [class.active]="purchaseTrendPeriod() === 'month'"
+                (click)="setPurchaseTrendPeriod('month')"
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                [class.active]="purchaseTrendPeriod() === 'year'"
+                (click)="setPurchaseTrendPeriod('year')"
+              >
+                Año
+              </button>
+            </div>
+          </div>
+
+          <div class="chartjs-trend-shell purchase-chart-shell">
+            <canvas #purchasesTrendCanvas aria-label="Tendencia de compras del dashboard"></canvas>
+            @if (purchasesTrendData().length === 0) {
+              <span class="chart-empty-label">Sin compras registradas</span>
+            }
+          </div>
+        </article>
+      </section>
+
+      <!-- DASHBOARD: GRAFICOS DE MODULOS | FUNCION: RESUMIR PLANILLA, ASISTENCIAS, INVENTARIO, COSTOS E HISTORICO CON DATOS YA CARGADOS EN SUS MODULOS. -->
+      <section class="dashboard-module-charts" aria-label="Graficos por modulo">
+        <article class="analytics-card dashboard-module-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Planilla</h2>
+              <p>Pagos calculados por colaborador.</p>
+            </div>
+            <strong>{{ weeklyPayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</strong>
+          </div>
+          <div class="dashboard-module-chart-shell">
+            <canvas #dashboardPayrollChartCanvas aria-label="Grafico de barras de planilla"></canvas>
+            @if (dashboardPayrollChartRows().length === 0) {
+              <span class="module-chart-empty">Sin planilla generada</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card dashboard-module-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Asistencias</h2>
+              <p>Estado actual de marcas.</p>
+            </div>
+            <strong>{{ attendanceRecords() | number }}</strong>
+          </div>
+          <div class="dashboard-module-chart-shell pie-chart-shell">
+            <canvas #dashboardAttendanceChartCanvas aria-label="Grafico tipo pastel de asistencias"></canvas>
+            @if (dashboardAttendanceChartRows().length === 0) {
+              <span class="module-chart-empty">Sin asistencias cargadas</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card dashboard-module-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Inventarios</h2>
+              <p>Distribucion por estado de stock.</p>
+            </div>
+            <strong>{{ registeredProductsCount() | number }}</strong>
+          </div>
+          <div class="dashboard-module-chart-shell">
+            <canvas #dashboardInventoryChartCanvas aria-label="Grafico de linea de tendencia de inventarios"></canvas>
+            @if (dashboardInventoryChartRows().length === 0) {
+              <span class="module-chart-empty">Sin inventario cargado</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card dashboard-module-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Costos</h2>
+              <p>Categorias con mayor costo de inventario.</p>
+            </div>
+            <strong>{{ monthlyFixedCostEstimate() | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</strong>
+          </div>
+          <div class="dashboard-module-chart-shell">
+            <canvas #dashboardCostsChartCanvas aria-label="Grafico de barras de costos por categoria"></canvas>
+            @if (dashboardCostChartRows().length === 0) {
+              <span class="module-chart-empty">Sin costos calculados</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card dashboard-module-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Historico</h2>
+              <p>Movimientos por usuario.</p>
+            </div>
+            <strong>{{ auditHistory().length | number }}</strong>
+          </div>
+          <div class="dashboard-module-chart-shell">
+            <canvas #dashboardHistoryChartCanvas aria-label="Grafico de linea de tendencia del historico"></canvas>
+            @if (dashboardHistoryChartRows().length === 0) {
+              <span class="module-chart-empty">Sin movimientos registrados</span>
+            }
+          </div>
+        </article>
+      </section>
+    </section>
+  } @else if (activePage() === 'invoices') {
+    <!-- PAGINA: FACTURAS | FUNCION PRINCIPAL: LISTAR FACTURAS, EXPORTAR PDF Y ANULAR DEVOLVIENDO INVENTARIO. -->
+    <section class="dashboard-workspace invoices-workspace">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Facturacion</p>
+          <h1>Facturas</h1>
+          <p>Consulta facturas emitidas, exporta comprobantes y anula ventas devolviendo stock.</p>
+        </div>
+        <div class="dashboard-actions">
+          <div class="user-pill">
+            <span>YR</span>
+            <strong>{{ currentUser()?.nombre || 'Usuario' }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-kpis invoice-kpis" aria-label="Resumen de facturas">
+        <article class="analytics-card">
+          <span>Facturas emitidas</span>
+          <strong>{{ invoicesSummary().invoiceCount | number }}</strong>
+          <p>Total generado</p>
+        </article>
+        <article class="analytics-card">
+          <span>Monto activo</span>
+          <strong>{{ invoicesSummary().activeTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <p>Sin facturas anuladas</p>
+        </article>
+        <article class="analytics-card">
+          <span>Anuladas</span>
+          <strong>{{ invoicesSummary().annulledCount | number }}</strong>
+          <p>Facturas reversadas</p>
+        </article>
+        <article class="analytics-card">
+          <span>Credito facturado</span>
+          <strong>{{ invoicesSummary().creditTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <p>Credito no anulado</p>
+        </article>
+      </section>
+
+      <article class="analytics-card trend-card ticket-trend-card invoice-trend-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tendencia de ventas</h2>
+            <p>Ventas por forma de pago desde facturas generadas</p>
+          </div>
+          <div class="trend-period-tabs" aria-label="Selector de periodo de facturas">
+            <button type="button" [class.active]="salesTrendPeriod() === 'day'" (click)="setSalesTrendPeriod('day')">Dia</button>
+            <button type="button" [class.active]="salesTrendPeriod() === 'week'" (click)="setSalesTrendPeriod('week')">Semana</button>
+            <button type="button" [class.active]="salesTrendPeriod() === 'month'" (click)="setSalesTrendPeriod('month')">Mes</button>
+          </div>
+        </div>
+        <div class="chartjs-trend-shell invoice-chart-shell">
+          <canvas #invoicesSalesTrendCanvas aria-label="Tendencia de ventas de facturas"></canvas>
+          @if (salesTrendData().length === 0) {
+            <span class="chart-empty-label">Sin ventas registradas</span>
+          }
+        </div>
+      </article>
+
+      <section class="analytics-card invoices-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tabla master de facturas</h2>
+            <p>Listado de facturas con estado, cliente, forma de pago y acciones.</p>
+          </div>
+        </div>
+
+        @if (invoiceError()) {
+          <p class="login-error">{{ invoiceError() }}</p>
+        }
+
+        <div class="table-wrap">
+          <table class="invoice-master-table">
+            <thead>
+              <tr>
+                <th>Factura</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Pago</th>
+                <th>Articulos</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Usuario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (invoice of paginatedInvoices(); track invoice.invoiceId) {
+                <tr>
+                  <td><strong class="invoice-code-pill">#{{ invoice.invoiceId }}</strong></td>
+                  <td>
+                    <div class="invoice-customer-cell">
+                      <strong>{{ invoice.customerName }}</strong>
+                      <span>{{ invoice.customerPhone || 'Sin telefono' }}</span>
+                    </div>
+                  </td>
+                  <td>{{ invoice.createdAt || '-' }}</td>
+                  <td>
+                    <span class="invoice-payment-pill" [class.cash]="invoice.paymentTypeId === 1">
+                      {{ invoice.paymentTypeName }}
+                    </span>
+                  </td>
+                  <td>{{ invoice.itemCount | number }}</td>
+                  <td class="invoice-total-cell">{{ invoice.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>
+                    <span class="invoice-status-pill" [class.annulled]="isInvoiceAnnulled(invoice)">
+                      {{ invoice.statusName }}
+                    </span>
+                  </td>
+                  <td>{{ invoice.userName }}</td>
+                  <td>
+                    <div class="invoice-action-buttons">
+                      <button type="button" (click)="exportInvoicePdf(invoice)">PDF</button>
+                      <button
+                        class="danger"
+                        type="button"
+                        [class.activate]="isInvoiceAnnulled(invoice)"
+                        (click)="toggleInvoiceStatus(invoice)"
+                      >
+                        {{ isInvoiceAnnulled(invoice) ? 'Activar' : 'Anular' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9">
+                    <strong>{{ invoiceLoading() ? 'Cargando facturas...' : 'No hay facturas registradas.' }}</strong>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inventory-pagination">
+          <span>
+            Mostrando {{ invoicePageStart() }}-{{ invoicePageEnd() }} de {{ invoiceRows().length }} facturas
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousInvoicePage()" [disabled]="invoicePage() === 1">Anterior</button>
+            <strong>Pagina {{ invoicePage() }} de {{ invoicePageCount() }}</strong>
+            <button type="button" (click)="nextInvoicePage()" [disabled]="invoicePage() === invoicePageCount()">Siguiente</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'purchases') {
+    <!-- PAGINA: COMPRAS | FUNCION PRINCIPAL: ANALIZAR PROVEEDORES Y COMPRAS SIN ABRIR FACTURACION. -->
+    <section class="dashboard-workspace invoices-workspace">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Compras</p>
+          <h1>Hoja de compras</h1>
+          <p>Analisis del historico real de compras registradas.</p>
+        </div>
+        <div class="dashboard-actions">
+          <button class="ghost-button" type="button" (click)="generateEstimatedPurchaseManually()">
+            Generar compra estimada
+          </button>
+          <button class="cut-open-button purchase-add-button" type="button" (click)="openPurchaseMainModal()">
+            Agregar compra
+          </button>
+          <div class="user-pill">
+            <span>CP</span>
+            <strong>{{ currentUser()?.nombre || 'Usuario' }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-kpis invoice-kpis" aria-label="Resumen de compras">
+        <article class="analytics-card">
+          <span>Proveedores</span>
+          <strong>{{ purchaseSuppliersCount() | number }}</strong>
+          <p>Con compras registradas</p>
+        </article>
+        <article class="analytics-card">
+          <span>Compras realizadas</span>
+          <strong>{{ purchaseTransactionsCount() | number }}</strong>
+          <p>Desde efectivo y credito</p>
+        </article>
+        <article class="analytics-card">
+          <span>Credito abierto</span>
+          <strong>{{ purchaseOpenCreditTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <p>Total comprado al credito</p>
+        </article>
+        <article class="analytics-card">
+          <span>Proveedores con credito</span>
+          <strong>{{ purchaseOpenCreditSuppliersCount() | number }}</strong>
+          <p>Segun compras al credito</p>
+        </article>
+      </section>
+
+      <article class="analytics-card trend-card ticket-trend-card invoice-trend-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tendencia de compras</h2>
+            <p>Vista basada en las compras registradas en la base de datos.</p>
+          </div>
+          <div class="trend-period-tabs purchase-year-tabs" aria-label="Selector de periodo de compras">
+            <button
+              type="button"
+              [class.active]="purchaseTrendPeriod() === 'day'"
+              (click)="setPurchaseTrendPeriod('day')"
+            >
+              Dia
+            </button>
+            <button
+              type="button"
+              [class.active]="purchaseTrendPeriod() === 'week'"
+              (click)="setPurchaseTrendPeriod('week')"
+            >
+              Semana
+            </button>
+            <button
+              type="button"
+              [class.active]="purchaseTrendPeriod() === 'month'"
+              (click)="setPurchaseTrendPeriod('month')"
+            >
+              Mes
+            </button>
+            <button
+              type="button"
+              [class.active]="purchaseTrendPeriod() === 'year'"
+              (click)="setPurchaseTrendPeriod('year')"
+            >
+              Año
+            </button>
+          </div>
+        </div>
+
+        <div class="chartjs-trend-shell invoice-chart-shell purchase-chart-shell">
+          <canvas #purchasesTrendCanvas aria-label="Tendencia de compras"></canvas>
+        </div>
+      </article>
+
+      <section class="analytics-card invoices-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tabla master de compras</h2>
+            <p>Historico unido desde compras en efectivo y compras al credito.</p>
+          </div>
+        </div>
+
+        @if (supplierError()) {
+          <p class="login-error">{{ supplierError() }}</p>
+        }
+
+        @if (purchaseError()) {
+          <p class="login-error">{{ purchaseError() }}</p>
+        }
+
+        <div class="table-wrap">
+          <table class="invoice-master-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Factura</th>
+                <th>Proveedor</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Costo</th>
+                <th>Total</th>
+                <th>Tipo</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (purchase of paginatedPurchases(); track purchase.purchaseType + '-' + purchase.id) {
+                <tr>
+                  <td><strong class="invoice-code-pill">#{{ purchase.id }}</strong></td>
+                  <td>{{ purchase.invoiceNumber || '-' }}</td>
+                  <td>
+                    <div class="invoice-customer-cell">
+                      <strong>{{ purchase.supplierName }}</strong>
+                      <span>{{ purchase.supplierPhone || 'Proveedor' }}</span>
+                    </div>
+                  </td>
+                  <td>{{ purchase.productName }}</td>
+                  <td>{{ purchase.quantity | number }}</td>
+                  <td>{{ purchase.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td class="invoice-total-cell">{{ purchase.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>{{ purchase.purchaseType }}</td>
+                  <td>{{ purchase.createdAt || '-' }}</td>
+                  <td>
+                    <span class="invoice-status-pill" [class.annulled]="purchase.statusId === 3">
+                      {{ purchase.statusName }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="invoice-action-buttons">
+                      <button type="button" (click)="exportPurchasePdf(purchase)">PDF</button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="11">
+                    <strong>{{ purchaseLoading() ? 'Cargando compras...' : 'No hay compras registradas.' }}</strong>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inventory-pagination">
+          <span>
+            Mostrando {{ purchasePageStart() }}-{{ purchasePageEnd() }} de {{ purchaseHistoryRows().length }} compras
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousPurchasePage()" [disabled]="purchasePage() === 1">Anterior</button>
+            <strong>Pagina {{ purchasePage() }} de {{ purchasePageCount() }}</strong>
+            <button type="button" (click)="nextPurchasePage()" [disabled]="purchasePage() === purchasePageCount()">Siguiente</button>
+          </div>
+        </div>
+      </section>
+
+      @if (purchaseMainModalOpen()) {
+        <div class="customer-modal-backdrop purchase-history-backdrop" role="presentation" (click)="closePurchaseMainModal()">
+          <section
+            class="customer-modal purchase-history-modal"
+            style="width: min(92vw, 1180px); max-width: 1180px; max-height: calc(100vh - 96px);"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Historico de compras"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="purchase-history-window-bar">
+              <div class="purchase-history-title">
+                <span class="purchase-window-icon">CP</span>
+                <strong>Compras [F5]</strong>
+              </div>
+              <button class="purchase-history-close" type="button" (click)="closePurchaseMainModal()">X</button>
+            </div>
+
+            <div class="purchase-history-toolbar">
+              <button type="button" class="purchase-toolbar-button">Proveedores</button>
+              <button type="button" class="purchase-toolbar-button active" (click)="openPurchaseModal()">Nueva compra</button>
+              <button type="button" class="purchase-toolbar-button">Ordenes de compra</button>
+                <button type="button" class="purchase-toolbar-icon" aria-label="Actualizar compras">R</button>
+
+              <div class="purchase-history-filters">
+                <label>
+                  Desde
+                  <input type="date" />
+                </label>
+                <label>
+                  Hasta
+                  <input type="date" />
+                </label>
+              </div>
+            </div>
+
+            <div class="table-wrap purchase-history-table">
+              <table class="invoice-master-table purchase-collapse-table">
+                <thead>
+                  <tr>
+                    <th>Accion</th>
+                    <th>Proveedor / Factura</th>
+                    <th>Facturas</th>
+                    <th>Productos</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (supplier of purchaseSupplierGroups(); track supplier.supplierId) {
+                    <tr class="purchase-supplier-row">
+                      <td>
+                        <div class="purchase-row-actions">
+                          <button type="button" (click)="togglePurchaseSupplier(supplier.supplierId)">
+                            {{ expandedPurchaseSupplierId() === supplier.supplierId ? 'Cerrar' : 'Ver' }}
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="invoice-customer-cell">
+                          <strong>{{ supplier.supplierName }}</strong>
+                          <span>{{ supplier.supplierPhone || supplier.supplierAddress || 'Proveedor' }}</span>
+                        </div>
+                      </td>
+                      <td>{{ supplier.invoiceCount | number }}</td>
+                      <td>{{ supplier.lineCount | number }}</td>
+                      <td class="invoice-total-cell">{{ supplier.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td>
+                        <span class="purchase-received-pill">
+                          {{ expandedPurchaseSupplierId() === supplier.supplierId ? 'Expandido' : 'Collapsado' }}
+                        </span>
+                      </td>
+                    </tr>
+                    @if (expandedPurchaseSupplierId() === supplier.supplierId) {
+                      @for (invoice of supplier.invoices; track invoice.key) {
+                        <tr class="purchase-invoice-row">
+                          <td>
+                            <div class="purchase-row-actions">
+                              <button type="button" (click)="togglePurchaseInvoice(invoice.key)">
+                                {{ expandedPurchaseInvoiceKey() === invoice.key ? 'Cerrar' : 'Detalle' }}
+                              </button>
+                              <button type="button" title="Exportar factura PDF" (click)="exportPurchaseInvoicePdf(invoice)">PDF</button>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="invoice-customer-cell">
+                              <strong>Factura {{ invoice.invoiceNumber }}</strong>
+                              <span>{{ invoice.createdAt || '-' }} | {{ invoice.userName }}</span>
+                            </div>
+                          </td>
+                          <td>{{ invoice.purchaseType }}</td>
+                          <td>{{ invoice.lines.length | number }}</td>
+                          <td class="invoice-total-cell">{{ invoice.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                          <td>
+                            <span class="purchase-received-pill">{{ invoice.statusName }}</span>
+                          </td>
+                        </tr>
+                        @if (expandedPurchaseInvoiceKey() === invoice.key) {
+                          @for (line of invoice.lines; track line.purchaseType + '-' + line.id) {
+                            <tr class="purchase-line-row">
+                              <td></td>
+                              <td>{{ line.productName }}</td>
+                              <td>{{ line.quantity | number }}</td>
+                              <td>{{ line.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                              <td class="invoice-total-cell">{{ line.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                              <td>{{ line.createdAt || '-' }}</td>
+                            </tr>
+                          }
+                        }
+                      }
+                    }
+                  } @empty {
+                    <tr>
+                      <td colspan="6">
+                        <strong>{{ purchaseLoading() ? 'Cargando historico...' : 'No hay compras para mostrar.' }}</strong>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="purchase-history-footer">
+              <span>
+                Mostrando {{ purchaseSupplierGroups().length }} proveedores con {{ purchaseHistoryRows().length }} lineas de compra
+              </span>
+              <div class="purchase-history-footer-actions">
+                <label>
+                  Estado:
+                  <select>
+                    <option>Todos</option>
+                    <option>Recepcionado</option>
+                    <option>Credito abierto</option>
+                  </select>
+                </label>
+                <label>
+                  Proveedor:
+                  <select>
+                    <option>Todos</option>
+                    @for (supplier of supplierOptions(); track supplier.id) {
+                      <option>{{ supplier.nombre }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (estimatedPurchaseModalOpen()) {
+        <div class="customer-modal-backdrop" role="presentation" (click)="closeEstimatedPurchaseModal()">
+          <section
+            class="customer-modal purchase-entry-modal estimated-purchase-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Compra estimada automatica"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="analytics-heading">
+              <div>
+                <p class="eyebrow">Compras estimadas</p>
+                <h2 class="daily-sales-title">Compra estimada automatica</h2>
+              </div>
+              <button class="ghost-button" type="button" (click)="closeEstimatedPurchaseModal()">Cerrar</button>
+            </div>
+
+            @if (purchaseAutoNotice()) {
+              <p class="login-error purchase-auto-notice">{{ purchaseAutoNotice() }}</p>
+            }
+
+            <div class="table-wrap purchase-entry-table estimated-purchase-table">
+              <table class="invoice-master-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Motivo</th>
+                    <th>Cantidad sugerida</th>
+                    <th>Costo estimado</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (line of estimatedPurchaseLines(); track line.productId) {
+                    <tr>
+                      <td>{{ productNameById(line.productId) }}</td>
+                      <td>{{ line.reason }}</td>
+                      <td>
+                        <input
+                          class="purchase-line-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          [value]="line.quantity"
+                          (input)="updateEstimatedPurchaseLineQuantity(line.productId, $event)"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="purchase-line-input"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [value]="line.unitCost"
+                          (input)="updateEstimatedPurchaseLineCost(line.productId, $event)"
+                        />
+                      </td>
+                      <td class="invoice-total-cell">{{ line.quantity * line.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td><button class="remove-button" type="button" (click)="removeEstimatedPurchaseLine(line.productId)">Quitar</button></td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">No hay productos estimados para comprar.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="purchase-entry-footer">
+              <strong>Total estimado: {{ estimatedPurchaseTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              <button class="daily-sales-button" type="button" [disabled]="estimatedPurchaseLines().length === 0" (click)="useEstimatedPurchaseLines()">
+                Crear compra con esta estimacion
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (purchaseModalOpen()) {
+        <div class="customer-modal-backdrop" role="presentation" (click)="closePurchaseModal()">
+          <section
+            class="customer-modal purchase-entry-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Agregar compra"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="analytics-heading">
+              <div>
+                <p class="eyebrow">Compras</p>
+                <h2 class="daily-sales-title">Agregar compra</h2>
+              </div>
+              <button class="ghost-button" type="button" (click)="closePurchaseModal()">Cerrar</button>
+            </div>
+
+            <div class="purchase-entry-grid">
+              <label>
+                Proveedor
+                <select [value]="purchaseSupplierId() || ''" (change)="updatePurchaseSupplier($event)">
+                  <option value="">Selecciona proveedor</option>
+                  @for (supplier of supplierOptions(); track supplier.id) {
+                    <option [value]="supplier.id">{{ supplier.nombre }}</option>
+                  }
+                </select>
+              </label>
+
+              <label>
+                Factura proveedor
+                <input type="text" placeholder="NUM FACT" [value]="purchaseInvoiceNumber()" (input)="updatePurchaseInvoiceNumber($event)" />
+              </label>
+
+              <label>
+                Fecha compra
+                <input type="date" [value]="purchaseDate()" (input)="updatePurchaseDate($event)" />
+              </label>
+
+              <div class="purchase-payment-toggle">
+                <button type="button" [class.active]="purchasePaymentTypeId() === 1" (click)="updatePurchasePaymentType(1)">Efectivo</button>
+                <button type="button" [class.active]="purchasePaymentTypeId() === 2" (click)="updatePurchasePaymentType(2)">Credito</button>
+              </div>
+            </div>
+
+            <div class="purchase-entry-grid purchase-costing-row">
+              <label>
+                Transporte del viaje
+                <input type="number" min="0" step="0.01" [value]="purchaseTransportCost()" (input)="updatePurchaseTransportCost($event)" />
+              </label>
+              <label>
+                Otros costos directos
+                <input type="number" min="0" step="0.01" [value]="purchaseOtherDirectCost()" (input)="updatePurchaseOtherDirectCost($event)" />
+              </label>
+              <article class="purchase-real-cost-summary">
+                <span>Costo adicional por unidad</span>
+                <strong>{{ purchaseAdditionalCostPerUnit() | currency: 'HNL' : 'symbol-narrow' : '1.2-4' }}</strong>
+                <small>
+                  {{ purchaseAdditionalCostTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}
+                  / {{ purchaseDraftUnits() | number }} unidades
+                </small>
+              </article>
+            </div>
+
+            <div class="purchase-ocr-launcher">
+              <button class="daily-sales-button purchase-ocr-open-button" type="button" (click)="openPurchaseOcrModal()">
+                Cargar factura con OCR
+              </button>
+              <span>{{ purchaseInvoiceImageName() || 'Sin factura cargada' }}</span>
+              @if (purchaseInvoiceOcrStatus()) {
+                <small>{{ purchaseInvoiceOcrStatus() }}</small>
+              }
+            </div>
+
+            <div class="purchase-entry-grid product-entry-row">
+              <label>
+                Producto
+                <select [value]="purchaseProductId() || ''" (change)="updatePurchaseProduct($event)">
+                  <option value="">Selecciona producto</option>
+                  @for (product of products(); track product.id) {
+                    <option [value]="product.id">{{ product.sku }} - {{ product.name }}</option>
+                  }
+                </select>
+              </label>
+
+              <label>
+                Cantidad
+                <input type="number" min="1" step="1" [value]="purchaseQuantity()" (input)="updatePurchaseQuantity($event)" />
+              </label>
+
+              <label>
+                Costo
+                <input type="number" min="0" step="0.01" [value]="purchaseUnitCost()" (input)="updatePurchaseUnitCost($event)" />
+              </label>
+
+              <button class="daily-sales-button" type="button" (click)="addPurchaseDraftLine()">Agregar</button>
+            </div>
+
+            @if (purchaseModalError()) {
+              <p class="login-error">{{ purchaseModalError() }}</p>
+            }
+
+            <div class="table-wrap purchase-entry-table">
+              <table class="invoice-master-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Motivo</th>
+                    <th>Cantidad</th>
+                    <th>Costo</th>
+                    <th>Costo real</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (line of purchaseDraftLines(); track line.productId) {
+                    <tr>
+                      <td>{{ productNameById(line.productId) }}</td>
+                      <td>{{ purchaseDraftLineReason(line.productId) || 'Manual' }}</td>
+                      <td>
+                        <input
+                          class="purchase-line-input"
+                          type="number"
+                          min="1"
+                          step="1"
+                          [value]="line.quantity"
+                          (input)="updatePurchaseDraftLineQuantity(line.productId, $event)"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="purchase-line-input"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [value]="line.unitCost"
+                          (input)="updatePurchaseDraftLineCost(line.productId, $event)"
+                        />
+                      </td>
+                      <td>{{ line.unitCost + purchaseAdditionalCostPerUnit() | currency: 'HNL' : 'symbol-narrow' : '1.2-4' }}</td>
+                      <td class="invoice-total-cell">{{ line.quantity * (line.unitCost + purchaseAdditionalCostPerUnit()) | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td><button class="remove-button" type="button" (click)="removePurchaseDraftLine(line.productId)">Quitar</button></td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7">Agrega productos a la compra.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="purchase-entry-footer">
+              <strong>Total real: {{ purchaseDraftRealTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              <button class="daily-sales-button" type="button" [disabled]="purchaseModalSaving()" (click)="savePurchaseHistory()">
+                {{ purchaseModalSaving() ? 'Guardando...' : 'Guardar compra' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (purchaseOcrModalOpen()) {
+        <div class="customer-modal-backdrop" role="presentation" (click)="closePurchaseOcrModal()">
+          <section
+            class="customer-modal purchase-ocr-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Procesar factura con OCR"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="analytics-heading">
+              <div>
+                <p class="eyebrow">OCR local</p>
+                <h2 class="daily-sales-title">Cargar factura</h2>
+                <p>Procesa una foto o captura de factura para intentar agregar productos al detalle.</p>
+              </div>
+              <button class="ghost-button" type="button" (click)="closePurchaseOcrModal()">Cerrar</button>
+            </div>
+
+            <div class="purchase-ocr-panel purchase-ocr-panel-modal">
+              <label class="purchase-ocr-upload purchase-ocr-dropzone">
+                <input class="purchase-ocr-file-input" type="file" accept="image/*" (change)="updatePurchaseInvoiceImage($event)" />
+                <span class="purchase-ocr-icon">OCR</span>
+                <strong>Foto de factura</strong>
+                <small>Arrastra o selecciona una captura clara</small>
+              </label>
+
+              <div class="purchase-ocr-status">
+                <strong>{{ purchaseInvoiceImageName() || 'Sin imagen cargada' }}</strong>
+                <span>{{ purchaseInvoiceOcrStatus() || 'OCR local con Tesseract: busca productos registrados por SKU o nombre.' }}</span>
+              </div>
+
+              @if (purchaseInvoiceImagePreview()) {
+                <img class="purchase-ocr-preview purchase-ocr-preview-large" [src]="purchaseInvoiceImagePreview()" alt="Factura cargada para OCR" />
+              }
+
+              <button class="daily-sales-button purchase-ocr-action" type="button" (click)="processPurchaseInvoiceOcr()">
+                Procesar factura
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+    </section>
+  } @else if (activePage() === 'credits') {
+    <!-- PAGINA: CREDITOS | FUNCION PRINCIPAL: CONSULTAR CREDITOS ABIERTOS, FILTRAR CLIENTES Y PREPARAR ABONOS. -->
+    <section class="credits-workspace">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Cartera</p>
+          <h1>Creditos Abiertos</h1>
+          <p>Consulta general de ventas al credito registradas en la base de datos.</p>
+        </div>
+        <div class="dashboard-actions credit-actions">
+          <label class="dashboard-search">
+            <span>Buscar por nombre</span>
+            <input
+              type="search"
+              placeholder="Cliente o usuario"
+              [value]="creditSearchTerm()"
+              (input)="updateCreditSearchTerm($event)"
+            />
+          </label>
+
+          <label class="dashboard-search">
+            <span>Clientes con credito abierto</span>
+            <select [value]="selectedCreditCustomerId() || ''" (change)="selectCreditCustomer($event)">
+              <option value="">Todos</option>
+              @for (customer of creditCustomerOptions(); track customer.id) {
+                <option [value]="customer.id">{{ customer.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <section class="dashboard-kpis credit-kpis" aria-label="Resumen de creditos">
+        <article class="analytics-card">
+          <span>Total credito</span>
+          <strong>{{ totalCreditAmount() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <p>Monto acumulado filtrado</p>
+        </article>
+        <article class="analytics-card">
+          <span>Utilidad</span>
+          <strong>{{ totalCreditUtility() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <p>Utilidad registrada en creditos</p>
+        </article>
+        <article class="analytics-card">
+          <span>Clientes</span>
+          <strong>{{ openCreditCustomersCount() }}</strong>
+          <p>Clientes en la tabla filtrada</p>
+        </article>
+        <article class="analytics-card">
+          <span>Lineas</span>
+          <strong>{{ openCreditRowsCount() }}</strong>
+          <p>Registros de venta al credito</p>
+        </article>
+      </section>
+
+      <section class="analytics-card credits-master-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tabla master de creditos</h2>
+            <p>Resumen por cliente con detalle expandible de creditos abiertos.</p>
+          </div>
+          <button class="ghost-button" type="button" (click)="loadCredits()">Actualizar</button>
+        </div>
+
+        <div class="table-wrap credits-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Telefono</th>
+                <th>Facturas</th>
+                <th>Articulos</th>
+                <th>Saldo cliente</th>
+                <th>Total credito</th>
+                <th>Utilidad</th>
+                <th>Estado</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (creditLoading()) {
+                <tr>
+                  <td colspan="9">Cargando creditos...</td>
+                </tr>
+              } @else if (creditError()) {
+                <tr>
+                  <td colspan="9">{{ creditError() }}</td>
+                </tr>
+              } @else if (creditCustomerGroups().length === 0) {
+                <tr>
+                  <td colspan="9">No hay creditos registrados para los filtros seleccionados.</td>
+                </tr>
+              }
+
+              @for (group of creditCustomerGroups(); track group.customerId) {
+                <tr class="credit-group-row">
+                  <td>
+                    <span class="credit-cell-action">
+                      <button class="credit-expand-button" type="button" (click)="toggleCreditCustomer(group.customerId)">
+                        {{ isCreditCustomerExpanded(group.customerId) ? '-' : '+' }}
+                      </button>
+                      <strong>{{ group.customerName }}</strong>
+                    </span>
+                  </td>
+                  <td>{{ group.customerPhone || '-' }}</td>
+                  <td>{{ group.invoices.length }}</td>
+                  <td>{{ group.articleCount }}</td>
+                  <td>{{ group.customerBalance | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>{{ group.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>{{ group.utility | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>
+                    <span
+                      class="credit-status-pill"
+                      [class.active]="group.invoices[0].saleStatusName === 'Activo'"
+                      [class.closed]="group.invoices[0].saleStatusName === 'Cerrado'"
+                    >
+                      {{ group.invoices[0].saleStatusName }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="credit-action-buttons">
+                      <button class="customer-select-button credit-pdf-button" type="button" (click)="exportCreditCustomerPdf(group)">
+                        PDF
+                      </button>
+                      <button class="customer-select-button credit-pay-button" type="button" (click)="openCreditPaymentModal(group)">
+                        Abonar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                @if (isCreditCustomerExpanded(group.customerId)) {
+                  <tr class="credit-detail-row">
+                    <td colspan="9">
+                      <div class="credit-detail-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Factura</th>
+                              <th>Articulos</th>
+                              <th>Total</th>
+                              <th>Estado</th>
+                              <th>Abono</th>
+                              <th>PDF</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (invoice of group.invoices; track invoice.invoiceId) {
+                              <tr class="credit-invoice-row">
+                                <td>
+                                  <span class="credit-cell-action">
+                                    <button class="credit-expand-button" type="button" (click)="toggleCreditInvoice(invoice.invoiceId)">
+                                      {{ isCreditInvoiceExpanded(invoice.invoiceId) ? '-' : '+' }}
+                                    </button>
+                                    <strong>#{{ invoice.invoiceId }}</strong>
+                                  </span>
+                                </td>
+                                <td>{{ invoice.lines.length }}</td>
+                                <td>{{ invoice.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                                <td>
+                                  <span
+                                    class="credit-status-pill"
+                                    [class.active]="invoice.saleStatusName === 'Activo'"
+                                    [class.closed]="invoice.saleStatusName === 'Cerrado'"
+                                  >
+                                    {{ invoice.saleStatusName }}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div class="credit-action-buttons single">
+                                    <button class="customer-select-button credit-pay-button" type="button" (click)="openCreditPaymentModal(group)">
+                                      Abonar
+                                    </button>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div class="credit-action-buttons single">
+                                    <button class="customer-select-button credit-pdf-button" type="button" (click)="exportCreditInvoicePdf(invoice)">
+                                      PDF
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+
+                              @if (isCreditInvoiceExpanded(invoice.invoiceId)) {
+                                <tr class="credit-item-row">
+                                  <td colspan="7">
+                                    <div class="credit-detail-table">
+                                      <table>
+                                        <thead>
+                                          <tr>
+                                            <th>ID</th>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio</th>
+                                            <th>Total</th>
+                                            <th>Abonado</th>
+                                            <th>Pendiente</th>
+                                            <th>Estado abono</th>
+                                            <th>Usuario</th>
+                                            <th>Fecha</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          @for (credit of invoice.lines; track credit.id) {
+                                            <tr>
+                                              <td>#{{ credit.id }}</td>
+                                              <td>{{ credit.productName }}</td>
+                                              <td>{{ credit.quantity }}</td>
+                                              <td>{{ credit.salePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                                              <td>{{ credit.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                                              <td>{{ credit.paidAmount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                                              <td>{{ credit.pendingAmount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                                              <td>
+                                                <span
+                                                  class="credit-status-pill"
+                                                  [class.paid]="credit.pendingAmount <= 0"
+                                                  [class.partial]="credit.pendingAmount > 0 && credit.paidAmount > 0"
+                                                >
+                                                  {{ credit.pendingAmount <= 0 ? 'Abonado' : (credit.paidAmount > 0 ? 'Parcial' : 'Pendiente') }}
+                                                </span>
+                                              </td>
+                                              <td>{{ credit.user }}</td>
+                                              <td>{{ credit.createdAt || '-' }}</td>
+                                            </tr>
+                                          }
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      @if (creditPaymentModalOpen()) {
+        <div class="customer-modal-backdrop" role="presentation" (click)="closeCreditPaymentModal()">
+          <section
+            class="customer-modal credit-payment-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Registrar abono de credito"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="customer-modal-header">
+              <div>
+                <p class="eyebrow">Abono de credito</p>
+                <h2 class="customer-modal-title">{{ creditPaymentCustomer()?.customerName }}</h2>
+              </div>
+              <button class="ghost-button" type="button" (click)="closeCreditPaymentModal()">Cerrar</button>
+            </header>
+
+            <div class="credit-payment-summary">
+              <article>
+                <span>Saldo pendiente</span>
+                <strong>{{ (creditPaymentCustomer()?.total || 0) | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </article>
+              <article>
+                <span>Facturas abiertas</span>
+                <strong>{{ creditPaymentCustomer()?.invoices?.length || 0 }}</strong>
+              </article>
+            </div>
+
+            <label>
+              Monto recibido
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                [value]="creditPaymentAmount()"
+                (input)="updateCreditPaymentAmount($event)"
+              />
+            </label>
+
+            <label>
+              Descripcion
+              <input
+                type="text"
+                [value]="creditPaymentDescription()"
+                (input)="updateCreditPaymentDescription($event)"
+              />
+            </label>
+
+            <p class="credit-payment-note">
+              El abono se aplicara automaticamente a las facturas mas viejas del cliente. Si no cubre una factura completa,
+              la linea quedara parcial y el saldo pendiente se recalculara.
+            </p>
+
+            @if (creditPaymentError()) {
+              <p class="login-error">{{ creditPaymentError() }}</p>
+            }
+
+            @if (creditPaymentSuccess()) {
+              <p class="purchase-auto-notice">{{ creditPaymentSuccess() }}</p>
+            }
+
+            <div class="logout-cut-actions">
+              <button class="daily-sales-button" type="button" [disabled]="creditPaymentSaving()" (click)="saveCreditPayment()">
+                {{ creditPaymentSaving() ? 'Aplicando...' : 'Aplicar abono' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+    </section>
+  } @else if (activePage() === 'attendance') {
+    <!-- PAGINA: ASISTENCIA | FUNCION PRINCIPAL: REGISTRAR HORARIOS, ENTRADAS, SALIDAS Y HORAS TRABAJADAS. -->
+    <section class="attendance-workspace">
+      <header class="attendance-topbar">
+        <div>
+          <p class="eyebrow">Control de asistencia</p>
+          <h1>Asistencia, horas trabajadas y salarios</h1>
+          <p>Usuarios reales desde la tabla usuario con horas calculadas desde asistencia y su vista de horas.</p>
+        </div>
+        <div class="attendance-topbar-actions">
+          <div class="attendance-week-tabs-wrap">
+            <span>Semanas disponibles</span>
+            <div class="trend-period-tabs attendance-week-tabs" aria-label="Selector de semana de asistencia">
+              @for (week of attendanceWeekOptions(); track week) {
+                <button
+                  type="button"
+                  [class.active]="selectedAttendanceWeek() === week"
+                  (click)="setAttendanceWeek(week)"
+                >
+                  Semana {{ week }}
+                </button>
+              }
+            </div>
+          </div>
+          <button class="primary-button" type="button">Exportar resumen</button>
+        </div>
+      </header>
+
+      <section class="attendance-kpis" aria-label="Resumen de asistencia">
+        <article class="attendance-card kpi-card">
+          <span>Usuarios</span>
+          <strong>{{ attendanceRecords() }}</strong>
+          <small>Personal con registro activo</small>
+        </article>
+        <article class="attendance-card kpi-card">
+          <span>Areas</span>
+          <strong>{{ attendanceAreas() }}</strong>
+          <small>Departamentos operativos</small>
+        </article>
+        <article class="attendance-card kpi-card">
+          <span>Horas totales</span>
+          <strong>{{ totalWorkedHours() | number: '1.2-2' }}</strong>
+          <small>Acumulado de {{ selectedAttendanceWeekLabel() }}</small>
+        </article>
+        <article class="attendance-card kpi-card">
+          <span>Salario estimado</span>
+          <strong>{{ attendancePayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>{{ selectedAttendanceWeekLabel() }} por tarifa individual</small>
+        </article>
+      </section>
+
+      <section class="attendance-grid">
+        <article class="attendance-card attendance-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Horas por usuario</h2>
+              <p>Acumulado semanal para calculo de planilla</p>
+            </div>
+            <span>{{ averageWorkedHours() | number: '1.2-2' }} h promedio</span>
+          </div>
+
+          <div class="attendance-bars">
+            @for (user of attendanceUsers(); track user.id) {
+              <article>
+                <div>
+                  <strong>{{ user.name }}</strong>
+                  <span>{{ attendanceStatus(user) }}</span>
+                </div>
+                <div class="attendance-bar-track">
+                  <span [style.width.%]="(currentWeekHours(user.id) / maxAttendanceWorkedHours()) * 100"></span>
+                </div>
+                <strong>{{ currentWeekHours(user.id) | number: '1.2-2' }} h</strong>
+              </article>
+            }
+          </div>
+        </article>
+
+        <aside class="attendance-card attendance-summary-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Estadisticas</h2>
+              <p>Lectura ejecutiva del dia</p>
+            </div>
+          </div>
+
+          <div
+            class="attendance-donut"
+            aria-label="Puntualidad"
+            [style.--late-angle]="(attendanceRecords() > 0 ? (lateAttendanceCount() / attendanceRecords()) * 360 : 0) + 'deg'"
+          >
+            <div class="donut-visual">
+              <span class="donut-ring"></span>
+              <span class="donut-orbit"></span>
+              <div class="donut-center">
+                <span>Puntuales</span>
+                <strong>{{ punctualAttendanceCount() }}</strong>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <span>
+                <i class="punctual"></i>
+                {{ (attendanceRecords() > 0 ? (punctualAttendanceCount() / attendanceRecords()) : 0) | percent: '1.1-1' }}
+                Puntuales
+              </span>
+              <span>
+                <i class="late"></i>
+                {{ (attendanceRecords() > 0 ? (lateAttendanceCount() / attendanceRecords()) : 0) | percent: '1.1-1' }}
+                Tarde
+              </span>
+            </div>
+          </div>
+
+          <div class="attendance-mini-stats">
+            <article>
+              <span>Puntuales</span>
+              <strong>{{ punctualAttendanceCount() }}</strong>
+            </article>
+            <article>
+              <span>Tarde</span>
+              <strong>{{ lateAttendanceCount() }}</strong>
+            </article>
+            <article>
+              <span>Promedio</span>
+              <strong>{{ averageWorkedHours() | number: '1.2-2' }}</strong>
+            </article>
+          </div>
+        </aside>
+      </section>
+
+      <section class="attendance-card attendance-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Registro de entrada y salida</h2>
+            <p>Vista solo lectura agrupada por usuario, semana y dia. Cada marca se registra desde un modal.</p>
+          </div>
+        </div>
+
+        <div class="attendance-hierarchy">
+          <div class="attendance-hierarchy-header">
+            <span>Usuario</span>
+            <span>Area</span>
+            <span>Estado</span>
+            <span>{{ selectedAttendanceWeekLabel() }}</span>
+            <span>Tarifa</span>
+            <span>Accion</span>
+          </div>
+
+          @for (group of attendanceUserGroups(); track group.user.id) {
+            <div class="attendance-user-group">
+              <div class="attendance-user-row">
+                <button class="attendance-user-toggle" type="button" (click)="toggleAttendanceUser(group.user.id)">
+                  <span class="attendance-cell attendance-user-cell">
+                    <strong>{{ group.user.name }}</strong>
+                    <small>{{ group.user.role }}</small>
+                  </span>
+                  <span class="attendance-cell">{{ group.user.area }}</span>
+                  <span class="attendance-cell">
+                    <span class="attendance-badge" [class.late]="attendanceStatus(group.user) !== 'Puntual'">
+                      {{ attendanceStatus(group.user) }}
+                    </span>
+                  </span>
+                  <span class="attendance-cell">{{ currentWeekHours(group.user.id) | number: '1.2-2' }} h</span>
+                  <span class="attendance-cell">{{ group.user.hourlyRate | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                </button>
+                <span class="attendance-cell attendance-action-cell">
+                  <button class="attendance-mark-button" type="button" (click)="openAttendanceMarkModal(group.user)">
+                    Agregar marca
+                  </button>
+                </span>
+              </div>
+
+              @if (isAttendanceUserExpanded(group.user.id)) {
+                <div class="attendance-week-list">
+                  @for (week of group.weeks; track week.key) {
+                    <div class="attendance-week-group">
+                      <button class="attendance-week-row" type="button" (click)="toggleAttendanceWeek(week.key)">
+                        <span>{{ week.label }}</span>
+                        <strong>{{ week.totalHours | number: '1.2-2' }} h</strong>
+                      </button>
+
+                      @if (isAttendanceWeekExpanded(week.key)) {
+                        <div class="attendance-day-table">
+                          <div class="attendance-day-header">
+                            <span>Fecha</span>
+                            <span>Entrada</span>
+                            <span>Salida</span>
+                            <span>Horas</span>
+                            <span>Estado</span>
+                          </div>
+
+                          @for (day of week.days; track day.id) {
+                            <div class="attendance-day-row">
+                              <span>{{ formatAttendanceDate(day.date) }}</span>
+                              <span>{{ day.entryTime || '-' }}</span>
+                              <span>{{ day.exitTime || '-' }}</span>
+                              <strong>{{ day.workedHours | number: '1.2-2' }} h</strong>
+                              <span>
+                                <span class="attendance-badge" [class.late]="day.attendanceStatus !== 'Puntual'">
+                                  {{ day.attendanceStatus }}
+                                </span>
+                              </span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (attendanceMarkModalOpen()) {
+        <div class="customer-modal-backdrop mandatory-modal-backdrop">
+          <section class="customer-modal attendance-mark-modal">
+            <button class="customer-modal-close" type="button" (click)="closeAttendanceMarkModal()">×</button>
+            <div class="customer-modal-title attendance-mark-title">
+              <h3>Registrar marca diaria</h3>
+              <p>
+                @if (attendanceUserById(attendanceMarkUserId()); as selectedUser) {
+                  {{ selectedUser.name }}
+                  <span>{{ selectedUser.role }} · {{ selectedAttendanceWeekLabel() }} {{ currentWeekHours(selectedUser.id) | number: '1.2-2' }} h</span>
+                } @else {
+                  Usuario
+                }
+              </p>
+            </div>
+
+            <div class="attendance-mark-form">
+              <label>
+                Fecha
+                <input type="date" [value]="attendanceMarkDate()" (input)="updateAttendanceMarkDate($event)" />
+              </label>
+
+              <label>
+                Hora entrada
+                <input type="time" [value]="attendanceMarkEntryTime()" (input)="updateAttendanceMarkEntryTime($event)" />
+              </label>
+
+              <label>
+                Hora salida
+                <input type="time" [value]="attendanceMarkExitTime()" (input)="updateAttendanceMarkExitTime($event)" />
+              </label>
+            </div>
+
+            <div class="attendance-mark-history">
+              <div class="attendance-mark-history-heading">
+                <div>
+                  <h4>Historico de {{ selectedAttendanceWeekLabel() }}</h4>
+                  <p>Marcas registradas del empleado en la semana seleccionada.</p>
+                </div>
+                @if (attendanceUserById(attendanceMarkUserId()); as selectedUser) {
+                  <strong>{{ currentWeekHours(selectedUser.id) | number: '1.2-2' }} h</strong>
+                }
+              </div>
+
+              <div class="attendance-mark-history-table">
+                <div class="attendance-mark-history-row attendance-mark-history-head">
+                  <span>Fecha</span>
+                  <span>Entrada</span>
+                  <span>Salida</span>
+                  <span>Horas</span>
+                </div>
+
+                @for (day of attendanceCurrentWeekHistory(attendanceMarkUserId()); track day.id) {
+                  <div class="attendance-mark-history-row">
+                    <span>{{ formatAttendanceDate(day.date) }}</span>
+                    <span>{{ day.entryTime || '-' }}</span>
+                    <span>{{ day.exitTime || '-' }}</span>
+                    <strong>{{ day.workedHours | number: '1.2-2' }} h</strong>
+                  </div>
+                }
+
+                @if (attendanceCurrentWeekHistory(attendanceMarkUserId()).length === 0) {
+                  <p class="attendance-mark-history-empty">No hay marcas registradas en la semana actual.</p>
+                }
+              </div>
+            </div>
+
+            @if (attendanceMarkError()) {
+              <p class="checkout-error attendance-mark-error">{{ attendanceMarkError() }}</p>
+            }
+
+            <div class="attendance-mark-actions">
+              <button class="ghost-button" type="button" (click)="closeAttendanceMarkModal()">Cancelar</button>
+              <button class="primary-button" type="button" [disabled]="attendanceMarkSaving()" (click)="saveAttendanceMark()">
+                {{ attendanceMarkSaving() ? 'Guardando...' : 'Guardar marca' }}
+              </button>
+            </div>
+          </section>
+        </div>
+      }
+    </section>
+  } @else if (activePage() === 'payroll') {
+    <!-- PAGINA: PLANILLAS | FUNCION PRINCIPAL: RESUMIR HORAS, PAGOS Y BONOS DEL PERSONAL. -->
+    <section class="payroll-workspace">
+      <header class="payroll-topbar">
+        <div>
+          <p class="eyebrow">Planillas</p>
+          <h1>Planilla semanal, quincenal y mensual</h1>
+          <p>Calcula salarios desde las horas de asistencia y suma bonos manuales por usuario.</p>
+        </div>
+        <div class="attendance-topbar-actions">
+          <div class="attendance-week-tabs-wrap">
+            <span>Semanas disponibles</span>
+            <div class="trend-period-tabs attendance-week-tabs" aria-label="Selector de semana de planilla">
+              @for (week of attendanceWeekOptions(); track week) {
+                <button
+                  type="button"
+                  [class.active]="selectedAttendanceWeek() === week"
+                  (click)="setAttendanceWeek(week)"
+                >
+                  Semana {{ week }}
+                </button>
+              }
+            </div>
+          </div>
+          <button class="primary-button" type="button" (click)="setPage('payroll-generate')">
+            Generar planilla semanal
+          </button>
+        </div>
+      </header>
+
+      <section class="payroll-kpis" aria-label="Resumen de planilla">
+        <article class="payroll-card kpi-card">
+          <span>Horas semana</span>
+          <strong>{{ weeklyPayrollHours() | number: '1.2-2' }}</strong>
+          <small>{{ selectedAttendanceWeekLabel() }} para calculo de salario</small>
+        </article>
+        <article class="payroll-card kpi-card">
+          <span>Base semanal</span>
+          <strong>{{ weeklyBasePayroll() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Horas trabajadas por tarifa</small>
+        </article>
+        <article class="payroll-card kpi-card">
+          <span>Bonificaciones</span>
+          <strong>{{ weeklyBonusTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Ingreso manual a criterio</small>
+        </article>
+        <article class="payroll-card kpi-card">
+          <span>Total semanal</span>
+          <strong>{{ weeklyPayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Base mas bonos</small>
+        </article>
+      </section>
+
+      <section class="payroll-card payroll-chart-card payroll-trend-fullwidth">
+        <div class="analytics-heading">
+          <div>
+            <h2>Tendencia de salarios</h2>
+            <p>Comparativo de quienes ganan mas por dia, semana o mes segun asistencia calculada.</p>
+          </div>
+          <div class="trend-period-tabs" aria-label="Selector de periodo de tendencia de planilla">
+            <button type="button" [class.active]="payrollTrendPeriod() === 'day'" (click)="setPayrollTrendPeriod('day')">Dia</button>
+            <button type="button" [class.active]="payrollTrendPeriod() === 'week'" (click)="setPayrollTrendPeriod('week')">Semana</button>
+            <button type="button" [class.active]="payrollTrendPeriod() === 'month'" (click)="setPayrollTrendPeriod('month')">Mes</button>
+          </div>
+        </div>
+
+        <div class="chartjs-trend-shell payroll-chart-shell">
+          <canvas #payrollTrendCanvas aria-label="Tendencia de salarios de planilla"></canvas>
+          @if (payrollTrendChartSeries().labels.length === 0) {
+            <span class="chart-empty-label">Sin datos de planilla historica</span>
+          }
+        </div>
+      </section>
+
+      <section class="payroll-grid">
+        <article class="payroll-card payroll-chart-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Empleados que mas ganan</h2>
+              <p>Ranking segun salario calculado y bonificacion de la semana seleccionada</p>
+            </div>
+            <span>{{ weeklyPayrollHours() | number: '1.2-2' }} h semanales</span>
+          </div>
+
+          <div class="payroll-bars top-earners-bars">
+            @for (line of payrollTopEarners(); track line.user.id) {
+              <article>
+                <div>
+                  <strong>{{ line.user.name }}</strong>
+                  <span>{{ line.hours | number: '1.2-2' }} h</span>
+                </div>
+                <div class="payroll-bar-track">
+                  <span [style.width.%]="(line.pay / maxWeeklyPay()) * 100"></span>
+                </div>
+                <strong>{{ line.pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </article>
+            }
+          </div>
+        </article>
+
+        <aside class="payroll-card payroll-summary-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Resumenes</h2>
+              <p>Resumen de la semana seleccionada y acumulado historico</p>
+            </div>
+          </div>
+
+          <div class="payroll-periods">
+            <article>
+              <span>Semanal</span>
+              <strong>{{ weeklyPayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Historico</span>
+              <strong>{{ historicalPayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+            <article>
+              <span>Promedio hora</span>
+              <strong>{{ payrollAverageHourlyCost() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+          </div>
+
+          <div class="payroll-donut" aria-label="Base salarial contra bonos">
+            <span
+              [style.--bonus-angle]="(weeklyPayrollTotal() > 0 ? (weeklyBonusTotal() / weeklyPayrollTotal()) * 360 : 0) + 'deg'"
+            ></span>
+            <div>
+              <strong>{{ (weeklyPayrollTotal() > 0 ? (weeklyBonusTotal() / weeklyPayrollTotal()) : 0) | percent: '1.1-1' }}</strong>
+              <small>bono sobre total</small>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="payroll-card generate-summary-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Pago por tipo de hora</h2>
+            <p>Desglose real desde asistencia historica para {{ selectedAttendanceWeekLabel().toLowerCase() }}.</p>
+          </div>
+          <strong>{{ weeklyBasePayroll() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+        </div>
+
+        <div class="shift-total-grid">
+          <article>
+            <span>Horas normales</span>
+            <strong>{{ selectedPayrollTypeTotals().normalPay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            <small>
+              {{ selectedPayrollTypeTotals().normalHours | number: '1.2-2' }} h ·
+              {{ 15 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}/h
+            </small>
+          </article>
+          <article>
+            <span>Horas extra 1</span>
+            <strong>{{ selectedPayrollTypeTotals().extra1Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            <small>
+              {{ selectedPayrollTypeTotals().extra1Hours | number: '1.2-2' }} h ·
+              {{ 20 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}/h
+            </small>
+          </article>
+          <article>
+            <span>Horas extra 2</span>
+            <strong>{{ selectedPayrollTypeTotals().extra2Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            <small>
+              {{ selectedPayrollTypeTotals().extra2Hours | number: '1.2-2' }} h ·
+              {{ 25 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}/h
+            </small>
+          </article>
+          <article>
+            <span>Horas extra 3</span>
+            <strong>{{ selectedPayrollTypeTotals().extra3Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            <small>
+              {{ selectedPayrollTypeTotals().extra3Hours | number: '1.2-2' }} h ·
+              {{ 30 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}/h
+            </small>
+          </article>
+        </div>
+
+        <div class="payroll-rates-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Tabla de valores por hora</h2>
+              <p>Referencia de tarifas usadas en el calculo automatico de planilla.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="payroll-rates-table">
+              <thead>
+                <tr>
+                  <th>Dia</th>
+                  <th>Rango</th>
+                  <th>Tipo</th>
+                  <th>Valor hora</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Lunes a viernes</td>
+                  <td>08:00 - 16:00</td>
+                  <td>Hora normal</td>
+                  <td>{{ 15 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td>Lunes a viernes</td>
+                  <td>16:00 - 20:00</td>
+                  <td>Hora extra 1</td>
+                  <td>{{ 20 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td>Lunes a viernes</td>
+                  <td>20:00 - 22:00</td>
+                  <td>Hora extra 2</td>
+                  <td>{{ 25 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td>Sabado</td>
+                  <td>08:00 - 12:00</td>
+                  <td>Hora normal</td>
+                  <td>{{ 15 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td>Sabado</td>
+                  <td>12:00 - 22:00</td>
+                  <td>Hora extra 3</td>
+                  <td>{{ 30 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td>Domingo</td>
+                  <td>Todas las horas</td>
+                  <td>Hora extra 3</td>
+                  <td>{{ 30 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="payroll-card payroll-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Historico de planillas por usuario</h2>
+            <p>Usuario colapsado con acumulado historico, semanas con bonificacion y detalle diario por tipo de hora.</p>
+          </div>
+        </div>
+
+        <div class="payroll-hierarchy">
+          <div class="payroll-user-header">
+            <span>Usuario</span>
+            <span>Subtotal historico</span>
+            <span>Bonificacion historica</span>
+            <span>Gran total</span>
+          </div>
+
+          @for (group of payrollUserGroups(); track group.user.id) {
+            <div class="payroll-user-group">
+              <button class="payroll-user-row" type="button" (click)="togglePayrollUser(group.user.id)">
+                <span class="payroll-user-main">
+                  <strong>{{ group.user.name }}</strong>
+                  <small>{{ group.user.role }} · {{ group.user.area }}</small>
+                </span>
+                <span>{{ group.accumulatedSubtotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                <span>{{ group.accumulatedBonus | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                <strong>{{ group.accumulatedTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </button>
+
+              @if (isPayrollUserExpanded(group.user.id)) {
+                <div class="payroll-week-list">
+                  @for (week of group.weeks; track week.key) {
+                    <div class="payroll-week-group">
+                      <button class="payroll-week-row" type="button" (click)="togglePayrollWeek(week.key)">
+                        <span>
+                          <strong>{{ week.label }}</strong>
+                          <small>{{ week.totalHours | number: '1.2-2' }} h</small>
+                        </span>
+                        <span>{{ week.subtotalPay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                        <span class="payroll-week-bonus-input">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            [value]="week.bonus"
+                            (click)="$event.stopPropagation()"
+                            (input)="updatePayrollBonus(group.user.id, week.weekNumber, $event)"
+                          />
+                        </span>
+                        <strong>{{ week.grandTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                      </button>
+
+                      @if (isPayrollWeekExpanded(week.key)) {
+                        <div class="payroll-day-table">
+                          <div class="payroll-day-header">
+                            <span>Dia</span>
+                            <span>Entrada</span>
+                            <span>Salida</span>
+                            <span>Horas normales</span>
+                            <span>Extra 1</span>
+                            <span>Extra 2</span>
+                            <span>Extra 3</span>
+                            <span>Pago dia</span>
+                          </div>
+
+                          @for (day of week.days; track day.id) {
+                            <div class="payroll-day-row">
+                              <span>
+                                <strong>{{ day.dayName }}</strong>
+                                <small>{{ formatAttendanceDate(day.date) }}</small>
+                              </span>
+                              <span>{{ day.entryTime || '-' }}</span>
+                              <span>{{ day.exitTime || '-' }}</span>
+                              <span>{{ day.normalHours | number: '1.2-2' }} h / {{ day.normalPay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                              <span>{{ day.extra1Hours | number: '1.2-2' }} h / {{ day.extra1Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                              <span>{{ day.extra2Hours | number: '1.2-2' }} h / {{ day.extra2Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                              <span>{{ day.extra3Hours | number: '1.2-2' }} h / {{ day.extra3Pay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+                              <strong>{{ day.totalPay | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'payroll-generate') {
+    <!-- PAGINA: GENERAR PLANILLA | FUNCION PRINCIPAL: CONFIGURAR JORNADAS Y CALCULAR PAGOS SEMANALES. -->
+    <section class="payroll-workspace">
+      <header class="payroll-topbar">
+        <div>
+          <p class="eyebrow">Generar planilla</p>
+          <h1>Horas semanales por jornada</h1>
+          <p>Ingresa horas por usuario, dia y valor horario para calcular el total semanal.</p>
+        </div>
+        <button class="ghost-button" type="button" (click)="setPage('payroll')">
+          Volver a planillas
+        </button>
+      </header>
+
+      <section class="payroll-kpis" aria-label="Resumen de generacion">
+        <article class="payroll-card kpi-card">
+          <span>Total horas semana</span>
+          <strong>{{ generatedWeeklyHours() | number: '1.2-2' }}</strong>
+          <small>Suma de todas las jornadas</small>
+        </article>
+        @for (shift of generatedPayrollShiftTotals(); track shift.id) {
+          <article class="payroll-card kpi-card">
+            <span>{{ shift.name }}</span>
+            <strong>{{ shift.hours | number: '1.2-2' }}</strong>
+            <small>{{ shift.schedule }} · {{ shift.rate | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}/h</small>
+          </article>
+        }
+      </section>
+
+      <section class="payroll-card generate-summary-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Totales por valor de hora</h2>
+            <p>Estos totales se usan para calcular el pago semanal.</p>
+          </div>
+          <strong>{{ generatedWeeklyPay() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+        </div>
+
+        <div class="shift-total-grid">
+          @for (shift of generatedPayrollShiftTotals(); track shift.id) {
+            <article>
+              <span>{{ shift.name }}</span>
+              <strong>{{ shift.hours | number: '1.2-2' }} h</strong>
+              <small>{{ shift.hours * shift.rate | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</small>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="payroll-card payroll-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Captura semanal por usuario</h2>
+            <p>Cada dia tiene horas diurnas, mixtas y nocturnas con valor diferente.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="generate-payroll-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                @for (day of payrollDays; track day.id) {
+                  <th>{{ day.name }}</th>
+                }
+                @for (shift of payrollShifts; track shift.id) {
+                  <th>Total {{ shift.name }}</th>
+                }
+                <th>Total horas</th>
+                <th>Total pago</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of attendanceUsers(); track user.id) {
+                <tr>
+                  <td>
+                    <strong>{{ user.name }}</strong>
+                    <span>{{ user.role }}</span>
+                  </td>
+                  @for (day of payrollDays; track day.id) {
+                    <td>
+                      <div class="day-hours">
+                        @for (shift of payrollShifts; track shift.id) {
+                          <label>
+                            {{ shift.name }}
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.25"
+                              [value]="payrollHours()[user.id]?.[day.id]?.[shift.id] || 0"
+                              (input)="updateGeneratedPayrollHours(user.id, day.id, shift.id, $event)"
+                            />
+                          </label>
+                        }
+                      </div>
+                    </td>
+                  }
+                  @for (shift of payrollShifts; track shift.id) {
+                    <td>{{ userWeeklyShiftHours(user.id, shift.id) | number: '1.2-2' }}</td>
+                  }
+                  <td>{{ userWeeklyGeneratedHours(user.id) | number: '1.2-2' }}</td>
+                  <td>{{ userWeeklyGeneratedPay(user.id) | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'costs') {
+    <!-- PAGINA: COSTOS | FUNCION PRINCIPAL: ANALIZAR COSTOS FIJOS, VARIABLES, GASTO MENSUAL Y MARGEN OPERATIVO. -->
+    <section class="dashboard-workspace costs-workspace">
+      <header class="dashboard-topbar">
+        <div>
+          <p class="eyebrow">Costos</p>
+          <h1>Costos operativos</h1>
+          <p>Analisis de costos fijos estimados, costos variables reales, gasto mensual y margen operativo.</p>
+        </div>
+        <div class="dashboard-actions">
+          <label class="costs-period-selector">
+            <span>Ano</span>
+            <select [value]="selectedCostYear()" (change)="updateCostYear($event)">
+              @for (year of costYearOptions(); track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </label>
+          <label class="costs-period-selector">
+            <span>Mes</span>
+            <select [value]="selectedCostMonth()" (change)="updateCostMonth($event)">
+              @for (month of costMonthOptions; track month.value) {
+                <option [value]="month.value">{{ month.label }}</option>
+              }
+            </select>
+          </label>
+          <div class="user-pill">
+            <span>YR</span>
+            <strong>{{ currentUser()?.nombre || 'Usuario' }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-kpis costs-kpis" aria-label="Datos clave de costos">
+        <article class="analytics-card kpi-card">
+          <span>Costo actual de inventario</span>
+          <strong>{{ monthlyFixedCostEstimate() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Valor potencial de venta: {{ monthlyVariableCost() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Utilidad potencial</span>
+          <strong>{{ monthlyOperatingCost() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Diferencia entre costo actual y precio de venta actual del inventario</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Costos por area</span>
+          <strong>{{ topCostCategory()?.category || 'Sin categoria' }}</strong>
+          <small>
+            {{
+              topCostCategory()
+                ? (topCostCategory()!.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2')
+                : 'Sin inventario registrado'
+            }}
+          </small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Margen potencial</span>
+          <strong>{{ monthlyOperatingMargin() | percent: '1.0-2' }}</strong>
+          <small>Basado en costo y precio de venta actuales por producto</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Costos operativos</span>
+          <strong>{{ operationalCostTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Energia, transporte, alquiler, empaque y otros gastos del periodo</small>
+        </article>
+        <article class="analytics-card kpi-card">
+          <span>Utilidad neta estimada</span>
+          <strong>{{ estimatedNetPotentialProfit() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          <small>Utilidad potencial menos costos operativos registrados</small>
+        </article>
+      </section>
+
+      <section class="analytics-card invoices-table-card costs-table-card operational-cost-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Costos operativos</h2>
+            <p>Registra gastos reales como energia electrica, transporte, alquiler, internet, empaque y mantenimiento.</p>
+          </div>
+          <div class="operational-cost-heading-actions">
+            <strong>{{ operationalCostRows().length | number }} registros</strong>
+            <button class="daily-sales-button" type="button" (click)="openOperationalCostModal()">
+              Agregar costo
+            </button>
+          </div>
+        </div>
+
+        @if (operationalCostError()) {
+          <p class="login-error">{{ operationalCostError() }}</p>
+        }
+
+        <div class="operational-cost-summary">
+          @for (item of operationalCostByType(); track item.type) {
+            <article>
+              <span>{{ item.type }}</span>
+              <strong>{{ item.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+          } @empty {
+            <article>
+              <span>Sin registros</span>
+              <strong>{{ operationalCostLoading() ? 'Cargando...' : 'L 0.00' }}</strong>
+            </article>
+          }
+        </div>
+
+        <div class="table-wrap">
+          <table class="invoice-master-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Factura</th>
+                <th>Descripcion</th>
+                <th>Aplica a</th>
+                <th>Referencia</th>
+                <th>Usuario</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of operationalCostRows(); track row.id) {
+                <tr>
+                  <td>{{ row.date || '-' }}</td>
+                  <td>{{ row.type }}</td>
+                  <td>{{ row.invoiceNumber || (row.invoiceId ? '#' + row.invoiceId : '-') }}</td>
+                  <td>{{ row.description || '-' }}</td>
+                  <td>{{ row.appliesTo }}</td>
+                  <td>{{ row.reference || '-' }}</td>
+                  <td>{{ row.userName }}</td>
+                  <td class="invoice-total-cell">{{ row.amount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="table-feedback-row">
+                    {{ operationalCostLoading() ? 'Cargando costos operativos...' : 'No hay costos operativos registrados para este periodo.' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      @if (operationalCostModalOpen()) {
+        <div class="customer-modal-backdrop operational-cost-modal-backdrop" role="presentation" (click)="closeOperationalCostModal()">
+          <section
+            class="customer-modal operational-cost-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Agregar costo operativo"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="operational-cost-modal-header">
+              <div>
+                <p class="eyebrow">Costos</p>
+                <h2>Agregar costo operativo</h2>
+                <p>Registra gastos reales del periodo para estimar mejor la utilidad neta.</p>
+              </div>
+              <button class="ghost-button" type="button" (click)="closeOperationalCostModal()">Cerrar</button>
+            </div>
+
+            <div class="operational-cost-modal-grid">
+              <label>
+                Fecha
+                <input type="date" [value]="operationalCostDate()" (input)="updateOperationalCostDate($event)" />
+              </label>
+              <label>
+                Monto
+                <input type="number" min="0" step="0.01" [value]="operationalCostAmount()" (input)="updateOperationalCostAmount($event)" />
+              </label>
+              <label>
+                Factura de compra
+                <select [value]="operationalCostPurchaseInvoiceKey()" (change)="updateOperationalCostPurchaseInvoice($event)" required>
+                  <option value="">Selecciona factura de compra</option>
+                  @for (invoice of purchaseInvoiceOptions(); track invoice.key) {
+                    <option [value]="invoice.key">
+                      {{ invoice.purchaseType }} {{ invoice.invoiceNumber }} - {{ invoice.supplierName }} - {{ invoice.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}
+                    </option>
+                  }
+                </select>
+              </label>
+              <label>
+                Tipo
+                <select [value]="operationalCostType()" (change)="updateOperationalCostType($event)">
+                  <option>Energia electrica</option>
+                  <option>Transporte</option>
+                  <option>Alquiler</option>
+                  <option>Internet</option>
+                  <option>Empaque</option>
+                  <option>Mantenimiento</option>
+                  <option>Comision bancaria</option>
+                  <option>Otros</option>
+                </select>
+              </label>
+              <label>
+                Aplica a
+                <select [value]="operationalCostAppliesTo()" (change)="updateOperationalCostAppliesTo($event)">
+                  <option value="MES">Mes</option>
+                  <option value="COMPRA">Compra</option>
+                  <option value="VENTA">Venta</option>
+                  <option value="INVENTARIO">Inventario</option>
+                </select>
+              </label>
+              <label>
+                Referencia
+                <input type="text" placeholder="Factura, recibo o viaje" [value]="operationalCostReference()" (input)="updateOperationalCostReference($event)" />
+              </label>
+              <label class="operational-cost-modal-description">
+                Descripcion
+                <input type="text" placeholder="Detalle del gasto" [value]="operationalCostDescription()" (input)="updateOperationalCostDescription($event)" />
+              </label>
+            </div>
+
+            @if (operationalCostError()) {
+              <p class="login-error">{{ operationalCostError() }}</p>
+            }
+
+            <div class="operational-cost-modal-footer">
+              <article>
+                <span>Total a registrar</span>
+                <strong>{{ operationalCostAmount() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </article>
+              <div>
+                <button class="ghost-button" type="button" (click)="closeOperationalCostModal()">Cancelar</button>
+                <button class="daily-sales-button" type="button" [disabled]="operationalCostSaving()" (click)="saveOperationalCost()">
+                  {{ operationalCostSaving() ? 'Guardando...' : 'Guardar costo' }}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      }
+
+      <section class="dashboard-trend-grid costs-trend-grid" aria-label="Graficos de costos">
+        <article class="analytics-card trend-card cost-trend-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Distribucion de costos</h2>
+              <p>Relacion actual entre costo inventariado y utilidad potencial del stock</p>
+            </div>
+          </div>
+          <div class="chartjs-trend-shell cost-chart-shell pie-cost-chart-shell">
+            <canvas #costsDistributionCanvas aria-label="Distribucion de costos"></canvas>
+            @if (monthlyFixedCostEstimate() === 0 && monthlyOperatingCost() === 0) {
+              <span class="chart-empty-label">Sin costos para distribuir</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card trend-card cost-trend-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Evolucion de gastos</h2>
+              <p>Historico mensual de compras enlazadas a productos existentes en inventario</p>
+            </div>
+          </div>
+          <div class="chartjs-trend-shell cost-chart-shell">
+            <canvas #costsEvolutionCanvas aria-label="Evolucion de gastos"></canvas>
+            @if (costMonthlyTrend().length === 0) {
+              <span class="chart-empty-label">Sin historico de gastos</span>
+            }
+          </div>
+        </article>
+
+        <article class="analytics-card trend-card cost-trend-card costs-category-card">
+          <div class="analytics-heading">
+            <div>
+              <h2>Costos por categoria</h2>
+              <p>Barras con valor al costo y linea con valor a precio de venta por categoria, ambos desde inventario actual</p>
+            </div>
+          </div>
+          <div class="chartjs-trend-shell cost-chart-shell bar-cost-chart-shell">
+            <canvas #costsCategoryCanvas aria-label="Costos por categoria"></canvas>
+            @if (costCategoryComparisonSeries().length === 0) {
+              <span class="chart-empty-label">Sin categorias en inventario</span>
+            }
+          </div>
+        </article>
+      </section>
+
+      <section class="analytics-card invoices-table-card costs-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Productos con aumento de costo</h2>
+            <p>Comparativo mensual calculado al iniciar sesion y basado en snapshots del inventario.</p>
+          </div>
+          <span class="inventory-kpi-badge">{{ costIncreaseAlertPeriodLabel() }}</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="invoice-master-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoria</th>
+                <th>Costo anterior</th>
+                <th>Costo actual</th>
+                <th>Aumento</th>
+                <th>%</th>
+                <th>Precio venta</th>
+                <th>Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (costIncreaseAlertLoading()) {
+                <tr>
+                  <td colspan="8" class="table-feedback-row">Calculando aumentos de costo del ultimo mes...</td>
+                </tr>
+              } @else if (costIncreaseAlertError()) {
+                <tr>
+                  <td colspan="8" class="table-feedback-row">{{ costIncreaseAlertError() }}</td>
+                </tr>
+              } @else if (costIncreaseAlertRows().length === 0) {
+                <tr>
+                  <td colspan="8" class="table-feedback-row">No hay productos con aumento de costo registrado para el ultimo mes.</td>
+                </tr>
+              } @else {
+                @for (item of costIncreaseAlertRows(); track item.productId) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.productName }}</strong>
+                      <span>{{ item.sku }}</span>
+                    </td>
+                    <td>{{ item.category }}</td>
+                    <td>{{ item.previousCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td>{{ item.currentCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td>{{ item.increaseAmount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td>{{ item.increasePercentage / 100 | percent: '1.1-2' }}</td>
+                    <td>{{ item.currentSalePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td>{{ item.currentStock }}</td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="analytics-card invoices-table-card costs-table-card">
+        <div class="analytics-heading">
+          <div>
+            <h2>Detalle de costos por producto</h2>
+            <p>Control individual de costo, precio final, stock y margen por producto registrado.</p>
+          </div>
+          <label class="inventory-category-field costs-category-filter">
+            <span>Categoria</span>
+            <select [value]="selectedCostCategory()" (change)="updateCostCategory($event)">
+              @for (category of categories(); track category) {
+                <option [value]="category">{{ category }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table class="invoice-master-table">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Categoria</th>
+                <th>Stock</th>
+                <th>Costo</th>
+                <th>Precio final</th>
+                <th>Margen</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (product of paginatedCostProducts(); track product.id) {
+                <tr>
+                  <td>
+                    <strong>{{ product.name }}</strong>
+                    <span>{{ product.sku }}</span>
+                  </td>
+                  <td>{{ product.category }}</td>
+                  <td>{{ product.stock }}</td>
+                  <td>{{ product.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>{{ product.salePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td>
+                    <span [class]="costMarginClass(product.margin)">
+                      {{ product.margin | percent: '1.0-1' }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inventory-pagination costs-pagination">
+          <span>
+            Mostrando {{ costsPageStart() }}-{{ costsPageEnd() }} de
+            {{ filteredCostProducts().length }} productos
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousCostsPage()" [disabled]="costsPage() === 1">
+              Anterior
+            </button>
+            <strong>Pagina {{ costsPage() }} de {{ costsPageCount() }}</strong>
+            <button
+              type="button"
+              (click)="nextCostsPage()"
+              [disabled]="costsPage() === costsPageCount()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
+  } @else if (activePage() === 'history') {
+    <!-- PAGINA: HISTORICO | FUNCION PRINCIPAL: CONSULTAR MOVIMIENTOS Y CAMBIOS HISTORICOS DEL SISTEMA. -->
+  <section class="workspace history-workspace">
+    <header class="topbar history-topbar">
+      <div>
+        <p class="eyebrow">Historico</p>
+        <h1>Movimientos del sistema y base de datos</h1>
+        <p>Auditoria operativa de registros creados, modificados y eliminados.</p>
+      </div>
+      <button class="ghost-button history-refresh-button" type="button" (click)="loadAuditHistory()">Actualizar</button>
+    </header>
+
+    <section class="history-summary-grid" aria-label="Resumen historico">
+      <article class="history-summary-card">
+        <span>Movimientos BD</span>
+        <strong>{{ auditHistory().length }}</strong>
+        <small>Ultimos registros de auditoria</small>
+      </article>
+      <article class="history-summary-card">
+        <span>Tablas afectadas</span>
+        <strong>{{ auditHistoryTablesCount() }}</strong>
+        <small>Origenes detectados</small>
+      </article>
+      <article class="history-summary-card">
+        <span>Ultimo movimiento</span>
+        @if (auditHistoryLastRecord(); as lastRecord) {
+          <strong>{{ lastRecord.date ? (lastRecord.date | date: 'dd/MM HH:mm') : '--' }}</strong>
+          <small>{{ lastRecord.tableName || 'Sin registros' }}</small>
+        } @else {
+          <strong>--</strong>
+          <small>Sin registros</small>
+        }
+      </article>
+      <article class="history-summary-card attention">
+        <span>Ultimo usuario</span>
+        @if (auditHistoryLastRecord(); as lastRecord) {
+          <strong>{{ lastRecord.user || 'Sin registro' }}</strong>
+        } @else {
+          <strong>Sin registro</strong>
+        }
+        <small>Usuario asociado al cambio</small>
+      </article>
+    </section>
+
+    <section class="history-panel history-trend-panel">
+      <div class="history-panel-heading">
+        <div>
+          <p class="eyebrow">Tendencia</p>
+          <h2>Movimientos por usuario</h2>
+        </div>
+        <span>Top 5 usuarios</span>
+      </div>
+      <div class="history-trend-chart">
+        <canvas #auditUserTrendCanvas aria-label="Tendencia de movimientos por usuario"></canvas>
+      </div>
+    </section>
+
+    <section class="history-panel">
+      <div class="history-panel-heading">
+        <div>
+          <p class="eyebrow">Auditoria</p>
+          <h2>Movimientos registrados</h2>
+        </div>
+        <span>{{ auditHistoryLoading() ? 'Cargando...' : (auditHistory().length + ' registros') }}</span>
+      </div>
+
+      @if (auditHistoryError()) {
+        <p class="login-error history-error">{{ auditHistoryError() }}</p>
+      }
+
+      <div class="history-table-wrap">
+        <table class="history-audit-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Accion</th>
+              <th>Tabla</th>
+              <th>Registro</th>
+              <th>Usuario</th>
+              <th>Dato anterior</th>
+              <th>Dato nuevo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of auditHistory(); track item.id) {
+              <tr>
+                <td class="history-date-cell">
+                  <strong>{{ item.date ? (item.date | date: 'dd/MM/yyyy') : '--' }}</strong>
+                  <span>{{ item.date ? (item.date | date: 'HH:mm:ss') : '--:--:--' }}</span>
+                </td>
+                <td>
+                  <span
+                    class="history-action-badge"
+                    [class.insert]="auditActionClass(item.action) === 'insert'"
+                    [class.update]="auditActionClass(item.action) === 'update'"
+                    [class.delete]="auditActionClass(item.action) === 'delete'"
+                  >
+                    {{ item.action }}
+                  </span>
+                </td>
+                <td class="history-table-name">
+                  <strong>{{ item.tableName }}</strong>
+                </td>
+                <td>
+                  <span class="history-key">{{ item.recordKey || 'Sin clave' }}</span>
+                </td>
+                <td>
+                  <strong>{{ item.user }}</strong>
+                  @if (item.userId) {
+                    <span class="history-user-id">ID {{ item.userId }}</span>
+                  }
+                </td>
+                <td class="history-data-cell previous">
+                  @for (part of splitAuditData(item.previousData); track part) {
+                    <span>{{ part }}</span>
+                  } @empty {
+                    <em>Sin dato anterior</em>
+                  }
+                </td>
+                <td class="history-data-cell current">
+                  @for (part of splitAuditData(item.newData); track part) {
+                    <span>{{ part }}</span>
+                  } @empty {
+                    <em>Sin dato nuevo</em>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="history-empty-state">
+                  No hay movimientos de auditoria para mostrar.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </section>
+  } @else if (activePage() === 'billing') {
+  <!-- PAGINA: FACTURACION | FUNCION PRINCIPAL: REGISTRAR VENTAS, COMPRAS, CLIENTES, PROVEEDORES Y FORMAS DE PAGO. -->
+  <section class="workspace billing-workspace">
+    <header class="topbar">
+      <div>
+        <h1>Inventario, compras, ventas y precios finales</h1>
+      </div>
+      <div class="topbar-alert-group">
+        <button
+          class="expiring-alert-button topbar-alert-button sales-drop-alert-button"
+          [class.sales-drop-alert-button-active]="salesDropAlert().shouldAlert"
+          type="button"
+          (click)="openSalesDropAlertModal()"
+        >
+          <span class="expiring-alert-button-icon" aria-hidden="true">!</span>
+          <span>Ventas</span>
+          <strong>{{ salesDropAlertCount() }}</strong>
+        </button>
+        <button class="expiring-alert-button topbar-alert-button stock-alert-button" type="button" (click)="openLowStockAlertModal()">
+          <span class="expiring-alert-button-icon" aria-hidden="true">!</span>
+          <span>Stock bajo</span>
+          <strong>{{ lowStockCount() }}</strong>
+        </button>
+        <button class="expiring-alert-button topbar-alert-button" type="button" (click)="openExpiringProductsModal()">
+          <span class="expiring-alert-button-icon" aria-hidden="true">!</span>
+          <span>Alertas</span>
+          <strong>{{ expiringProductsCount() }}</strong>
+        </button>
+      </div>
+    </header>
+
+    <section class="metrics" aria-label="Resumen de inventario">
+      <article class="metric-card">
+        <span>Unidades</span>
+        <strong>{{ totalUnits() | number }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Valor al costo</span>
+        <strong>{{ inventoryValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+      </article>
+      <article class="metric-card attention">
+        <span>Stock bajo</span>
+        <strong>{{ lowStockCount() }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Margen promedio</span>
+        <strong>{{ averageMargin() | percent: '1.0-1' }}</strong>
+      </article>
+    </section>
+
+    <section class="operation-grid">
+      <article class="panel product-panel" id="inventario">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Productos</p>
+            <h2>Catalogo disponible</h2>
+          </div>
+          <div class="billing-heading-actions">
+            <span>{{ filteredProducts().length }} resultados</span>
+            <button class="daily-sales-button topbar-sales-button" type="button" (click)="openDailySalesModal()">
+              Ventas del dia
+            </button>
+            <button class="cut-open-button" type="button" (click)="openCutModal()">Corte Del Dia</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <label>
+            Buscar producto
+            <input
+              type="search"
+              placeholder="Nombre, SKU o codigo de barra"
+              [value]="searchTerm()"
+              (input)="updateSearch($event)"
+              (keydown.enter)="handleBillingSearchEnter($event)"
+            />
+          </label>
+
+          <label>
+            Categoria
+            <select [value]="selectedCategory()" (change)="updateCategory($event)">
+              @for (category of categories(); track category) {
+                <option [value]="category">{{ category }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="product-grid">
+          @for (product of paginatedBillingProducts(); track product.id) {
+            <button class="product-card" type="button" (click)="addToCart(product.id)">
+              <span class="product-card-top">
+                <span class="sku">{{ product.sku }}</span>
+                <button
+                  class="product-favorite-button"
+                  type="button"
+                  [class.active]="isFavoriteProduct(product.id)"
+                  (click)="toggleFavoriteProduct(product.id, $event)"
+                  [attr.aria-label]="isFavoriteProduct(product.id) ? 'Quitar favorito' : 'Marcar favorito'"
+                >
+                  {{ isFavoriteProduct(product.id) ? '★' : '☆' }}
+                </button>
+              </span>
+              <span class="product-visual" [class.has-image]="product.imageUrl">
+                @if (product.imageUrl) {
+                  <img [src]="product.imageUrl" [alt]="product.name" />
+                } @else {
+                  {{ product.name.slice(0, 2).toUpperCase() }}
+                }
+              </span>
+              <strong>{{ product.name }}</strong>
+              <span class="product-meta-line">
+                <span class="product-margin-pill" [class.low-margin]="product.margin < 0.25">
+                  {{ product.margin | percent: '1.0-0' }}
+                </span>
+              </span>
+              <span class="product-cost-line">
+                <span>Costo</span>
+                <strong>{{ product.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </span>
+              <span class="product-card-footer">
+                <span>{{ product.stock }} uds.</span>
+                <span>
+                  {{
+                    (activeMode() === 'purchase' ? product.unitCost : product.salePrice)
+                      | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+                  }}
+                </span>
+              </span>
+            </button>
+          }
+        </div>
+
+        <div class="inventory-pagination">
+          <span>
+            Mostrando {{ billingPageStart() }}-{{ billingPageEnd() }} de
+            {{ filteredProducts().length }} productos
+          </span>
+          <div class="inventory-pagination-actions">
+            <button type="button" (click)="previousBillingPage()" [disabled]="billingPage() === 1">
+              Anterior
+            </button>
+            <strong>Pagina {{ billingPage() }} de {{ billingPageCount() }}</strong>
+            <button
+              type="button"
+              (click)="nextBillingPage()"
+              [disabled]="billingPage() === billingPageCount()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel checkout-panel" [id]="activeMode() === 'purchase' ? 'compras' : 'ventas'">
+        @if (saleSuccessMessage()) {
+          <div
+            class="sale-toast"
+            [class.sale-toast-error]="saleToastVariant() === 'error'"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="sale-toast-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                @if (saleToastVariant() === 'error') {
+                  <path
+                    d="M8 8l8 8M16 8l-8 8"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                  />
+                } @else {
+                  <path
+                    d="M20 6L9 17l-5-5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                  />
+                }
+              </svg>
+            </span>
+            <div class="sale-toast-copy">
+              <strong>{{ saleToastVariant() === 'error' ? 'Venta no generada' : 'Venta realizada' }}</strong>
+              <span>{{ saleSuccessMessage() }}</span>
+            </div>
+          </div>
+        }
+
+        <div class="panel-heading">
+          <div class="checkout-heading-actions">
+            <div class="checkout-secondary-actions">
+              <div class="selector-strip checkout-secondary-selector">
+                @if (activeMode() === 'sale') {
+                  <button class="selector-chip customer-button" type="button" (click)="openCustomerModal()">
+                    {{ selectedCustomer() || 'Cliente' }}
+                  </button>
+                } @else {
+                  <button class="selector-chip customer-button" type="button" (click)="openSupplierModal()">
+                    {{ selectedSupplier() || 'Proveedor' }}
+                  </button>
+                }
+              </div>
+              @if (activeMode() === 'sale') {
+                <p class="invoice-number-label checkout-inline-invoice">
+                  <span>Factura #{{ nextInvoiceNumber() || '...' }}</span>
+                </p>
+              }
+            </div>
+
+            <div class="checkout-primary-actions">
+              <div class="checkout-top-controls">
+                <div class="mode-switch checkout-mode-switch" aria-label="Tipo de operacion">
+                  <button
+                    type="button"
+                    [class.active]="activeMode() === 'sale'"
+                    (click)="setMode('sale')"
+                  >
+                    Venta
+                  </button>
+                  <button
+                    type="button"
+                    [class.active]="activeMode() === 'purchase'"
+                    (click)="setMode('purchase')"
+                  >
+                    Compra
+                  </button>
+                </div>
+
+                @if (activeMode() === 'sale') {
+                  <div class="selector-strip checkout-nav-strip" role="tablist" aria-label="Forma de pago">
+                    @for (paymentMethod of paymentMethodOptions; track paymentMethod.id) {
+                      <button
+                        class="selector-chip"
+                        type="button"
+                        [attr.aria-label]="paymentMethod.label"
+                        [title]="paymentMethod.label"
+                        [class.active]="selectedPaymentMethod() === paymentMethod.id"
+                        (click)="selectPaymentMethod(paymentMethod.id)"
+                      >
+                        {{ paymentMethod.shortLabel }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                <div class="selector-strip checkout-reset-strip">
+                  <button class="selector-chip reset-selector-button checkout-inline-reset" type="button" (click)="resetCart()">Limpiar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-list">
+          @if (cartDetails().length === 0) {
+            <p class="empty-state">Selecciona productos del catalogo para iniciar la operacion.</p>
+          }
+
+          @for (line of cartDetails(); track line.productId) {
+            <article class="cart-line">
+              <div>
+                <strong>{{ line.product.name }}</strong>
+                <span>{{ line.product.sku }} · {{ line.unitPrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</span>
+              </div>
+              @if (activeMode() === 'purchase') {
+                <label class="line-cost">
+                  Costo compra
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [value]="line.unitPrice"
+                    (input)="updatePurchaseCost(line.productId, $event)"
+                  />
+                </label>
+              }
+              <div class="quantity">
+                <button type="button" (click)="decreaseQuantity(line.productId)">-</button>
+                <span>{{ line.quantity }}</span>
+                <button type="button" (click)="addToCart(line.productId)">+</button>
+              </div>
+              <strong>{{ line.subtotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              <button class="remove-button" type="button" (click)="removeFromCart(line.productId)">
+                Quitar
+              </button>
+            </article>
+          }
+        </div>
+        <div class="totals">
+          <div class="subtotal-row">
+            <span>Subtotal</span>
+            <strong class="subtotal-value">{{ cartTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+          </div>
+          <div>
+            <span>{{ activeMode() === 'purchase' ? 'Costo registrado' : 'Utilidad estimada' }}</span>
+            <strong>
+              {{
+                (activeMode() === 'purchase' ? cartTotal() : saleProfit())
+                  | currency: 'HNL' : 'symbol-narrow' : '1.2-2'
+              }}
+            </strong>
+          </div>
+          <button
+            class="primary-button"
+            type="button"
+            [disabled]="checkoutLoading()"
+            (click)="completeTransaction()"
+          >
+            {{
+              activeMode() === 'purchase'
+                ? 'Recibir compra'
+                : (checkoutLoading() ? 'Guardando venta...' : 'Registrar venta')
+            }}
+          </button>
+          @if (checkoutError()) {
+            <p class="login-error">{{ checkoutError() }}</p>
+          }
+        </div>
+
+      </aside>
+    </section>
+
+    @if (expiringProductsModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeExpiringProductsModal()">
+        <section
+          class="customer-modal expiring-alerts-modal"
+          style="width:min(96vw, 1240px); max-height:min(88vh, 780px);"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Productos proximos a vencer"
+          (click)="$event.stopPropagation()"
+        >
+          <header class="customer-modal-header expiring-alerts-header">
+            <div>
+              <p class="eyebrow">Alertas</p>
+              <h2 class="customer-modal-title expiring-alerts-title">Productos proximos a vencer</h2>
+            </div>
+            <button class="customer-modal-close" type="button" (click)="closeExpiringProductsModal()">×</button>
+          </header>
+
+          <div class="expiring-alerts-cards-row">
+            <div class="expiring-alerts-summary">
+              <span>Total de alertas</span>
+              <strong>{{ expiringProductsCount() }}</strong>
+              <small>
+                @if (expiringProductAlerts().length > 0) {
+                  Entre {{ expiringProductAlerts()[0].daysRemaining }} y
+                  {{ expiringProductAlerts()[expiringProductAlerts().length - 1].daysRemaining }} dias para vencer.
+                } @else {
+                  Se muestran productos con 30 dias o menos para vencer.
+                }
+              </small>
+            </div>
+
+            @if (highestExpiringStockAlert(); as highestAlert) {
+              <article class="expiring-alert-highlight-card">
+                <span>Mayor cantidad a vencer</span>
+                <div class="expiring-alert-highlight-metrics">
+                  <strong>
+                    {{ highestAlert.daysRemaining }}
+                    <small>dias</small>
+                  </strong>
+                  <strong>
+                    {{ highestAlert.stock }}
+                    <small>und</small>
+                  </strong>
+                </div>
+                <small>{{ highestAlert.productName }}</small>
+              </article>
+            }
+
+            @if (lowestExpiringStockAlert(); as lowestAlert) {
+              <article class="expiring-alert-highlight-card low">
+                <span>Menor cantidad a vencer</span>
+                <div class="expiring-alert-highlight-metrics">
+                  <strong>
+                    {{ lowestAlert.daysRemaining }}
+                    <small>dias</small>
+                  </strong>
+                  <strong>
+                    {{ lowestAlert.stock }}
+                    <small>und</small>
+                  </strong>
+                </div>
+                <small>{{ lowestAlert.productName }}</small>
+              </article>
+            }
+          </div>
+
+          @if (expiringProductsError()) {
+            <p class="login-error">{{ expiringProductsError() }}</p>
+          }
+
+          <div class="customer-table-wrap expiring-alerts-table-wrap" style="max-height:min(58vh, 560px);">
+            <table class="expiring-alerts-table" style="min-width:980px; font-size:0.74rem;">
+              <thead>
+                <tr>
+                  <th style="padding:7px 8px;">Codigo</th>
+                  <th style="padding:7px 8px;">Producto</th>
+                  <th style="padding:7px 8px;">Categoria</th>
+                  <th style="padding:7px 8px;">Ingreso</th>
+                  <th style="padding:7px 8px;">Lote</th>
+                  <th style="padding:7px 8px;">Stock</th>
+                  <th style="padding:7px 8px;">Vence</th>
+                  <th style="padding:7px 8px;">Dias</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (expiringProductsLoading()) {
+                  <tr>
+                    <td colspan="8">Cargando alertas de vencimiento...</td>
+                  </tr>
+                } @else if (expiringProductAlerts().length === 0) {
+                  <tr>
+                    <td colspan="8">No hay productos proximos a vencer.</td>
+                  </tr>
+                } @else {
+                  @for (alert of expiringProductAlerts(); track alert.id) {
+                    <tr>
+                      <td style="padding:7px 8px;">{{ alert.sku }}</td>
+                      <td style="padding:7px 8px;">{{ alert.productName }}</td>
+                      <td style="padding:7px 8px;">{{ alert.category }}</td>
+                      <td style="padding:7px 8px;">{{ alert.entryDate || 'Sin fecha' }}</td>
+                      <td style="padding:7px 8px;">{{ alert.lotNumber ?? 'Sin lote' }}</td>
+                      <td style="padding:7px 8px;">{{ alert.stock }}</td>
+                      <td style="padding:7px 8px;">{{ alert.expiryDate | date: 'dd/MM/yyyy' }}</td>
+                      <td style="padding:7px 8px;">
+                        <span class="expiring-days-pill" style="color:#ffffff !important;">
+                          {{ alert.daysRemaining }} dias
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (lowStockAlertModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeLowStockAlertModal()">
+        <section
+          class="customer-modal expiring-alerts-modal low-stock-alerts-modal"
+          style="width:min(96vw, 1240px); max-height:min(88vh, 780px);"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Productos por debajo del stock minimo"
+          (click)="$event.stopPropagation()"
+        >
+          <header class="customer-modal-header expiring-alerts-header">
+            <div>
+              <p class="eyebrow">Alertas</p>
+              <h2 class="customer-modal-title expiring-alerts-title">Productos con stock bajo</h2>
+            </div>
+            <button class="customer-modal-close" type="button" (click)="closeLowStockAlertModal()">×</button>
+          </header>
+
+          <div class="expiring-alerts-cards-row">
+            <div class="expiring-alerts-summary low-stock-summary">
+              <span>Total de alertas</span>
+              <strong>{{ lowStockCount() }}</strong>
+              <small>
+                @if (lowStockAlerts().length > 0) {
+                  Productos iguales o por debajo del stock minimo.
+                } @else {
+                  No hay productos por debajo del stock minimo.
+                }
+              </small>
+            </div>
+
+            @if (highestLowStockAlert(); as highestLowStock) {
+              <article class="expiring-alert-highlight-card low-stock-card">
+                <span>Mayor stock entre alertas</span>
+                <div class="expiring-alert-highlight-metrics">
+                  <strong>
+                    {{ highestLowStock.stock }}
+                    <small>und</small>
+                  </strong>
+                  <strong>
+                    {{ highestLowStock.minStock }}
+                    <small>min</small>
+                  </strong>
+                </div>
+                <small>{{ highestLowStock.name }}</small>
+              </article>
+            }
+
+            @if (lowestLowStockAlert(); as lowestLowStock) {
+              <article class="expiring-alert-highlight-card low low-stock-card">
+                <span>Menor stock actual</span>
+                <div class="expiring-alert-highlight-metrics">
+                  <strong>
+                    {{ lowestLowStock.stock }}
+                    <small>und</small>
+                  </strong>
+                  <strong>
+                    {{ lowestLowStock.minStock }}
+                    <small>min</small>
+                  </strong>
+                </div>
+                <small>{{ lowestLowStock.name }}</small>
+              </article>
+            }
+          </div>
+
+          <div class="customer-table-wrap expiring-alerts-table-wrap" style="max-height:min(58vh, 560px);">
+            <table class="expiring-alerts-table" style="min-width:980px; font-size:0.74rem;">
+              <thead>
+                <tr>
+                  <th style="padding:7px 8px;">Codigo</th>
+                  <th style="padding:7px 8px;">Producto</th>
+                  <th style="padding:7px 8px;">Stock</th>
+                  <th style="padding:7px 8px;">Stock min</th>
+                  <th style="padding:7px 8px;">Diferencia</th>
+                  <th style="padding:7px 8px;">Costo</th>
+                  <th style="padding:7px 8px;">Precio</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (lowStockAlerts().length === 0) {
+                  <tr>
+                    <td colspan="7">No hay productos por debajo del stock minimo.</td>
+                  </tr>
+                } @else {
+                  @for (product of lowStockAlerts(); track product.id) {
+                    <tr>
+                      <td style="padding:7px 8px;">{{ product.sku }}</td>
+                      <td style="padding:7px 8px;">{{ product.name }}</td>
+                      <td style="padding:7px 8px;">{{ product.stock }}</td>
+                      <td style="padding:7px 8px;">{{ product.minStock }}</td>
+                      <td style="padding:7px 8px;">
+                        <span class="expiring-days-pill low-stock-pill" style="color:#ffffff !important;">
+                          {{ product.minStock - product.stock }} und
+                        </span>
+                      </td>
+                      <td style="padding:7px 8px;">{{ product.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td style="padding:7px 8px;">{{ product.salePrice | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (salesDropAlertModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeSalesDropAlertModal()">
+        <section
+          class="customer-modal expiring-alerts-modal sales-drop-alerts-modal"
+          style="width:min(96vw, 1120px); max-height:min(82vh, 720px);"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Alerta de caida de ventas"
+          (click)="$event.stopPropagation()"
+        >
+          <header class="customer-modal-header expiring-alerts-header">
+            <div>
+              <p class="eyebrow">Alertas</p>
+              <h2 class="customer-modal-title expiring-alerts-title">Caida de ventas</h2>
+            </div>
+            <button class="customer-modal-close" type="button" (click)="closeSalesDropAlertModal()">×</button>
+          </header>
+
+          @if (salesDropAlertError()) {
+            <p class="login-error">{{ salesDropAlertError() }}</p>
+          }
+
+          <div class="expiring-alerts-cards-row sales-drop-cards-row">
+            <div class="expiring-alerts-summary sales-drop-summary" [class.sales-drop-summary-alert]="salesDropAlert().shouldAlert">
+              <span>Estado</span>
+              <strong>{{ salesDropAlertSeverityLabel() }}</strong>
+              <small>{{ salesDropAlertStatusLabel() }}</small>
+            </div>
+
+            <article class="expiring-alert-highlight-card sales-drop-card">
+              <span>Hoy hasta {{ salesDropAlert().cutoffTime || '--:--:--' }}</span>
+              <div class="expiring-alert-highlight-metrics">
+                <strong>{{ salesDropAlert().todayTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </div>
+              <small>Ventas acumuladas del dia actual</small>
+            </article>
+
+            <article class="expiring-alert-highlight-card sales-drop-card">
+              <span>{{ salesDropAlert().isReferenceFallback ? 'Ultimo dia con venta' : 'Venta de ayer' }}</span>
+              <div class="expiring-alert-highlight-metrics">
+                <strong>{{ salesDropAlert().yesterdayTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </div>
+              <small>
+                @if (salesDropAlert().isReferenceFallback) {
+                  Referencia del ultimo dia con ventas
+                  @if (salesDropAlert().referenceDate) {
+                    del {{ salesDropAlert().referenceDate | date: 'dd/MM/yyyy' }}
+                  }
+                } @else {
+                  Referencia del dia anterior
+                }
+              </small>
+            </article>
+
+            <article class="expiring-alert-highlight-card low sales-drop-card">
+              <span>Brecha actual</span>
+              <div class="expiring-alert-highlight-metrics">
+                <strong>{{ salesDropAlert().shortfallAmount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+              </div>
+              <small>
+                @if (salesDropAlert().shouldAlert) {
+                  Caida de {{ salesDropMissingPercentage() | number: '1.0-2' }}%
+                } @else if (salesDropAlert().isActive) {
+                  Sin brecha negativa frente a ayer
+                } @else {
+                  Se habilita a partir de las 7:00 PM
+                }
+              </small>
+            </article>
+          </div>
+
+          <div class="sales-drop-detail-card">
+            @if (salesDropAlertLoading()) {
+              <p>Cargando evaluacion de ventas...</p>
+            } @else {
+              <p>
+                Esta alerta compara las ventas de hoy contra la venta del dia anterior o la ultima venta valida.
+                El control operativo se activa a partir de las 7:00 PM para evitar comparaciones prematuras.
+              </p>
+              <p>
+                @if (salesDropAlert().shouldAlert) {
+                  Hoy faltan
+                  <strong>{{ salesDropAlert().shortfallAmount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                  para igualar la referencia del dia.
+                } @else if (salesDropAlert().isActive) {
+                  Hoy va igual o mejor que la referencia del dia.
+                } @else {
+                  Antes de las 7:00 PM la alerta solo se mantiene en estado pendiente.
+                }
+              </p>
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (dailySalesModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeDailySalesModal()">
+        <section
+          class="customer-modal daily-sales-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ventas del dia"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="analytics-heading">
+            <div>
+              <p class="eyebrow">Facturacion</p>
+              <h2 class="daily-sales-title">Ventas del dia</h2>
+            </div>
+            <button class="ghost-button" type="button" (click)="closeDailySalesModal()">Cerrar</button>
+          </div>
+
+          <section class="daily-sales-summary" aria-label="Resumen de ventas del dia">
+            <article>
+              <span>Facturas</span>
+              <strong>{{ todayInvoiceRows().length | number }}</strong>
+            </article>
+            <article>
+              <span>Total vendido</span>
+              <strong>{{ todayInvoiceTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+            </article>
+          </section>
+
+          <div class="table-wrap customer-table-wrap daily-sales-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Factura</th>
+                  <th>Cliente</th>
+                  <th>Fecha</th>
+                  <th>Tipo pago</th>
+                  <th>Articulos</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Usuario</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (todayInvoiceLoading()) {
+                  <tr>
+                    <td colspan="8">Cargando ventas del dia...</td>
+                  </tr>
+                } @else if (todayInvoiceError()) {
+                  <tr>
+                    <td colspan="8">{{ todayInvoiceError() }}</td>
+                  </tr>
+                } @else if (todayInvoiceRows().length === 0) {
+                  <tr>
+                    <td colspan="8">No hay ventas registradas hoy.</td>
+                  </tr>
+                }
+
+                @for (invoice of todayInvoiceRows(); track invoice.invoiceId) {
+                  <tr>
+                    <td><strong class="invoice-code-pill">#{{ invoice.invoiceId }}</strong></td>
+                    <td>{{ invoice.customerName }}</td>
+                    <td>{{ invoice.createdAt || '-' }}</td>
+                    <td>
+                      <span class="invoice-payment-pill" [class.cash]="invoice.paymentTypeId === 1">
+                        {{ invoice.paymentTypeName }}
+                      </span>
+                    </td>
+                    <td>{{ invoice.itemCount | number }}</td>
+                    <td class="invoice-total-cell">{{ invoice.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td>
+                      <span class="invoice-status-pill" [class.annulled]="isInvoiceAnnulled(invoice)">
+                        {{ invoice.statusName }}
+                      </span>
+                    </td>
+                    <td>{{ invoice.userName }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (cutModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeCutModal()">
+        <section
+          class="customer-modal cut-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Corte diario"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="analytics-heading">
+            <div>
+              <p class="eyebrow">Facturacion</p>
+              <h2 class="daily-sales-title">Corte diario</h2>
+            </div>
+            <button class="ghost-button" type="button" (click)="closeCutModal()">Cerrar</button>
+          </div>
+
+          <div class="cut-toolbar">
+            <label>
+              Desde
+              <input type="date" [value]="cutFilterFromDate()" (change)="updateCutFilterFromDate($event)" />
+            </label>
+            <label>
+              Hasta
+              <input type="date" [value]="cutFilterToDate()" (change)="updateCutFilterToDate($event)" />
+            </label>
+            <button class="daily-sales-button" type="button" (click)="openCutClosingFlow()">
+              Generar corte
+            </button>
+          </div>
+
+          @if (cutError()) {
+            <p class="login-error">{{ cutError() }}</p>
+          }
+
+          <div class="cut-layout">
+            <div class="table-wrap cut-history-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>N.</th>
+                    <th>Fecha</th>
+                    <th>Total</th>
+                    <th>Usuario</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (cutLoading()) {
+                    <tr>
+                      <td colspan="5">Cargando cortes...</td>
+                    </tr>
+                  } @else if (cutRows().length === 0) {
+                    <tr>
+                      <td colspan="5">No hay cortes guardados para esta fecha. A la derecha se muestra el resumen actual.</td>
+                    </tr>
+                  }
+
+                  @for (cut of cutRows(); track cut.id) {
+                    <tr [class.selected]="selectedCutId() === cut.id" (click)="selectCut(cut)">
+                      <td>{{ cut.id }}</td>
+                      <td>{{ formatCutDateTime(cut.date) }}</td>
+                      <td>{{ cut.totalSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td>{{ cut.userName }}</td>
+                      <td>
+                        <span
+                          class="cut-status-pill"
+                          [class.open]="cutStatusClass(cut) === 'open'"
+                          [class.closed]="cutStatusClass(cut) === 'closed'"
+                          [class.annulled]="cutStatusClass(cut) === 'annulled'"
+                        >
+                          {{ cut.statusName }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (selectedCut(); as cut) {
+              <section class="cut-detail-panel">
+                <div class="cut-detail-heading">
+                  <strong>
+                    {{ cut.id === 0 ? 'Resumen actual' : 'Corte N. ' + cut.id }}
+                    {{ cut.statusName.toLowerCase() }} por {{ cut.userName }}
+                  </strong>
+                  <span>Fecha: {{ formatCutDateTime(cut.date) }}</span>
+                </div>
+
+                <div class="cut-info-grid">
+                  <article class="cut-compact-card">
+                    <h3>Ventas</h3>
+                    <p><span>Ventas totales</span><strong>{{ cut.totalSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                  </article>
+
+                  <article>
+                    <h3>Dinero en caja</h3>
+                    <p><span>Dinero inicial</span><strong>{{ cut.initialCash | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Ventas en efectivo</span><strong>{{ cut.cashSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Abonos de credito</span><strong>{{ cut.creditPayments | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Entradas de dinero</span><strong>{{ cut.cashIn | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Salidas de dinero</span><strong>{{ cut.cashOut | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p class="highlight"><span>Total en caja</span><strong>{{ cut.cashTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                  </article>
+
+                  <article class="cut-compact-card">
+                    <h3>Resumen de ventas</h3>
+                    <p><span>Ventas en efectivo</span><strong>{{ cut.cashSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Ventas con transferencia</span><strong>{{ cut.transferSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Ventas en credito</span><strong>{{ cut.creditSales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    <p><span>Ganancia del dia</span><strong>{{ cut.profit | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                  </article>
+
+                  <article>
+                    <h3>Pagos de creditos</h3>
+                    @if (creditPaymentRows().length === 0) {
+                      <p><span>Sin pagos</span><strong>{{ 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></p>
+                    }
+                    @for (payment of creditPaymentRows(); track payment.id) {
+                      <p>
+                        <span>{{ payment.description }} · Factura #{{ payment.invoiceId }}</span>
+                        <strong>{{ payment.amount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
+                      </p>
+                    }
+                  </article>
+                </div>
+              </section>
+            } @else {
+              <section class="cut-detail-panel empty">
+                <strong>Selecciona un corte o genera uno nuevo.</strong>
+              </section>
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (customerModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeCustomerModal()">
+        <section
+          class="customer-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Seleccionar cliente"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="analytics-heading">
+            <div>
+              <p class="eyebrow">Factura</p>
+              <h2 class="customer-modal-title">Seleccionar cliente</h2>
+            </div>
+            <button class="ghost-button" type="button" (click)="closeCustomerModal()">Cerrar</button>
+          </div>
+
+          <div class="table-wrap customer-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Apellido</th>
+                  <th>Telefono</th>
+                  <th>Direccion</th>
+                  <th>Creditos</th>
+                  <th>Saldo</th>
+                  <th>Fecha</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (customerLoading()) {
+                  <tr>
+                    <td colspan="9">Cargando clientes...</td>
+                  </tr>
+                } @else if (customerError()) {
+                  <tr>
+                    <td colspan="9">{{ customerError() }}</td>
+                  </tr>
+                } @else if (customerOptions().length === 0) {
+                  <tr>
+                    <td colspan="9">No hay clientes registrados.</td>
+                  </tr>
+                }
+
+                @for (customer of customerOptions(); track customer.id) {
+                  <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.nombre }}</td>
+                    <td>{{ customer.apellido || '-' }}</td>
+                    <td>{{ customer.telefono || '-' }}</td>
+                    <td>{{ customer.direccion || '-' }}</td>
+                    <td>{{ customer.creditosAbiertos }}</td>
+                    <td>
+                      <span [class.customer-balance-pending]="customer.saldo > 0" class="customer-balance-badge">
+                        {{ customer.saldo | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}
+                      </span>
+                    </td>
+                    <td>{{ customer.fechaHora || '-' }}</td>
+                    <td>
+                      <button
+                        class="customer-select-button"
+                        type="button"
+                        (click)="selectCustomer(customer)"
+                      >
+                        Seleccionar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+
+    @if (supplierModalOpen()) {
+      <div class="customer-modal-backdrop" role="presentation" (click)="closeSupplierModal()">
+        <section
+          class="customer-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Seleccionar proveedor"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="analytics-heading">
+            <div>
+              <p class="eyebrow">Factura</p>
+              <h2 class="customer-modal-title supplier-modal-title">Seleccionar proveedor</h2>
+            </div>
+            <button class="ghost-button" type="button" (click)="closeSupplierModal()">Cerrar</button>
+          </div>
+
+          <div class="table-wrap customer-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Telefono</th>
+                  <th>Direccion</th>
+                  <th>Credito abierto</th>
+                  <th>Compras realizadas</th>
+                  <th>Fecha</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (supplierLoading()) {
+                  <tr>
+                    <td colspan="8">Cargando proveedores...</td>
+                  </tr>
+                } @else if (supplierError()) {
+                  <tr>
+                    <td colspan="8">{{ supplierError() }}</td>
+                  </tr>
+                } @else if (supplierOptions().length === 0) {
+                  <tr>
+                    <td colspan="8">No hay proveedores registrados.</td>
+                  </tr>
+                }
+
+                @for (supplier of supplierOptions(); track supplier.id) {
+                  <tr>
+                    <td>{{ supplier.id }}</td>
+                    <td>{{ supplier.nombre }}</td>
+                    <td>{{ supplier.telefono || '-' }}</td>
+                    <td>{{ supplier.direccion || '-' }}</td>
+                    <td>{{ supplier.creditoAbierto }}</td>
+                    <td>{{ supplier.comprasRealizadas }}</td>
+                    <td>{{ supplier.fechaHora || '-' }}</td>
+                    <td>
+                      <button
+                        class="customer-select-button"
+                        type="button"
+                        (click)="selectSupplier(supplier.nombre)"
+                      >
+                        Seleccionar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    }
+  </section>
+  }
+</main>
+}

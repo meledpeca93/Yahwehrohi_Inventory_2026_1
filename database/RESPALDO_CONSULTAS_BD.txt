@@ -1,0 +1,2343 @@
+RESPALDO DE CONSULTAS A LA BASE DE DATOS
+PROYECTO: YAHWEH ROHI INVENTORY
+
+====================================================================
+CONSULTA 1
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+loginUser(usuario, pass)
+
+QUE HACE:
+VALIDA SI EL USUARIO Y LA CONTRASENA EXISTEN EN LA TABLA USUARIO
+Y SI EL USUARIO ESTA ACTIVO.
+
+CONSULTA:
+SELECT TOP 1
+  id_usuario,
+  nombre,
+  usuario,
+  rol,
+  activo
+FROM usuario
+WHERE usuario = @usuario
+  AND pass = @pass
+  AND activo = 1
+
+====================================================================
+CONSULTA 2
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+loginUser(usuario, pass)
+
+QUE HACE:
+ACTUALIZA LA FECHA DEL ULTIMO ACCESO Y LA FECHA DE ACTUALIZACION
+DEL USUARIO QUE INICIO SESION.
+
+CONSULTA:
+UPDATE usuario
+SET ultimo_acceso = GETDATE(),
+    actualizado_en = GETDATE()
+WHERE id_usuario = @id_usuario
+
+====================================================================
+CONSULTA 3
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+listActiveUsers()
+
+QUE HACE:
+OBTIENE TODOS LOS USUARIOS ACTIVOS PARA CARGARLOS EN EL INICIO DE SESION.
+
+CONSULTA:
+SELECT
+  id_usuario,
+  nombre,
+  usuario,
+  rol
+FROM dbo.usuario
+WHERE activo = 1
+ORDER BY usuario ASC
+
+====================================================================
+CONSULTA 4
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+registerSale({ user, lines })
+
+QUE HACE:
+OBTIENE EL SIGUIENTE ID_VENTA DISPONIBLE PARA REGISTRAR UNA NUEVA VENTA.
+
+CONSULTA:
+SELECT ISNULL(MAX(ID_VENTA), 0) + 1 AS next_sale_id
+FROM dbo.VENTA
+
+====================================================================
+CONSULTA 5
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+registerSale({ user, paymentTypeId, customerId, lines })
+
+QUE HACE:
+VALIDA EL ID_TP Y SELECCIONA LA TABLA CORRECTA SEGUN LA FORMA DE PAGO.
+ID_TP 1 INSERTA EN dbo.VENTA_EFECTIVO.
+ID_TP 2 INSERTA EN dbo.VENTA_CREDITO.
+ID_TP 3 INSERTA EN dbo.VENTA_TRANSFERENCIA.
+INSERTA CADA LINEA DE LA VENTA EN LA TABLA CORRECTA.
+GUARDA ID_TP CON EL ID DE dbo.TIPO_PAGO Y GUARDA ID_CLIENTE.
+SI LA VENTA ES CREDITO, ID_CLIENTE DEBE VENIR DEL CLIENTE SELECCIONADO.
+SI LA VENTA ES EFECTIVO O TRANSFERENCIA Y NO VIENE CLIENTE, USA CLIENTE FINAL.
+GUARDA ID_ESTADO_VENTA SEGUN LA FORMA DE PAGO.
+EFECTIVO Y TRANSFERENCIA GUARDAN 4 PORQUE LA VENTA QUEDA FINALIZADA.
+CREDITO GUARDA 2 PORQUE QUEDA ACTIVA/PENDIENTE.
+NO ACTUALIZA INVENTARIO.
+
+CONSULTA:
+INSERT INTO [TABLA_SELECCIONADA_SEGUN_ID_TP] (
+  ID_PD,
+  CANT_PD,
+  PRECIO_COSTO,
+  PRECIO_VENTA,
+  UTILIDAD,
+  USUARIO,
+  FECHA_HORA,
+  ID_TP,
+  ID_CLIENTE,
+  ID_ESTADO_VENTA
+)
+VALUES (
+  @product_id,
+  @quantity,
+  @unit_cost,
+  @sale_price,
+  @utility,
+  @user_name,
+  @sale_timestamp,
+  @payment_type_id,
+  @customer_id,
+  @sale_status_id
+);
+
+SELECT CAST(SCOPE_IDENTITY() AS INT) AS inserted_sale_id;
+
+TABLAS POSIBLES:
+dbo.VENTA_EFECTIVO
+dbo.VENTA_CREDITO
+dbo.VENTA_TRANSFERENCIA
+
+====================================================================
+RESPALDO DE FACTURA EN FORMULARIO DE VENTA
+
+UBICACION DEL CODIGO:
+server/data-access.js
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+getNextInvoiceNumber()
+GET /api/invoices/next
+ipcMain.handle('invoices:next')
+window.electronAPI.getNextInvoiceNumber()
+loadNextInvoiceNumber()
+registerSale({ user, userId, paymentTypeId, customerId, lines })
+
+QUE HACE:
+MUESTRA DEBAJO DEL BOTON REGISTRAR VENTA EL SIGUIENTE NUMERO DE FACTURA.
+EL NUMERO SE CALCULA CONSULTANDO dbo.FACTURA CON MAX(ID_FACT) + 1.
+CUANDO SE GUARDA LA VENTA, registerSale() INSERTA PRIMERO EN dbo.FACTURA
+Y USA EL ID_FACT REAL GENERADO PARA INSERTAR LAS LINEAS EN LA TABLA
+DE VENTA CORRESPONDIENTE SEGUN LA FORMA DE PAGO.
+ANTES DE INSERTAR LA FACTURA, registerSale() CONSULTA dbo.FACTURA DENTRO
+DE LA TRANSACCION PARA VALIDAR EL SIGUIENTE ID_FACT ESPERADO.
+
+CONSULTA PARA MOSTRAR SIGUIENTE FACTURA:
+SELECT ISNULL(MAX(ID_FACT), 0) + 1 AS next_invoice_id
+FROM dbo.FACTURA
+
+CONSULTA DE VALIDACION ANTES DE GENERAR LA VENTA:
+SELECT ISNULL(MAX(ID_FACT), 0) + 1 AS next_invoice_id
+FROM dbo.FACTURA WITH (UPDLOCK, HOLDLOCK)
+
+INSERT DE FACTURA:
+INSERT INTO dbo.FACTURA (
+  ID_CLIENTE,
+  CANT_ART,
+  ID_USUARIO,
+  SUBTOTAL,
+  FECHA_HORA,
+  ID_TP
+)
+VALUES (
+  @customer_id,
+  @total_items,
+  @user_id,
+  @subtotal,
+  @sale_timestamp,
+  @payment_type_id
+);
+
+SELECT CAST(SCOPE_IDENTITY() AS INT) AS inserted_invoice_id;
+
+====================================================================
+RESPALDO DE CONSULTA PARA CLIENTE FINAL EN VENTAS DE CONTADO
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+resolveSaleCustomerId(transaction, paymentTypeId, customerId)
+registerSale({ user, userId, paymentTypeId, customerId, lines })
+
+QUE HACE:
+RESUELVE EL ID_CLIENTE QUE SE GUARDA EN dbo.FACTURA Y EN LAS TABLAS DE VENTA.
+SI LA FORMA DE PAGO ES CREDITO, OBLIGA A RECIBIR UN CLIENTE SELECCIONADO.
+SI LA FORMA DE PAGO ES EFECTIVO O TRANSFERENCIA Y NO VIENE CLIENTE,
+BUSCA UN CLIENTE LLAMADO CLIENTE FINAL EN dbo.cliente.
+SI NO EXISTE, LO CREA AUTOMATICAMENTE Y USA SU ID_CLIENTE.
+
+CONSULTAS:
+SELECT TOP 1 ID_CLIENTE
+FROM dbo.cliente
+WHERE UPPER(LTRIM(RTRIM(NOMBRE))) = 'CLIENTE FINAL'
+ORDER BY ID_CLIENTE ASC
+
+INSERT INTO dbo.cliente (
+  NOMBRE,
+  APELLIDO,
+  TELEFONO,
+  DIRECCION,
+  CREDITOS_ABIERTOS,
+  FECHA_HORA,
+  saldo
+)
+VALUES (
+  'Cliente final',
+  '',
+  '00000000',
+  'Venta de mostrador',
+  0,
+  @created_at,
+  0
+);
+
+SELECT CAST(SCOPE_IDENTITY() AS INT) AS inserted_customer_id;
+
+====================================================================
+CONSULTA 6
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+getProducts({ resolveProductImageUrl })
+
+QUE HACE:
+OBTIENE EL CATALOGO DE PRODUCTOS Y LOS DATOS DE INVENTARIO
+UNIDOS POR EL CODIGO DEL PRODUCTO.
+
+CONSULTA:
+SELECT
+  p.id_producto,
+  p.codigo,
+  p.nombre,
+  p.descripcion,
+  p.imagen_url,
+  i.precio_costo,
+  i.precio_venta,
+  i.precio_mayoreo,
+  i.unidad_medida,
+  i.stock,
+  i.stock_minimo,
+  i.stock_maximo,
+  i.categoria,
+  i.proveedor,
+  i.creado_por,
+  i.creado_en,
+  i.actualizado_por,
+  i.actualizado_en
+FROM dbo.producto p
+INNER JOIN dbo.inventario i
+  ON i.codigo = p.codigo
+WHERE p.activo = 1
+ORDER BY p.nombre ASC
+
+====================================================================
+CONSULTA 7
+UBICACION DEL CODIGO:
+server/test-db-connection.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+main()
+
+QUE HACE:
+REALIZA UNA PRUEBA DE CONEXION A SQL SERVER Y DEVUELVE EL NOMBRE
+DE LA BASE DE DATOS, EL NOMBRE DEL SERVIDOR Y LA FECHA DE LA PRUEBA.
+
+CONSULTA:
+SELECT
+  DB_NAME() AS database_name,
+  @@SERVERNAME AS server_name,
+  GETDATE() AS checked_at
+
+====================================================================
+CONSULTA 8
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA EJECUTA:
+listCustomers()
+
+QUE HACE:
+OBTIENE LOS CLIENTES DESDE LA TABLA cliente
+PARA LLENAR EL MODAL DE SELECCION DE CLIENTES EN FACTURACION.
+CALCULA EL SALDO DESDE dbo.VENTA_CREDITO SUMANDO PRECIO_VENTA * CANT_PD
+DE CREDITOS ACTIVOS CON ID_ESTADO_VENTA = 2.
+
+CONSULTA:
+SELECT
+  c.ID_CLIENTE,
+  c.NOMBRE,
+  c.APELLIDO,
+  c.TELEFONO,
+  c.DIRECCION,
+  c.CREDITOS_ABIERTOS,
+  c.FECHA_HORA,
+  ISNULL(creditos.SALDO_CREDITO, 0) AS saldo
+FROM dbo.cliente c
+LEFT JOIN (
+  SELECT
+    ID_CLIENTE,
+    SUM(PRECIO_VENTA * CANT_PD) AS SALDO_CREDITO
+  FROM dbo.VENTA_CREDITO
+  WHERE ID_ESTADO_VENTA = 2
+  GROUP BY ID_CLIENTE
+) creditos
+  ON creditos.ID_CLIENTE = c.ID_CLIENTE
+ORDER BY c.ID_CLIENTE ASC
+
+====================================================================
+RUTAS O PROCEDIMIENTOS QUE DISPARAN ESTAS CONSULTAS
+
+server/server.js
+- /api/auth/login LLAMA A loginUser()
+- /api/auth/users LLAMA A listActiveUsers()
+- /api/customers LLAMA A listCustomers()
+- /api/sales LLAMA A registerSale()
+- /api/products LLAMA A getProducts()
+- /api/health VERIFICA LA CONEXION USANDO getPool()
+
+electron/main.js
+- auth:login LLAMA A loginUser()
+- auth:users LLAMA A listActiveUsers()
+- customers:list LLAMA A listCustomers()
+- sales:create LLAMA A registerSale()
+- products:list LLAMA A getProducts()
+- db:health VERIFICA LA CONEXION USANDO getPool()
+
+====================================================================
+RESPALDO DE CALCULOS DEL DASHBOARD
+
+UBICACION DEL CODIGO:
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTO O CONSULTA QUE LOS ALIMENTA:
+getProducts({ resolveProductImageUrl })
+UBICADO EN server/data-access.js
+
+QUE HACE:
+LAS TARJETAS DEL DASHBOARD USAN LOS DATOS CARGADOS POR LA CONSULTA
+DE PRODUCTOS E INVENTARIO PARA CALCULAR LOS SIGUIENTES INDICADORES:
+- VALOR TOTAL DE INVENTARIO = PRECIO_VENTA * STOCK
+- VALOR TOTAL AL COSTO = PRECIO_COSTO * STOCK
+- CANTIDAD DE ARTICULOS REGISTRADOS = TOTAL DE PRODUCTOS
+- % DE GANANCIA PROMEDIO = PROMEDIO DEL MARGEN DE TODOS LOS PRODUCTOS
+
+CONSULTA BASE UTILIZADA:
+SELECT
+  p.id_producto,
+  p.codigo,
+  p.nombre,
+  p.descripcion,
+  p.imagen_url,
+  i.precio_costo,
+  i.precio_venta,
+  i.precio_mayoreo,
+  i.unidad_medida,
+  i.stock,
+  i.stock_minimo,
+  i.stock_maximo,
+  i.categoria,
+  i.proveedor,
+  i.creado_por,
+  i.creado_en,
+  i.actualizado_por,
+  i.actualizado_en
+FROM dbo.producto p
+INNER JOIN dbo.inventario i
+  ON i.codigo = p.codigo
+WHERE p.activo = 1
+ORDER BY p.nombre ASC
+
+====================================================================
+RESPALDO DE GRAFICOS DE TENDENCIA TEMPORALES
+
+UBICACION DEL CODIGO:
+src/app/app.ts
+src/app/app.html
+src/app/app.css
+
+PROCEDIMIENTO QUE LOS UTILIZA:
+salesTrendData
+purchasesTrendData
+salesTrendPolyline
+purchasesTrendPolyline
+buildTrendPolyline(items, maxValue)
+
+QUE HACEN:
+SE AGREGARON DOS GRAFICOS DE TENDENCIA DESPUES DE LAS TARJETAS DEL DASHBOARD.
+UNO MUESTRA LA TENDENCIA DE VENTAS Y OTRO LA TENDENCIA DE COMPRAS.
+POR AHORA USAN DATOS TEMPORALES EN MEMORIA Y LUEGO SERAN CONECTADOS
+A DATOS REALES DE LA BASE DE DATOS.
+
+====================================================================
+RESPALDO DE SELECTORES EN EL FORMULARIO DE VENTA
+
+UBICACION DEL CODIGO:
+src/app/app.ts
+src/app/app.html
+src/app/app.css
+
+PROCEDIMIENTO QUE LOS UTILIZA:
+paymentMethodOptions
+customerOptions
+selectPaymentMethod(paymentMethod)
+openCustomerModal()
+closeCustomerModal()
+selectCustomer(customerName)
+loadCustomers()
+
+QUE HACEN:
+SE AGREGARON DOS SELECTORES AL FORMULARIO DE VENTA.
+UNO PERMITE ELEGIR LA FORMA DE PAGO ENTRE EFECTIVO, CREDITO Y TRANSFERENCIA.
+OTRO PERMITE SELECCIONAR UN CLIENTE PARA AGREGARLO A LA FACTURA.
+EL LISTADO DE CLIENTES AHORA SE CARGA DESDE LA TABLA cliente.
+VISUALMENTE LAS FORMAS DE PAGO SE MUESTRAN COMO BOTONES SEGMENTADOS
+EN LA NAV DEL FORMULARIO DE VENTA.
+LOS BOTONES DE FORMA DE PAGO SOLO MUESTRAN LAS INICIALES.
+SE APLICO FONDO DEGRADADO PARA QUE TENGAN MEJOR PRESENCIA VISUAL.
+CUANDO UN BOTON ESTA SELECCIONADO USA UN DEGRADADO ENTRE MORADO Y AZUL.
+EL CLIENTE QUEDO COMO UN SOLO BOTON QUE ABRE UN MODAL
+CON UNA TABLA TEMPORAL DE CLIENTES PARA SELECCIONAR UNO.
+EL MODAL SE MUESTRA CENTRADO EN LA PAGINA Y EL FONDO USA BLUR
+PARA QUE EL CONTENIDO POSTERIOR SE VEA DIFUMINADO Y RESALTE EL MODAL.
+EL MODAL AHORA QUEDA DENTRO DEL CONTENEDOR PRINCIPAL PARA HEREDAR
+EL TEMA ACTIVO QUE ESTE USANDO LA APLICACION.
+CUANDO SE REGISTRA UNA VENTA, paymentMethodOptions ENVIA EL ID_TP
+DE dbo.TIPO_PAGO HACIA persistSale() Y requestCreateSale().
+LOS IDS ACTUALES SON:
+1 = EFECTIVO
+2 = CREDITO
+3 = TRANSFERENCIA
+selectCustomer(customer) GUARDA EL ID_CLIENTE SELECCIONADO PARA
+ENVIARLO EN requestCreateSale() Y QUE registerSale() LO INSERTE
+EN LA TABLA DE VENTA CORRECTA SEGUN ID_TP.
+ANTES DE GUARDAR CUALQUIER VENTA, persistSale() VALIDA QUE EXISTA
+UN CLIENTE SELECCIONADO PARA PODER ENVIAR ID_CLIENTE.
+
+====================================================================
+RESPALDO DE ESTRUCTURA DE CLIENTES
+
+UBICACION DEL CODIGO:
+database/migrations/002_create_clientes_sql_server.sql
+
+PROCEDIMIENTO QUE UTILIZA ESTE CAMBIO:
+MIGRACION SQL SERVER PARA CREAR LA TABLA cliente
+Y AGREGAR LA COLUMNA saldo SI TODAVIA NO EXISTE.
+
+QUE HACE:
+CREA LA TABLA dbo.cliente SI NO EXISTE.
+AGREGA LA COLUMNA saldo PARA MANEJAR SALDO PENDIENTE
+CUANDO EL CLIENTE TENGA UN CREDITO ABIERTO.
+
+ESTRUCTURA RELEVANTE:
+CREATE TABLE dbo.cliente (
+  id_cliente INT IDENTITY(1,1) NOT NULL,
+  nombre VARCHAR(160) NOT NULL,
+  telefono VARCHAR(30) NULL,
+  direccion VARCHAR(255) NULL,
+  activo BIT NOT NULL DEFAULT 1,
+  saldo DECIMAL(18,2) NOT NULL DEFAULT 0,
+  creado_en DATETIME NOT NULL DEFAULT GETDATE(),
+  actualizado_en DATETIME NOT NULL DEFAULT GETDATE()
+)
+
+====================================================================
+RESPALDO DE CONSULTA PARA MODAL DE PROVEEDORES
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+listSuppliers()
+
+QUE HACE:
+OBTIENE LOS PROVEEDORES DESDE LA TABLA dbo.proveedor
+PARA MOSTRARLOS EN EL MODAL DE COMPRAS Y PERMITIR SELECCIONAR
+UN PROVEEDOR PARA AGREGARLO A LA FACTURA.
+LA CONSULTA USA LA ESTRUCTURA REAL CREADA EN SQL SERVER.
+
+CONSULTA:
+SELECT
+  ID_PROVEEDOR,
+  NOMBRE,
+  TELEFONO,
+  DIRECCION,
+  CREDITO_ABIERTO,
+  COMPRAS_REALIZADAS,
+  FECHA_HORA
+FROM dbo.proveedor
+ORDER BY ID_PROVEEDOR ASC
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN PROVEEDORES
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/suppliers
+ipcMain.handle('suppliers:list')
+window.electronAPI.getSuppliers()
+loadSuppliers()
+openSupplierModal()
+closeSupplierModal()
+selectSupplier(supplierName)
+
+QUE HACEN:
+CUANDO EL FORMULARIO ESTA EN MODO COMPRA, EL BOTON QUE EN VENTA
+MUESTRA CLIENTE AHORA MUESTRA PROVEEDOR.
+AL HACER CLIC EN PROVEEDOR SE ABRE UN MODAL CENTRADO CON UNA TABLA
+DE PROVEEDORES CARGADA DESDE SQL SERVER.
+EL USUARIO PUEDE SELECCIONAR UN PROVEEDOR Y EL NOMBRE QUEDA AGREGADO
+A LA FACTURA DE COMPRA EN EL BOTON DEL FORMULARIO.
+
+====================================================================
+RESPALDO DE CONSULTA PARA PAGINA DE CREDITOS
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+listCredits()
+
+QUE HACE:
+CONSULTA LAS VENTAS AL CREDITO DESDE dbo.VENTA_CREDITO.
+HACE JOIN CON dbo.cliente PARA MOSTRAR EL CLIENTE Y SUS DATOS DE CREDITO.
+HACE JOIN CON dbo.producto PARA MOSTRAR EL NOMBRE DEL PRODUCTO.
+HACE INNER JOIN CON dbo.ESTADO PARA MOSTRAR EL NOMBRE DEL ESTADO
+EN LUGAR DE MOSTRAR SOLO ID_ESTADO_VENTA.
+INCLUYE ID_FACT PARA AGRUPAR LOS CREDITOS POR NUMERO DE FACTURA.
+ESTA CONSULTA ALIMENTA LA PAGINA CREDITOS EN src/app/app.html.
+
+CONSULTA:
+SELECT
+  vc.ID_VENTA,
+  vc.ID_FACT,
+  vc.ID_PD,
+  p.nombre AS PRODUCTO,
+  vc.CANT_PD,
+  vc.PRECIO_COSTO,
+  vc.PRECIO_VENTA,
+  vc.UTILIDAD,
+  vc.USUARIO,
+  vc.ID_CLIENTE,
+  c.NOMBRE,
+  c.APELLIDO,
+  c.TELEFONO,
+  c.CREDITOS_ABIERTOS,
+  c.saldo,
+  vc.ID_TP,
+  vc.FECHA_HORA,
+  vc.ID_ESTADO_VENTA,
+  e.ESTADO AS ESTADO_VENTA
+FROM dbo.VENTA_CREDITO vc
+LEFT JOIN dbo.cliente c
+  ON c.ID_CLIENTE = vc.ID_CLIENTE
+LEFT JOIN dbo.producto p
+  ON p.id_producto = vc.ID_PD
+INNER JOIN dbo.ESTADO e
+  ON e.ID_ESTADO = vc.ID_ESTADO_VENTA
+ORDER BY vc.ID_VENTA DESC
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN CREDITOS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/credits
+ipcMain.handle('credits:list')
+window.electronAPI.getCredits()
+loadCredits()
+creditCustomerOptions
+filteredCreditLines
+updateCreditSearchTerm(event)
+selectCreditCustomer(event)
+
+QUE HACEN:
+AGREGAN UNA PAGINA CREDITOS EN LA NAVEGACION PRINCIPAL.
+LA PAGINA MUESTRA TARJETAS CON TOTAL DE CREDITO, UTILIDAD,
+CLIENTES Y CANTIDAD DE LINEAS.
+INCLUYE UNA TABLA MASTER COLAPSABLE EN DOS NIVELES.
+EL PRIMER NIVEL AGRUPA POR CLIENTE.
+AL EXPANDIR UN CLIENTE SE MUESTRAN SUS FACTURAS.
+AL EXPANDIR UNA FACTURA SE MUESTRAN LOS ARTICULOS DE ESA FACTURA.
+EL BOTON ABONAR SOLO SE MUESTRA EN EL NIVEL DE FACTURA
+Y NO TIENE FUNCIONALIDAD POR EL MOMENTO.
+SE AGREGARON BOTONES PDF POR CLIENTE Y POR FACTURA.
+LOS BOTONES PDF USAN exportCreditCustomerPdf(group) Y exportCreditInvoicePdf(invoice)
+UBICADOS EN src/app/app.ts.
+ESTOS PROCEDIMIENTOS NO CONSULTAN INTERNET NI USAN API EXTERNA.
+GENERAN HTML LOCAL CON LOS DATOS YA CARGADOS POR loadCredits()
+Y ABREN window.print() PARA GUARDAR COMO PDF DESDE EL NAVEGADOR.
+EL PDF POR FACTURA NO MUESTRA UTILIDAD PORQUE ES INFORMACION INTERNA
+DE LA EMPRESA; LA UTILIDAD SOLO SE MANTIENE EN VISTAS INTERNAS.
+LA NAV DE LA PAGINA TIENE BUSQUEDA POR NOMBRE DE CLIENTE O USUARIO
+Y UN SELECTOR DE CLIENTES CON CREDITOS ABIERTOS.
+
+====================================================================
+RESPALDO DE CONSULTA PARA TARJETAS DE VENTAS Y COMPRAS DEL DASHBOARD
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+getDashboardSalesSummary()
+
+QUE HACE:
+CONSULTA LOS TOTALES DE VENTAS Y COMPRAS PARA LAS TARJETAS DEL DASHBOARD.
+LA PRIMERA TARJETA DE EFECTIVO + TRANSFERENCIAS TIENE SELECTOR PARA MOSTRAR
+EL MES ACTUAL O EL HISTORICO ACUMULADO.
+LA SEGUNDA TARJETA DE VENTAS AL CREDITO TIENE SELECTOR PARA MOSTRAR
+EL MES ACTUAL O EL HISTORICO ACUMULADO.
+LA TERCERA TARJETA DE VENTAS TOTALES TIENE SELECTOR PARA MOSTRAR
+EL MES ACTUAL O EL HISTORICO ACUMULADO.
+LA CUARTA TARJETA DE COMPRAS TOTALES TIENE SELECTOR PARA MOSTRAR
+EL MES ACTUAL O EL HISTORICO ACUMULADO.
+LOS DOS PRIMEROS TOTALES ACUMULADOS SE CALCULAN MULTIPLICANDO
+PRECIO_VENTA * CANT_PD EN CADA TABLA.
+LOS DOS PRIMEROS TOTALES MENSUALES FILTRAN SOLO EL MES ACTUAL.
+EL TOTAL DEL MES SE TOMA DESDE dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO
+Y dbo.VENTA_TRANSFERENCIA SUMANDO PRECIO_VENTA * CANT_PD.
+EL TOTAL ACUMULADO DE VENTAS SE TOMA DESDE ESAS MISMAS TRES TABLAS
+SIN FILTRO DE FECHA.
+EL TOTAL DE COMPRAS SE TOMA DESDE dbo.COMPRA_EFECTIVO Y dbo.COMPRA_CREDITO
+SUMANDO PRECIO_COSTO * CANT_PD Y FILTRANDO EL MES ACTUAL.
+EL TOTAL ACUMULADO DE COMPRAS SE TOMA DESDE ESAS DOS TABLAS
+SIN FILTRO DE FECHA.
+
+CONSULTA:
+SELECT
+  ISNULL((
+    SELECT SUM(PRECIO_VENTA * CANT_PD)
+    FROM dbo.VENTA_EFECTIVO
+  ), 0) +
+  ISNULL((
+    SELECT SUM(PRECIO_VENTA * CANT_PD)
+    FROM dbo.VENTA_TRANSFERENCIA
+  ), 0) AS cash_transfer_total,
+  ISNULL((
+    SELECT SUM(total)
+    FROM (
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+      FROM dbo.VENTA_EFECTIVO
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+      FROM dbo.VENTA_TRANSFERENCIA
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+    ) current_month_cash_transfer
+    WHERE sale_date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+      AND sale_date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) + 1, 0)
+  ), 0) AS current_month_cash_transfer_total,
+  ISNULL((
+    SELECT SUM(PRECIO_VENTA * CANT_PD)
+    FROM dbo.VENTA_CREDITO
+  ), 0) AS credit_total,
+  ISNULL((
+    SELECT SUM(PRECIO_VENTA * CANT_PD)
+    FROM dbo.VENTA_CREDITO
+    WHERE TRY_CONVERT(datetime2, FECHA_HORA) >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+      AND TRY_CONVERT(datetime2, FECHA_HORA) < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) + 1, 0)
+  ), 0) AS current_month_credit_total,
+  ISNULL((
+    SELECT SUM(total)
+    FROM (
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+      FROM dbo.VENTA_EFECTIVO
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+      FROM dbo.VENTA_CREDITO
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+      FROM dbo.VENTA_TRANSFERENCIA
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+    ) current_month_sales
+    WHERE sale_date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+      AND sale_date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) + 1, 0)
+  ), 0) AS current_month_sales_total,
+  ISNULL((
+    SELECT SUM(total)
+    FROM (
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+      FROM dbo.VENTA_EFECTIVO
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+      FROM dbo.VENTA_CREDITO
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+      FROM dbo.VENTA_TRANSFERENCIA
+    ) accumulated_sales
+  ), 0) AS accumulated_sales_total,
+  ISNULL((
+    SELECT SUM(total)
+    FROM (
+      SELECT
+        CAST(PRECIO_COSTO * CANT_PD AS decimal(18, 2)) AS total,
+        TRY_CONVERT(datetime2, FECHA_HORA) AS purchase_date
+      FROM dbo.COMPRA_EFECTIVO
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+      UNION ALL
+
+      SELECT
+        CAST(PRECIO_COSTO * CANT_PD AS decimal(18, 2)) AS total,
+        TRY_CONVERT(datetime2, FECHA_HORA) AS purchase_date
+      FROM dbo.COMPRA_CREDITO
+      WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+    ) current_month_purchases
+    WHERE purchase_date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+      AND purchase_date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) + 1, 0)
+  ), 0) AS current_month_purchases_total,
+  ISNULL((
+    SELECT SUM(total)
+    FROM (
+      SELECT CAST(PRECIO_COSTO * CANT_PD AS decimal(18, 2)) AS total
+      FROM dbo.COMPRA_EFECTIVO
+
+      UNION ALL
+
+      SELECT CAST(PRECIO_COSTO * CANT_PD AS decimal(18, 2)) AS total
+      FROM dbo.COMPRA_CREDITO
+    ) accumulated_purchases
+  ), 0) AS accumulated_purchases_total
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN TARJETAS DE VENTAS Y COMPRAS DEL DASHBOARD
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/dashboard/sales-summary
+ipcMain.handle('dashboard:sales-summary')
+window.electronAPI.getDashboardSalesSummary()
+loadDashboardSalesSummary()
+setPage('dashboard')
+persistSale()
+
+QUE HACEN:
+CARGAN LOS TOTALES DE VENTAS Y COMPRAS DESDE SQL SERVER PARA MOSTRAR LAS TARJETAS
+DEL DASHBOARD.
+LA TARJETA "EFECTIVO + TRANSFERENCIAS" MUESTRA EL TOTAL DEL MES ACTUAL
+O EL ACUMULADO DE dbo.VENTA_EFECTIVO MAS dbo.VENTA_TRANSFERENCIA
+SEGUN EL SELECTOR DE src/app/app.html.
+LA TARJETA "VENTAS AL CREDITO" MUESTRA EL TOTAL DEL MES ACTUAL
+O EL ACUMULADO DE dbo.VENTA_CREDITO SEGUN EL SELECTOR DE src/app/app.html.
+LA TARJETA "VENTAS TOTALES" MUESTRA EL TOTAL DEL MES ACTUAL O EL ACUMULADO
+SEGUN EL SELECTOR DE src/app/app.html.
+LA TARJETA "COMPRAS TOTALES" MUESTRA EL TOTAL DEL MES ACTUAL O EL ACUMULADO
+SEGUN EL SELECTOR DE src/app/app.html.
+DESPUES DE REGISTRAR UNA VENTA, persistSale() VUELVE A EJECUTAR
+loadDashboardSalesSummary() PARA ACTUALIZAR EL DASHBOARD.
+
+====================================================================
+RESPALDO DE CONSULTA PARA GRAFICO DE TENDENCIA DE VENTAS DEL DASHBOARD
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+getDashboardSalesTrend(period)
+
+QUE HACE:
+CONSULTA LAS VENTAS REALES PARA LLENAR EL GRAFICO DE TENDENCIA DE VENTAS
+EN LA PAGINA DASHBOARD.
+UNE LAS TRES TABLAS DE VENTA: dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO
+Y dbo.VENTA_TRANSFERENCIA.
+AGRUPA LOS DATOS POR DIA, SEMANA O MES SEGUN EL SELECTOR DEL DASHBOARD.
+DEVUELVE LOS TOTALES SEPARADOS POR FORMA DE PAGO PARA DIBUJAR TRES LINEAS:
+EFECTIVO, CREDITO Y TRANSFERENCIA.
+
+CONSULTA:
+WITH ventas AS (
+  SELECT
+    TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date,
+    CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total,
+    'efectivo' AS payment_type
+  FROM dbo.VENTA_EFECTIVO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT
+    TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date,
+    CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total,
+    'credito' AS payment_type
+  FROM dbo.VENTA_CREDITO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT
+    TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date,
+    CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total,
+    'transferencia' AS payment_type
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+)
+SELECT *
+FROM (
+  SELECT TOP 12
+    [EXPRESION DE FECHA SEGUN PERIODO] AS period_start,
+    SUM(CASE WHEN payment_type = 'efectivo' THEN total ELSE 0 END) AS efectivo_total,
+    SUM(CASE WHEN payment_type = 'credito' THEN total ELSE 0 END) AS credito_total,
+    SUM(CASE WHEN payment_type = 'transferencia' THEN total ELSE 0 END) AS transferencia_total
+  FROM ventas
+  GROUP BY [EXPRESION DE FECHA SEGUN PERIODO]
+  ORDER BY period_start DESC
+) trend
+ORDER BY period_start ASC
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN GRAFICO DE TENDENCIA DE VENTAS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/dashboard/sales-trend
+ipcMain.handle('dashboard:sales-trend')
+window.electronAPI.getDashboardSalesTrend(period)
+loadDashboardSalesTrend()
+updateSalesTrendPeriod(event)
+setPage('dashboard')
+persistSale()
+
+QUE HACEN:
+CARGAN EL GRAFICO DE TENDENCIA DE VENTAS EN EL DASHBOARD CON DATOS REALES.
+EL SELECTOR DEL GRAFICO PERMITE VER LOS DATOS POR DIA, SEMANA O MES.
+EL GRAFICO MUESTRA TRES TIPOS DE VENTA CON LINEAS SEPARADAS:
+EFECTIVO, CREDITO Y TRANSFERENCIA.
+DESPUES DE REGISTRAR UNA VENTA, persistSale() VUELVE A EJECUTAR
+loadDashboardSalesTrend() PARA ACTUALIZAR EL GRAFICO.
+
+====================================================================
+RESPALDO DE CONSULTA PARA GUARDAR CAMBIOS DE STOCK DESDE MODAL INVENTARIO
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+updateInventoryStockLevels({ productId, stock, minStock, maxStock })
+
+QUE HACE:
+ACTUALIZA LOS CAMPOS DE STOCK DE UN PRODUCTO DESDE EL MODAL DE INVENTARIO.
+SOLO MODIFICA stock, stock_minimo Y stock_maximo EN dbo.inventario.
+NO MODIFICA NOMBRE, SKU, CATEGORIA, COSTO, PRECIO NI IMAGEN.
+EL PRODUCTO SE LOCALIZA POR p.id_producto HACIENDO JOIN ENTRE dbo.producto
+Y dbo.inventario POR EL CAMPO codigo.
+
+CONSULTA:
+UPDATE i
+SET
+  i.stock = @stock,
+  i.stock_minimo = @min_stock,
+  i.stock_maximo = @max_stock,
+  i.actualizado_en = GETDATE()
+FROM dbo.inventario i
+INNER JOIN dbo.producto p
+  ON p.codigo = i.codigo
+WHERE p.id_producto = @product_id;
+
+SELECT @@ROWCOUNT AS affected_rows;
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN GUARDADO DE STOCK DESDE MODAL INVENTARIO
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+PUT /api/products/:productId/inventory
+ipcMain.handle('products:update-inventory')
+window.electronAPI.updateInventoryStockLevels(payload)
+requestUpdateInventoryStock(payload)
+saveInventoryProduct()
+openInventoryEditModal(productId)
+
+QUE HACEN:
+EL BOTON + O - DE LA TABLA DE INVENTARIO ABRE EL MODAL DEL PRODUCTO.
+EN MODO EDICION, EL MODAL SOLO PERMITE CAMBIAR STOCK, STOCK MINIMO
+Y STOCK MAXIMO.
+AL PRESIONAR GUARDAR CAMBIOS, saveInventoryProduct() LLAMA
+requestUpdateInventoryStock(), QUE ENVIA LOS DATOS AL BACKEND LOCAL
+O AL DRIVER DE ELECTRON PARA ACTUALIZAR dbo.inventario.
+
+====================================================================
+RESPALDO DE CONSULTA PARA PAGINA FACTURAS - LISTADO MASTER
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+listInvoices()
+
+QUE HACE:
+CONSULTA TODAS LAS FACTURAS GENERADAS DESDE dbo.FACTURA.
+HACE JOIN CON dbo.cliente Y dbo.usuario PARA MOSTRAR CLIENTE Y USUARIO.
+UNE dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO Y dbo.VENTA_TRANSFERENCIA
+PARA CALCULAR TOTAL, UTILIDAD, CANTIDAD DE LINEAS Y ESTADO DE LA FACTURA.
+SI TODAS LAS LINEAS ESTAN EN ID_ESTADO_VENTA = 3, LA FACTURA SE MUESTRA ANULADA.
+
+CONSULTA:
+WITH lineas AS (
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_EFECTIVO
+  WHERE ID_FACT IS NOT NULL
+
+  UNION ALL
+
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_CREDITO
+  WHERE ID_FACT IS NOT NULL
+
+  UNION ALL
+
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE ID_FACT IS NOT NULL
+)
+SELECT
+  f.ID_FACT,
+  f.ID_CLIENTE,
+  CONCAT(ISNULL(c.NOMBRE, ''), ' ', ISNULL(c.APELLIDO, '')) AS CLIENTE,
+  c.TELEFONO,
+  f.CANT_ART,
+  f.ID_USUARIO,
+  u.nombre AS USUARIO,
+  f.SUBTOTAL,
+  f.FECHA_HORA,
+  f.ID_TP,
+  CASE f.ID_TP
+    WHEN 1 THEN 'Efectivo'
+    WHEN 2 THEN 'Credito'
+    WHEN 3 THEN 'Transferencia'
+    ELSE 'Sin tipo'
+  END AS TIPO_PAGO,
+  COUNT(lineas.ID_FACT) AS LINEAS,
+  ISNULL(SUM(lineas.TOTAL), 0) AS TOTAL_LINEAS,
+  ISNULL(SUM(lineas.UTILIDAD), 0) AS UTILIDAD_TOTAL,
+  ISNULL(SUM(lineas.CANT_PD), 0) AS CANTIDAD_TOTAL,
+  SUM(CASE WHEN lineas.ID_ESTADO_VENTA = 3 THEN 1 ELSE 0 END) AS LINEAS_ANULADAS,
+  CASE
+    WHEN COUNT(lineas.ID_FACT) > 0
+      AND COUNT(lineas.ID_FACT) = SUM(CASE WHEN lineas.ID_ESTADO_VENTA = 3 THEN 1 ELSE 0 END)
+      THEN 'Anulado'
+    WHEN f.ID_TP = 2 THEN 'Activo'
+    ELSE 'Cerrado'
+  END AS ESTADO_FACTURA
+FROM dbo.FACTURA f
+LEFT JOIN dbo.cliente c
+  ON c.ID_CLIENTE = f.ID_CLIENTE
+LEFT JOIN dbo.usuario u
+  ON u.id_usuario = f.ID_USUARIO
+LEFT JOIN lineas
+  ON lineas.ID_FACT = f.ID_FACT
+GROUP BY
+  f.ID_FACT,
+  f.ID_CLIENTE,
+  c.NOMBRE,
+  c.APELLIDO,
+  c.TELEFONO,
+  f.CANT_ART,
+  f.ID_USUARIO,
+  u.nombre,
+  f.SUBTOTAL,
+  f.FECHA_HORA,
+  f.ID_TP
+ORDER BY f.ID_FACT DESC
+
+====================================================================
+RESPALDO DE CONSULTA PARA MODAL VENTAS DEL DIA EN FACTURACION
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+listTodayInvoices()
+
+QUE HACE:
+CONSULTA LAS FACTURAS DEL DIA ACTUAL DESDE dbo.FACTURA.
+FILTRA DIRECTAMENTE EN SQL SERVER USANDO FECHA_HORA DE dbo.FACTURA.
+HACE JOIN CON dbo.cliente Y dbo.usuario PARA MOSTRAR CLIENTE Y USUARIO.
+UNE dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO Y dbo.VENTA_TRANSFERENCIA
+PARA CALCULAR TOTAL, UTILIDAD, CANTIDAD DE LINEAS Y ESTADO DE LA FACTURA.
+SE USA EN EL MODAL VENTAS DEL DIA DE LA PAGINA FACTURACION.
+
+CONSULTA:
+WITH lineas AS (
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_EFECTIVO
+  WHERE ID_FACT IS NOT NULL
+
+  UNION ALL
+
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_CREDITO
+  WHERE ID_FACT IS NOT NULL
+
+  UNION ALL
+
+  SELECT ID_FACT, ID_ESTADO_VENTA, PRECIO_VENTA * CANT_PD AS TOTAL, UTILIDAD, CANT_PD
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE ID_FACT IS NOT NULL
+)
+SELECT
+  f.ID_FACT,
+  f.ID_CLIENTE,
+  CONCAT(ISNULL(c.NOMBRE, ''), ' ', ISNULL(c.APELLIDO, '')) AS CLIENTE,
+  c.TELEFONO,
+  f.CANT_ART,
+  f.ID_USUARIO,
+  u.nombre AS USUARIO,
+  f.SUBTOTAL,
+  f.FECHA_HORA,
+  f.ID_TP
+FROM dbo.FACTURA f
+LEFT JOIN dbo.cliente c
+  ON c.ID_CLIENTE = f.ID_CLIENTE
+LEFT JOIN dbo.usuario u
+  ON u.id_usuario = f.ID_USUARIO
+LEFT JOIN lineas
+  ON lineas.ID_FACT = f.ID_FACT
+WHERE TRY_CONVERT(date, f.FECHA_HORA) = CONVERT(date, GETDATE())
+GROUP BY
+  f.ID_FACT,
+  f.ID_CLIENTE,
+  c.NOMBRE,
+  c.APELLIDO,
+  c.TELEFONO,
+  f.CANT_ART,
+  f.ID_USUARIO,
+  u.nombre,
+  f.SUBTOTAL,
+  f.FECHA_HORA,
+  f.ID_TP
+ORDER BY f.ID_FACT DESC
+
+====================================================================
+RESPALDO DE CONSULTA PARA DETALLE DE FACTURA Y PDF
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+getInvoiceDetails(invoiceId)
+
+QUE HACE:
+CONSULTA LOS ARTICULOS DE UNA FACTURA ESPECIFICA.
+UNE LAS TRES TABLAS DE VENTA Y HACE JOIN CON dbo.producto Y dbo.ESTADO.
+SE USA PARA EXPORTAR UNA FACTURA A PDF LOCAL DESDE LA PAGINA FACTURAS.
+
+CONSULTA:
+WITH lineas AS (
+  SELECT ID_VENTA, ID_FACT, ID_PD, CANT_PD, PRECIO_COSTO, PRECIO_VENTA,
+         UTILIDAD, USUARIO, FECHA_HORA, ID_TP, ID_CLIENTE, ID_ESTADO_VENTA,
+         'Efectivo' AS TIPO_PAGO
+  FROM dbo.VENTA_EFECTIVO
+  WHERE ID_FACT = @invoice_id
+
+  UNION ALL
+
+  SELECT ID_VENTA, ID_FACT, ID_PD, CANT_PD, PRECIO_COSTO, PRECIO_VENTA,
+         UTILIDAD, USUARIO, FECHA_HORA, ID_TP, ID_CLIENTE, ID_ESTADO_VENTA,
+         'Credito' AS TIPO_PAGO
+  FROM dbo.VENTA_CREDITO
+  WHERE ID_FACT = @invoice_id
+
+  UNION ALL
+
+  SELECT ID_VTR AS ID_VENTA, ID_FACT, ID_PD, CANT_PD, PRECIO_COSTO, PRECIO_VENTA,
+         UTILIDAD, USUARIO, FECHA_HORA, ID_TP, ID_CLIENTE, ID_ESTADO_VENTA,
+         'Transferencia' AS TIPO_PAGO
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE ID_FACT = @invoice_id
+)
+SELECT
+  l.ID_VENTA,
+  l.ID_FACT,
+  l.ID_PD,
+  p.nombre AS PRODUCTO,
+  p.codigo AS CODIGO,
+  l.CANT_PD,
+  l.PRECIO_COSTO,
+  l.PRECIO_VENTA,
+  l.UTILIDAD,
+  l.USUARIO,
+  l.FECHA_HORA,
+  l.ID_TP,
+  l.TIPO_PAGO,
+  l.ID_CLIENTE,
+  l.ID_ESTADO_VENTA,
+  e.ESTADO AS ESTADO
+FROM lineas l
+LEFT JOIN dbo.producto p
+  ON p.id_producto = l.ID_PD
+LEFT JOIN dbo.ESTADO e
+  ON e.ID_ESTADO = l.ID_ESTADO_VENTA
+ORDER BY l.ID_VENTA ASC
+
+====================================================================
+RESPALDO DE CONSULTA PARA ANULAR FACTURA Y DEVOLVER STOCK
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+annulInvoice(invoiceId)
+
+QUE HACE:
+ANULA UNA FACTURA CAMBIANDO SUS LINEAS DE VENTA A ID_ESTADO_VENTA = 3.
+ANTES DE ANULAR, DEVUELVE AL INVENTARIO LAS CANTIDADES DE PRODUCTOS
+DE LAS LINEAS ACTIVAS DE ESA FACTURA.
+LA TABLA DE VENTA A ACTUALIZAR SE RESUELVE POR ID_TP DE dbo.FACTURA:
+1 = dbo.VENTA_EFECTIVO, 2 = dbo.VENTA_CREDITO, 3 = dbo.VENTA_TRANSFERENCIA.
+TODO SE EJECUTA DENTRO DE UNA TRANSACCION SQL.
+
+CONSULTAS:
+SELECT TOP 1 ID_FACT, ID_TP
+FROM dbo.FACTURA
+WHERE ID_FACT = @invoice_id
+
+SELECT ID_PD, CANT_PD, ID_ESTADO_VENTA
+FROM [TABLA_DE_VENTA_SEGUN_ID_TP]
+WHERE ID_FACT = @invoice_id
+
+UPDATE i
+SET
+  i.stock = i.stock + @quantity,
+  i.actualizado_en = GETDATE()
+FROM dbo.inventario i
+INNER JOIN dbo.producto p
+  ON p.codigo = i.codigo
+WHERE p.id_producto = @product_id
+
+UPDATE [TABLA_DE_VENTA_SEGUN_ID_TP]
+SET ID_ESTADO_VENTA = 3
+WHERE ID_FACT = @invoice_id
+  AND ID_ESTADO_VENTA <> 3
+
+====================================================================
+RESPALDO DE CONSULTA PARA ACTIVAR FACTURA ANULADA Y DESCONTAR STOCK
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+activateInvoice(invoiceId)
+
+QUE HACE:
+ACTIVA UNA FACTURA ANULADA CAMBIANDO SUS LINEAS DE VENTA A SU ESTADO REAL.
+SI LA FACTURA ES CREDITO, USA ID_ESTADO_VENTA = 2.
+SI LA FACTURA ES EFECTIVO O TRANSFERENCIA, USA ID_ESTADO_VENTA = 4.
+ANTES DE ACTIVAR, DESCUENTA DEL INVENTARIO LAS CANTIDADES DE PRODUCTOS
+DE LAS LINEAS ANULADAS DE ESA FACTURA.
+LA TABLA DE VENTA A ACTUALIZAR SE RESUELVE POR ID_TP DE dbo.FACTURA:
+1 = dbo.VENTA_EFECTIVO, 2 = dbo.VENTA_CREDITO, 3 = dbo.VENTA_TRANSFERENCIA.
+TODO SE EJECUTA DENTRO DE UNA TRANSACCION SQL.
+
+CONSULTAS:
+SELECT TOP 1 ID_FACT, ID_TP
+FROM dbo.FACTURA
+WHERE ID_FACT = @invoice_id
+
+SELECT
+  ID_PD,
+  SUM(CANT_PD) AS CANT_PD
+FROM [TABLA_DE_VENTA_SEGUN_ID_TP]
+WHERE ID_FACT = @invoice_id
+  AND ID_ESTADO_VENTA = 3
+GROUP BY ID_PD
+
+UPDATE i
+SET
+  i.stock = i.stock - @quantity,
+  i.actualizado_en = GETDATE()
+FROM dbo.inventario i
+INNER JOIN dbo.producto p
+  ON p.codigo = i.codigo
+WHERE p.id_producto = @product_id
+  AND i.stock >= @quantity
+
+UPDATE [TABLA_DE_VENTA_SEGUN_ID_TP]
+SET ID_ESTADO_VENTA = @sale_status_id
+WHERE ID_FACT = @invoice_id
+  AND ID_ESTADO_VENTA = 3
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN PAGINA FACTURAS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/invoices
+GET /api/invoices/today
+GET /api/invoices/summary
+GET /api/invoices/:invoiceId/details
+POST /api/invoices/:invoiceId/annul
+POST /api/invoices/:invoiceId/activate
+ipcMain.handle('invoices:list')
+ipcMain.handle('invoices:today')
+ipcMain.handle('invoices:summary')
+ipcMain.handle('invoices:details')
+ipcMain.handle('invoices:annul')
+ipcMain.handle('invoices:activate')
+window.electronAPI.getInvoices()
+window.electronAPI.getTodayInvoices()
+window.electronAPI.getInvoicesSummary()
+window.electronAPI.getInvoiceDetails(invoiceId)
+window.electronAPI.annulInvoice(invoiceId)
+window.electronAPI.activateInvoice(invoiceId)
+loadInvoicesPageData()
+loadTodayInvoices()
+openDailySalesModal()
+exportInvoicePdf(invoice)
+toggleInvoiceStatus(invoice)
+annulInvoice(invoice)
+activateInvoice(invoice)
+
+QUE HACEN:
+AGREGAN LA PAGINA FACTURAS AL MENU LATERAL.
+LA PAGINA MUESTRA 4 TARJETAS DE RESUMEN, UN GRAFICO DE TENDENCIA DE VENTAS
+IGUAL AL DASHBOARD Y UNA TABLA MASTER CON TODAS LAS FACTURAS GENERADAS.
+LA TABLA PERMITE EXPORTAR UNA FACTURA A PDF SIN USAR INTERNET NI API EXTERNA.
+LA TABLA PERMITE ANULAR UNA FACTURA; AL ANULAR, EL BACKEND CAMBIA EL ESTADO
+DE LAS LINEAS A ANULADO Y DEVUELVE LAS CANTIDADES AL STOCK DE dbo.inventario.
+CUANDO UNA FACTURA ESTA ANULADA, EL BOTON CAMBIA A ACTIVAR; AL ACTIVAR,
+EL BACKEND DESCUENTA NUEVAMENTE EL STOCK Y RESTAURA EL ESTADO DE LA VENTA.
+EL MODAL VENTAS DEL DIA EN FACTURACION USA GET /api/invoices/today
+O ipcMain.handle('invoices:today') PARA CONSULTAR dbo.FACTURA FILTRADA POR FECHA ACTUAL.
+
+====================================================================
+RESPALDO DE CONSULTAS PARA MODAL DE CORTE DIARIO EN FACTURACION
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTOS QUE LAS UTILIZAN:
+listDailyCuts(date)
+listCreditPaymentsByDate(date)
+createDailyCut(date)
+createOpeningCut(date, initialCash)
+previewDailyCut(date)
+calculateDailyCutTotals(transaction, date)
+
+QUE HACE:
+CONSULTA EL HISTORICO DE CORTES EN dbo.CORTE_DIARIO.
+FILTRA LOS CORTES POR RANGO DE FECHAS CUANDO SE SELECCIONA DESDE Y HASTA.
+SI RECIBE ID_USUARIO, FILTRA SOLO LOS CORTES DE ESE USUARIO.
+CONSULTA LOS ABONOS EN dbo.PAGOS_CREDITO POR FECHA.
+SI RECIBE ID_USUARIO, FILTRA SOLO LOS ABONOS DE ESE USUARIO.
+GENERA UN CORTE NUEVO CALCULANDO VENTAS EN EFECTIVO, TRANSFERENCIA,
+CREDITO, ABONOS DE CREDITO, TOTAL EN CAJA Y GANANCIA DEL DIA.
+TAMBIEN CALCULA UN RESUMEN PREVIO SIN INSERTAR EN dbo.CORTE_DIARIO,
+PARA QUE EL MODAL MUESTRE LOS DATOS DEL DIA AUNQUE NO EXISTA UN CORTE GUARDADO.
+CUANDO SE CIERRA SESION, EL MODAL PIDE EL CONTEO FISICO DEL CAJERO
+Y GUARDA ESE VALOR EN TOTAL_EN_CAJA.
+EL CORTE GUARDADO USA ESTADO_CORTE = 4 PARA MARCARLO COMO CERRADO.
+SI SE VUELVE A HACER CORTE EL MISMO DIA, SE INSERTA UN REGISTRO NUEVO.
+CUANDO EL USUARIO INICIA SESION, EL MODAL DE INICIO DE CAJA PIDE EL MONTO
+INICIAL Y LO GUARDA EN dbo.CORTE_DIARIO CON ESTADO_CORTE = 1.
+LA COLUMNA FECHA_CORTE SE GUARDA CON FECHA Y HORA REALES DEL MOMENTO
+EN QUE SE ABRE O CIERRA EL TURNO.
+LOS CALCULOS DE CORTE USAN EL ULTIMO CORTE ABIERTO DEL DIA COMO DINERO_INICIA_CAJA.
+AHORA EL TURNO SE MANEJA POR ID_USUARIO, NO SOLO POR FECHA.
+EL LOGIN SOLO OMITE EL MODAL DE APERTURA SI ESE MISMO USUARIO YA TIENE
+UN CORTE ABIERTO EL MISMO DIA.
+ANTES DE INSERTAR EL CORTE CERRADO, EL PROCEDIMIENTO createDailyCut(date)
+ACTUALIZA A ESTADO_CORTE = 4 CUALQUIER CORTE ABIERTO DEL MISMO DIA
+Y DEL MISMO ID_USUARIO.
+ESTA VALIDACION ES USADA DESDE src/app/app.ts EN shouldPromptOpeningCut(date),
+DONDE SOLO SE OMITE EL MODAL DE INICIO DE CAJA SI EXISTE UN CORTE ABIERTO.
+EL MODAL ESTA UBICADO EN src/app/app.html EN LA PAGINA FACTURACION.
+
+CONSULTA PARA HISTORICO DE CORTES:
+SELECT
+  cd.ID_CORTE,
+  cd.FECHA_CORTE,
+  cd.ID_USUARIO,
+  cd.VENTA_TOTAL_DIA,
+  cd.DINERO_INICIA_CAJA,
+  cd.VENTA_EFECTIVO,
+  cd.VENTA_TRANSFERENCIA,
+  cd.VENTA_CREDITO,
+  cd.ABONOS_CREDITO,
+  cd.ENTRADA_DE_DINERO,
+  cd.SALIDA_DE_DINERO,
+  cd.TOTAL_EN_CAJA,
+  cd.ESTADO_CORTE,
+  cd.GANANCIA_DEL_DIA,
+  u.nombre AS USUARIO
+FROM dbo.CORTE_DIARIO cd
+LEFT JOIN dbo.usuario u
+  ON u.id_usuario = cd.ID_USUARIO
+WHERE TRY_CONVERT(date, cd.FECHA_CORTE) >= TRY_CONVERT(date, @cut_date_from)
+  AND TRY_CONVERT(date, cd.FECHA_CORTE) <= TRY_CONVERT(date, @cut_date_to)
+  AND cd.ID_USUARIO = @user_id
+ORDER BY cd.ID_CORTE DESC
+
+CONSULTA PARA PAGOS DE CREDITO:
+SELECT
+  pc.ID_PAGO_CREDITO,
+  pc.DESCRIPCION_PAGO,
+  pc.MONTO,
+  pc.ID_CLIENTE,
+  CONCAT(ISNULL(c.NOMBRE, ''), ' ', ISNULL(c.APELLIDO, '')) AS CLIENTE,
+  pc.ID_FACTURA,
+  pc.ID_USUARIO,
+  u.nombre AS USUARIO,
+  pc.FECHA_HORA
+FROM dbo.PAGOS_CREDITO pc
+LEFT JOIN dbo.cliente c
+  ON c.ID_CLIENTE = pc.ID_CLIENTE
+LEFT JOIN dbo.usuario u
+  ON u.id_usuario = pc.ID_USUARIO
+WHERE TRY_CONVERT(date, pc.FECHA_HORA) = TRY_CONVERT(date, @cut_date)
+  AND pc.ID_USUARIO = @user_id
+ORDER BY pc.ID_PAGO_CREDITO DESC
+
+CONSULTA PARA CALCULAR VENTAS DEL CORTE:
+WITH ventas AS (
+  SELECT ve.PRECIO_VENTA * ve.CANT_PD AS total, ve.UTILIDAD AS utilidad, 1 AS id_tp, ve.FECHA_HORA, f.ID_USUARIO
+  FROM dbo.VENTA_EFECTIVO ve
+  INNER JOIN dbo.FACTURA f
+    ON f.ID_FACT = ve.ID_FACT
+
+  UNION ALL
+
+  SELECT vc.PRECIO_VENTA * vc.CANT_PD AS total, vc.UTILIDAD AS utilidad, 2 AS id_tp, vc.FECHA_HORA, f.ID_USUARIO
+  FROM dbo.VENTA_CREDITO vc
+  INNER JOIN dbo.FACTURA f
+    ON f.ID_FACT = vc.ID_FACT
+
+  UNION ALL
+
+  SELECT vt.PRECIO_VENTA * vt.CANT_PD AS total, vt.UTILIDAD AS utilidad, 3 AS id_tp, vt.FECHA_HORA, f.ID_USUARIO
+  FROM dbo.VENTA_TRANSFERENCIA vt
+  INNER JOIN dbo.FACTURA f
+    ON f.ID_FACT = vt.ID_FACT
+)
+SELECT
+  ISNULL(SUM(total), 0) AS venta_total_dia,
+  ISNULL(SUM(CASE WHEN id_tp = 1 THEN total ELSE 0 END), 0) AS venta_efectivo,
+  ISNULL(SUM(CASE WHEN id_tp = 2 THEN total ELSE 0 END), 0) AS venta_credito,
+  ISNULL(SUM(CASE WHEN id_tp = 3 THEN total ELSE 0 END), 0) AS venta_transferencia,
+  ISNULL(SUM(utilidad), 0) AS ganancia_del_dia,
+  ISNULL((
+    SELECT SUM(MONTO)
+    FROM dbo.PAGOS_CREDITO
+    WHERE TRY_CONVERT(date, FECHA_HORA) = TRY_CONVERT(date, @cut_date)
+      AND ID_USUARIO = @user_id
+  ), 0) AS abonos_credito
+FROM ventas
+WHERE TRY_CONVERT(date, FECHA_HORA) = TRY_CONVERT(date, @cut_date)
+  AND ID_USUARIO = @user_id
+
+INSERT DE CORTE:
+UPDATE dbo.CORTE_DIARIO
+SET ESTADO_CORTE = 4
+WHERE TRY_CONVERT(date, FECHA_CORTE) = TRY_CONVERT(date, @cut_date)
+  AND ID_USUARIO = @user_id
+  AND ESTADO_CORTE = 1
+
+INSERT INTO dbo.CORTE_DIARIO (
+  FECHA_CORTE,
+  ID_USUARIO,
+  VENTA_TOTAL_DIA,
+  DINERO_INICIA_CAJA,
+  VENTA_EFECTIVO,
+  VENTA_TRANSFERENCIA,
+  VENTA_CREDITO,
+  ABONOS_CREDITO,
+  ENTRADA_DE_DINERO,
+  SALIDA_DE_DINERO,
+  TOTAL_EN_CAJA,
+  ESTADO_CORTE,
+  GANANCIA_DEL_DIA
+)
+VALUES (
+  @fecha_corte,
+  @user_id,
+  @venta_total_dia,
+  @dinero_inicia_caja,
+  @venta_efectivo,
+  @venta_transferencia,
+  @venta_credito,
+  @abonos_credito,
+  @entrada_de_dinero,
+  @salida_de_dinero,
+  @total_en_caja,
+  @estado_corte,
+  @ganancia_del_dia
+);
+
+INSERT DE INICIO DE CAJA:
+INSERT INTO dbo.CORTE_DIARIO (
+  FECHA_CORTE,
+  ID_USUARIO,
+  VENTA_TOTAL_DIA,
+  DINERO_INICIA_CAJA,
+  VENTA_EFECTIVO,
+  VENTA_TRANSFERENCIA,
+  VENTA_CREDITO,
+  ABONOS_CREDITO,
+  ENTRADA_DE_DINERO,
+  SALIDA_DE_DINERO,
+  TOTAL_EN_CAJA,
+  ESTADO_CORTE,
+  GANANCIA_DEL_DIA
+)
+VALUES (
+  @fecha_corte,
+  @user_id,
+  @venta_total_dia,
+  @dinero_inicia_caja,
+  @venta_efectivo,
+  @venta_transferencia,
+  @venta_credito,
+  @abonos_credito,
+  @entrada_de_dinero,
+  @salida_de_dinero,
+  @total_en_caja,
+  1,
+  @ganancia_del_dia
+);
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN MODAL DE CORTE DIARIO
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/daily-cuts
+GET /api/daily-cuts/preview
+POST /api/daily-cuts
+POST /api/daily-cuts/opening
+GET /api/credit-payments
+ipcMain.handle('daily-cuts:list')
+ipcMain.handle('daily-cuts:preview')
+ipcMain.handle('daily-cuts:create')
+ipcMain.handle('daily-cuts:opening')
+ipcMain.handle('credit-payments:list')
+window.electronAPI.getDailyCuts(date)
+window.electronAPI.previewDailyCut(date)
+window.electronAPI.createDailyCut(payload)
+window.electronAPI.createOpeningCut(payload)
+window.electronAPI.getCreditPayments(date)
+openCutModal()
+loadDailyCuts()
+loadDailyCutPreview(date)
+createDailyCut()
+loadCreditPaymentsForCut(date)
+openLogoutCutModal()
+loadLogoutCutPreview()
+saveLogoutCutAndClose()
+saveOpeningCut()
+
+QUE HACEN:
+AGREGAN EL BOTON CORTE EN LA CABECERA DEL CATALOGO DE FACTURACION.
+EL MODAL MUESTRA HISTORICO DE CORTES, FILTRO POR FECHA, ESTADOS CON GRADIENTES,
+RESUMEN DEL CORTE Y PAGOS DE CREDITO.
+AL PRESIONAR CERRAR SESION, SE ABRE UN MODAL DE CORTE DEL CAJERO,
+SE MUESTRA EL TOTAL DE VENTAS DEL DIA, SE INGRESA EL CONTEO FISICO,
+SE GUARDA EL CORTE EN dbo.CORTE_DIARIO Y LUEGO SE CIERRA LA SESION.
+
+====================================================================
+RESPALDO DE CONSULTA PARA REGISTRAR HISTORICO DE COMPRAS
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE EJECUTA LA CONSULTA:
+registerPurchase({ userId, paymentTypeId, supplierId, invoiceNumber, lines })
+
+QUE HACE:
+VALIDA LOS DATOS DE LA COMPRA, DEFINE LA TABLA DESTINO SEGUN EL TIPO DE PAGO
+Y GUARDA CADA LINEA DE PRODUCTO EN EL HISTORICO DE COMPRAS.
+SI paymentTypeId ES 1 GUARDA EN dbo.COMPRA_EFECTIVO.
+SI paymentTypeId ES 2 GUARDA EN dbo.COMPRA_CREDITO.
+EL ESTADO DE LA COMPRA SE GUARDA COMO 4 PARA INDICAR CERRADO.
+ESTE PROCESO SOLO GENERA HISTORICO DE COMPRA Y NO ACTUALIZA INVENTARIO.
+
+CONSULTA SQL:
+INSERT INTO dbo.COMPRA_EFECTIVO O dbo.COMPRA_CREDITO (
+  ID_PD,
+  CANT_PD,
+  PRECIO_COSTO,
+  ID_USUARIO,
+  FECHA_HORA,
+  ID_TP,
+  ID_PROVEEDOR,
+  ID_ESTADO_COMPRA,
+  NUM_FACT
+)
+VALUES (
+  @product_id,
+  @quantity,
+  @unit_cost,
+  @user_id,
+  @purchase_timestamp,
+  @payment_type_id,
+  @supplier_id,
+  @purchase_status_id,
+  @invoice_number
+);
+
+SELECT CAST(SCOPE_IDENTITY() AS INT) AS inserted_purchase_id;
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN EL REGISTRO DE COMPRAS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+POST /api/purchases
+ipcMain.handle('purchases:create')
+window.electronAPI.createPurchase(payload)
+openPurchaseMainModal()
+closePurchaseMainModal()
+openPurchaseModal()
+closePurchaseModal()
+updatePurchasePaymentType(paymentTypeId)
+updatePurchaseSupplier(event)
+updatePurchaseInvoiceNumber(event)
+updatePurchaseProduct(event)
+updatePurchaseQuantity(event)
+updatePurchaseUnitCost(event)
+addPurchaseDraftLine()
+removePurchaseDraftLine(productId)
+savePurchaseHistory()
+
+QUE HACEN:
+AGREGAN EL BOTON AGREGAR COMPRA EN LA PAGINA COMPRAS.
+ABREN UN MODAL PRINCIPAL DE HISTORICO DE COMPRAS CON BARRA DE ACCIONES,
+FILTROS VISUALES Y TABLA DE PROVEEDORES/COMPRAS.
+DESDE EL MODAL PRINCIPAL SE ABRE UN SUBMODAL PARA SELECCIONAR PROVEEDOR, NUMERO DE FACTURA,
+TIPO DE PAGO, PRODUCTO, CANTIDAD Y COSTO.
+PERMITEN ARMAR UN DETALLE TEMPORAL DE COMPRA Y AL GUARDAR
+ENVIAN LA INFORMACION AL PROCEDIMIENTO registerPurchase().
+EL BACKEND DECIDE SI INSERTA EN dbo.COMPRA_EFECTIVO O dbo.COMPRA_CREDITO
+SEGUN EL TIPO DE PAGO SELECCIONADO.
+
+====================================================================
+RESPALDO DE CONSULTA PARA CARGAR LA HOJA COMPRAS DESDE TABLAS REALES
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE EJECUTA LA CONSULTA:
+listPurchases()
+
+QUE HACE:
+LEE EL HISTORICO REAL DE COMPRAS DESDE dbo.COMPRA_EFECTIVO Y dbo.COMPRA_CREDITO.
+UNE AMBAS TABLAS CON UNION ALL Y HACE JOIN CON dbo.proveedor, dbo.producto,
+dbo.usuario Y dbo.ESTADO PARA MOSTRAR DATOS COMPLETOS EN LA HOJA COMPRAS.
+LA TABLA dbo.proveedor YA NO ES LA FUENTE PRINCIPAL DE LA HOJA COMPRAS,
+SOLO SE USA COMO RELACION PARA MOSTRAR LOS DATOS DEL PROVEEDOR.
+
+CONSULTA SQL:
+WITH compras AS (
+  SELECT
+    ID_CEFECT AS ID_COMPRA,
+    'Efectivo' AS TIPO_COMPRA,
+    ID_PD,
+    CANT_PD,
+    PRECIO_COSTO,
+    ID_USUARIO,
+    FECHA_HORA,
+    ID_TP,
+    ID_PROVEEDOR,
+    ID_ESTADO_COMPRA,
+    NUM_FACT
+  FROM dbo.COMPRA_EFECTIVO
+
+  UNION ALL
+
+  SELECT
+    ID_CCD AS ID_COMPRA,
+    'Credito' AS TIPO_COMPRA,
+    ID_PD,
+    CANT_PD,
+    PRECIO_COSTO,
+    ID_USUARIO,
+    FECHA_HORA,
+    ID_TP,
+    ID_PROVEEDOR,
+    ID_ESTADO_COMPRA,
+    NUM_FACT
+  FROM dbo.COMPRA_CREDITO
+)
+SELECT
+  c.ID_COMPRA,
+  c.TIPO_COMPRA,
+  c.ID_PD,
+  p.nombre AS PRODUCTO,
+  c.CANT_PD,
+  c.PRECIO_COSTO,
+  c.CANT_PD * c.PRECIO_COSTO AS TOTAL,
+  c.ID_USUARIO,
+  u.nombre AS USUARIO,
+  c.FECHA_HORA,
+  c.ID_TP,
+  c.ID_PROVEEDOR,
+  pr.NOMBRE AS PROVEEDOR,
+  pr.TELEFONO AS TELEFONO_PROVEEDOR,
+  pr.DIRECCION AS DIRECCION_PROVEEDOR,
+  c.ID_ESTADO_COMPRA,
+  e.ESTADO AS ESTADO_COMPRA,
+  c.NUM_FACT
+FROM compras c
+LEFT JOIN dbo.producto p
+  ON p.id_producto = c.ID_PD
+LEFT JOIN dbo.proveedor pr
+  ON pr.ID_PROVEEDOR = c.ID_PROVEEDOR
+LEFT JOIN dbo.usuario u
+  ON u.id_usuario = c.ID_USUARIO
+LEFT JOIN dbo.ESTADO e
+  ON e.ID_ESTADO = c.ID_ESTADO_COMPRA
+ORDER BY c.FECHA_HORA DESC, c.ID_COMPRA DESC;
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE CARGAN LA HOJA COMPRAS REAL
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/purchases
+ipcMain.handle('purchases:list')
+window.electronAPI.getPurchases()
+loadPurchases()
+purchaseHistoryRows()
+paginatedPurchases()
+purchaseSuppliersCount()
+purchaseTransactionsCount()
+purchaseOpenCreditTotal()
+purchaseOpenCreditSuppliersCount()
+exportPurchasePdf(purchase)
+purchaseTrendYearOptions()
+purchasesTrendData()
+updatePurchaseTrendYear(event)
+setPurchaseTrendYear(year)
+purchaseSupplierGroups()
+togglePurchaseSupplier(supplierId)
+togglePurchaseInvoice(invoiceKey)
+exportPurchaseInvoicePdf(invoice)
+
+QUE HACEN:
+CARGAN LAS COMPRAS REALES DESDE dbo.COMPRA_EFECTIVO Y dbo.COMPRA_CREDITO.
+ALIMENTAN LAS TARJETAS, TABLA MASTER, MODAL PRINCIPAL DE COMPRAS, EXPORTACION PDF
+Y EL GRAFICO DE TENDENCIA DE COMPRAS DEL DASHBOARD.
+EL SELECTOR DE PROVEEDOR DEL SUBMODAL SIGUE USANDO dbo.proveedor SOLO PARA SELECCIONAR
+EL PROVEEDOR QUE SE VA A RELACIONAR CON LA COMPRA.
+EL GRAFICO DE TENDENCIA DE COMPRAS USA LOS DATOS YA CARGADOS POR listPurchases().
+NO EJECUTA UNA CONSULTA ADICIONAL A LA BASE DE DATOS.
+LA OPCION TODO AGRUPA TODAS LAS COMPRAS POR MES Y DIFERENCIA CADA MES CON SU ANO.
+CUANDO SE SELECCIONA UN ANO ESPECIFICO, AGRUPA ESE ANO POR MES.
+LA OPCION ANUAL MUESTRA LA AGRUPACION POR ANO.
+EL MODAL PRINCIPAL DE COMPRAS AGRUPA LOS DATOS EN MEMORIA POR PROVEEDOR
+Y LUEGO POR FACTURA. AL EXPANDIR UNA FACTURA MUESTRA LAS LINEAS DEL PRODUCTO.
+EL BOTON PDF DEL NIVEL FACTURA EXPORTA TODAS LAS LINEAS DE ESA FACTURA.
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS OCR PARA FACTURA DE COMPRA
+
+UBICACION DEL CODIGO:
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+src/app/app.css
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+ipcMain.handle('purchases:ocr-invoice')
+window.electronAPI.processPurchaseInvoiceOcr(payload)
+openPurchaseOcrModal()
+closePurchaseOcrModal()
+updatePurchaseInvoiceImage(event)
+processPurchaseInvoiceOcr()
+addPurchaseLinesFromOcrText(text)
+clearPurchaseInvoiceImage()
+
+QUE HACEN:
+AGREGAN EN EL SUBMODAL AGREGAR COMPRA UN BOTON PARA ABRIR UN MODAL DEDICADO
+DE OCR. EN ESE MODAL SE CARGA UNA FOTO LOCAL DE LA FACTURA, SE MUESTRA LA
+VISTA PREVIA Y SE EJECUTA EL PROCESAMIENTO.
+EN ELECTRON, LA IMAGEN SE ENVIA AL PROCESO PRINCIPAL POR IPC
+Y SE PROCESA CON tesseract.js EN NODE USANDO DATOS LOCALES DE IDIOMA ESPANOL.
+EN NAVEGADOR, EL SISTEMA INTENTA USAR LOS ASSETS LOCALES DE tesseract.js
+CONFIGURADOS EN angular.json.
+USA LOS ASSETS LOCALES:
+assets/tesseract/worker.min.js
+assets/tesseract-core/*
+assets/tesseract-lang/spa.traineddata.gz
+assets/tesseract-lang/eng.traineddata.gz
+BUSCA PRODUCTOS REGISTRADOS POR SKU O NOMBRE Y AGREGA LINEAS AL DETALLE
+DE COMPRA CON CANTIDAD Y COSTO.
+ESTOS PROCEDIMIENTOS NO MANDAN CONSULTAS A LA BASE DE DATOS.
+
+====================================================================
+RESPALDO DE CONSULTA PARA PRIORIZAR PRODUCTOS EN FACTURACION
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE EJECUTA LA CONSULTA:
+getProducts({ resolveProductImageUrl })
+
+QUE HACE:
+OBTIENE LOS PRODUCTOS ACTIVOS DESDE dbo.producto Y dbo.inventario.
+ADEMAS CALCULA LA CANTIDAD VENDIDA DEL MES ANTERIOR SUMANDO
+dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO Y dbo.VENTA_TRANSFERENCIA.
+ESTA COLUMNA SE USA EN FACTURACION PARA MOSTRAR COMO PRIMERAS OPCIONES
+LOS PRODUCTOS MAS VENDIDOS DEL MES ANTERIOR.
+
+CONSULTA SQL:
+WITH ventas_mes_anterior AS (
+  SELECT
+    ID_PD,
+    SUM(CANT_PD) AS CANTIDAD_VENDIDA_MES_ANTERIOR
+  FROM (
+    SELECT ID_PD, CANT_PD, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+    FROM dbo.VENTA_EFECTIVO
+    WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+    UNION ALL
+
+    SELECT ID_PD, CANT_PD, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+    FROM dbo.VENTA_CREDITO
+    WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+    UNION ALL
+
+    SELECT ID_PD, CANT_PD, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+    FROM dbo.VENTA_TRANSFERENCIA
+    WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+  ) ventas
+  WHERE sale_date >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)
+    AND sale_date < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+  GROUP BY ID_PD
+)
+SELECT
+  p.id_producto,
+  p.codigo,
+  p.nombre,
+  p.descripcion,
+  p.imagen_url,
+  i.precio_costo,
+  i.precio_venta,
+  i.precio_mayoreo,
+  i.unidad_medida,
+  i.stock,
+  i.stock_minimo,
+  i.stock_maximo,
+  i.categoria,
+  i.proveedor,
+  i.creado_por,
+  i.creado_en,
+  i.actualizado_por,
+  i.actualizado_en,
+  ISNULL(vma.CANTIDAD_VENDIDA_MES_ANTERIOR, 0) AS CANTIDAD_VENDIDA_MES_ANTERIOR
+FROM dbo.producto p
+INNER JOIN dbo.inventario i
+  ON i.codigo = p.codigo
+LEFT JOIN ventas_mes_anterior vma
+  ON vma.ID_PD = p.id_producto
+WHERE p.activo = 1
+ORDER BY p.nombre ASC;
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE PRIORIZAN PRODUCTOS Y FAVORITOS EN FACTURACION
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+src/app/app.css
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/products
+ipcMain.handle('products:list')
+window.electronAPI.getProducts()
+fetchProducts()
+filteredProducts()
+isFavoriteProduct(productId)
+toggleFavoriteProduct(productId, event)
+
+QUE HACEN:
+CARGAN LOS PRODUCTOS CON LA CANTIDAD VENDIDA DEL MES ANTERIOR.
+EN FACTURACION SE MUESTRAN 5 TARJETAS POR FILA, MAS COMPACTAS,
+CON PRECIO COSTO VISIBLE Y BOTON DE FAVORITO EN LA ESQUINA SUPERIOR DERECHA.
+LOS FAVORITOS SE GUARDAN LOCALMENTE EN localStorage.
+EL ORDEN DE LA GRILLA PRIORIZA:
+1. PRODUCTOS FAVORITOS
+2. PRODUCTOS MAS VENDIDOS DEL MES ANTERIOR
+3. NOMBRE DEL PRODUCTO
+
+====================================================================
+RESPALDO DE TABLA Y PROCEDIMIENTO DE ALERTAS DE PRODUCTOS PROXIMOS A VENCER
+
+UBICACION DEL CODIGO:
+server/data-access.js
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+src/app/app.css
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+ensureExpiringProductsObjects()
+refreshExpiringProducts()
+listExpiringProducts()
+loginUser(usuario, pass)
+GET /api/products/expiring
+ipcMain.handle('products:expiring')
+window.electronAPI.getExpiringProducts()
+loadExpiringProducts()
+openExpiringProductsModal()
+
+QUE HACEN:
+CREAN SI NO EXISTE LA TABLA AUXILIAR dbo.PRODUCTO_PROXIMO_VENCER.
+CREAN SI NO EXISTE EL PROCEDIMIENTO ALMACENADO dbo.sp_recalcular_productos_proximos_vencer.
+AL INICIAR SESION, loginUser() EJECUTA refreshExpiringProducts() PARA RECALCULAR
+LOS PRODUCTOS QUE ESTAN A 30 DIAS O MENOS DE VENCER.
+EL MODAL DE ALERTAS EN FACTURACION CONSULTA ESA TABLA AUXILIAR
+Y MUESTRA CODIGO, PRODUCTO, CATEGORIA, FECHA DE INGRESO, NUMERO DE LOTE, STOCK, FECHA DE VENCIMIENTO
+Y LOS DIAS FALTANTES CON FONDO DEGRADADO ROJO.
+
+SQL DE CREACION DE TABLA AUXILIAR:
+IF OBJECT_ID('dbo.PRODUCTO_PROXIMO_VENCER', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.PRODUCTO_PROXIMO_VENCER (
+    ID_ALERTA INT IDENTITY(1,1) PRIMARY KEY,
+    ID_PRODUCTO INT NOT NULL,
+    CODIGO VARCHAR(120) NOT NULL,
+    NOMBRE_PRODUCTO VARCHAR(255) NOT NULL,
+    CATEGORIA VARCHAR(160) NULL,
+    FECHA_INGRESO VARCHAR(60) NULL,
+    STOCK DECIMAL(18, 2) NOT NULL,
+    NUM_LOTE INT NULL,
+    FECHA_VENCIMIENTO DATE NOT NULL,
+    DIAS_PARA_VENCER INT NOT NULL,
+    FECHA_RECALCULO DATETIME NOT NULL DEFAULT GETDATE()
+  );
+END;
+
+SQL DEL PROCEDIMIENTO ALMACENADO:
+dbo.sp_recalcular_productos_proximos_vencer
+
+QUE HACE EL PROCEDIMIENTO ALMACENADO:
+USA DIRECTAMENTE dbo.inventario.FECHA_INGRESO, dbo.inventario.FECHA_VENCIMIENTO Y dbo.inventario.NUM_LOTE.
+HACE JOIN CON dbo.producto PARA OBTENER EL NOMBRE DEL PRODUCTO.
+VACIA dbo.PRODUCTO_PROXIMO_VENCER Y VUELVE A INSERTAR
+LOS PRODUCTOS ACTIVOS QUE ESTAN ENTRE 0 Y 30 DIAS PARA VENCER.
+
+SQL DE CONSULTA DEL MODAL DE ALERTAS:
+SELECT
+  ID_ALERTA,
+  ID_PRODUCTO,
+  CODIGO,
+  NOMBRE_PRODUCTO,
+  CATEGORIA,
+  FECHA_INGRESO,
+  STOCK,
+  NUM_LOTE,
+  FECHA_VENCIMIENTO,
+  DIAS_PARA_VENCER,
+  FECHA_RECALCULO
+FROM dbo.PRODUCTO_PROXIMO_VENCER
+ORDER BY DIAS_PARA_VENCER ASC, NOMBRE_PRODUCTO ASC;
+
+====================================================================
+RESPALDO DE CONSULTA PARA ALERTA DE CAIDA DE VENTAS
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+getSalesDropAlert()
+
+QUE HACE:
+CONSULTA dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO Y dbo.VENTA_TRANSFERENCIA.
+COMPARA LAS VENTAS DE HOY CONTRA LAS DE AYER A LA MISMA HORA.
+LA ALERTA SOLO SE MARCA COMO ACTIVA A PARTIR DE LAS 07:00 PM.
+SI HOY ESTA MAS BAJO QUE AYER, CALCULA LA BRECHA MONETARIA
+Y EL PORCENTAJE DE CAIDA.
+
+CONSULTA:
+WITH ventas AS (
+  SELECT TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date, CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+  FROM dbo.VENTA_EFECTIVO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date, CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+  FROM dbo.VENTA_CREDITO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date, CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+),
+limites AS (
+  SELECT
+    GETDATE() AS current_datetime,
+    CAST(GETDATE() AS date) AS today_date
+)
+SELECT
+  CAST(l.current_datetime AS datetime2) AS evaluated_at,
+  CONVERT(varchar(8), CAST(l.current_datetime AS time), 108) AS cutoff_time,
+  CASE
+    WHEN CAST(l.current_datetime AS time) >= '19:00:00' THEN 1
+    ELSE 0
+  END AS is_active,
+  ISNULL((
+    SELECT SUM(v.total)
+    FROM ventas v
+    WHERE v.sale_date >= CAST(l.today_date AS datetime2)
+      AND v.sale_date <= l.current_datetime
+  ), 0) AS today_total,
+  ISNULL((
+    SELECT SUM(v.total)
+    FROM ventas v
+    WHERE v.sale_date >= DATEADD(DAY, -1, CAST(l.today_date AS datetime2))
+      AND v.sale_date <= DATEADD(DAY, -1, l.current_datetime)
+  ), 0) AS yesterday_total
+FROM limites l
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN ALERTA DE CAIDA DE VENTAS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/dashboard/sales-drop-alert
+ipcMain.handle('dashboard:sales-drop-alert')
+window.electronAPI.getSalesDropAlert()
+loadSalesDropAlert()
+openSalesDropAlertModal()
+setPage('dashboard')
+setPage('billing')
+persistSale()
+annulInvoice()
+activateInvoice()
+authenticateUser()
+
+QUE HACEN:
+MUESTRAN UNA ALERTA OPERATIVA SI LAS VENTAS DE HOY
+ESTAN POR DEBAJO DEL RITMO DE AYER A LA MISMA HORA.
+EN FACTURACION LA ALERTA SE MUESTRA COMO BOTON Y MODAL.
+EN DASHBOARD LA ALERTA SE MUESTRA COMO TARJETA RESUMEN.
+
+====================================================================
+RESPALDO DE CONSULTA PARA TOTAL DE VENTAS POR PERIODO EN COSTOS
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+getSalesTotalByPeriod(year, month)
+
+QUE HACE:
+CONSULTA dbo.VENTA_EFECTIVO, dbo.VENTA_CREDITO Y dbo.VENTA_TRANSFERENCIA.
+SUMA PRECIO_VENTA * CANT_PD FILTRANDO POR EL ANO Y MES SELECCIONADO.
+SE UTILIZA EN LA HOJA COSTOS PARA CALCULAR EL MARGEN OPERATIVO
+DEL PERIODO SELECCIONADO EN LOS SELECTORES.
+
+CONSULTA:
+SELECT ISNULL(SUM(total), 0) AS sales_total
+FROM (
+  SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+  FROM dbo.VENTA_EFECTIVO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+  FROM dbo.VENTA_CREDITO
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+
+  UNION ALL
+
+  SELECT CAST(PRECIO_VENTA * CANT_PD AS decimal(18, 2)) AS total, TRY_CONVERT(datetime2, FECHA_HORA) AS sale_date
+  FROM dbo.VENTA_TRANSFERENCIA
+  WHERE TRY_CONVERT(datetime2, FECHA_HORA) IS NOT NULL
+) sales_by_period
+WHERE YEAR(sale_date) = @period_year
+  AND MONTH(sale_date) = @period_month
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN EL SELECTOR DE PERIODO EN COSTOS
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/costs/sales-period-total
+ipcMain.handle('costs:sales-period-total')
+window.electronAPI.getCostSalesPeriodTotal()
+loadCostSalesPeriodTotal()
+updateCostYear()
+updateCostMonth()
+setPage('costs')
+
+QUE HACEN:
+PERMITEN CAMBIAR ANO Y MES EN LA HOJA COSTOS.
+AL CAMBIAR EL PERIODO, SE ACTUALIZAN LAS TARJETAS,
+LOS GRAFICOS Y EL MARGEN OPERATIVO CON BASE EN EL PERIODO SELECCIONADO.
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN LA HOJA COSTOS
+
+UBICACION DEL CODIGO:
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LA UTILIZAN:
+setPage('costs')
+loadPurchases()
+loadDashboardSalesSummary()
+
+QUE HACEN:
+LA HOJA COSTOS NO CREA UNA CONSULTA NUEVA A LA BASE DE DATOS.
+USA loadPurchases(), QUE TERMINA EJECUTANDO listPurchases() EN server/data-access.js,
+PARA OBTENER LOS COSTOS VARIABLES REALES DESDE dbo.COMPRA_EFECTIVO
+Y dbo.COMPRA_CREDITO.
+TAMBIEN USA loadDashboardSalesSummary(), QUE TERMINA EJECUTANDO
+getDashboardSalesSummary() EN server/data-access.js,
+PARA TOMAR EL TOTAL DE VENTAS DEL MES Y CALCULAR EL MARGEN OPERATIVO.
+LOS GRAFICOS DE COSTOS POR AREA, DISTRIBUCION Y EVOLUCION
+SE CONSTRUYEN EN EL FRONTEND CON LOS DATOS YA CARGADOS EN MEMORIA.
+
+====================================================================
+RESPALDO DE CONSULTA PARA ASISTENCIA Y PLANILLA CON USUARIOS REALES
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+listAttendanceUsers()
+
+QUE HACE:
+CONSULTA dbo.usuario, dbo.ASISTENCIA Y dbo.VW_ASISTENCIA_HORAS.
+TOMA EL REGISTRO DEL DIA ACTUAL PARA CADA USUARIO ACTIVO Y CALCULA
+LAS HORAS TRABAJADAS DEL DIA Y LAS HORAS ACUMULADAS DE LOS ULTIMOS 7 DIAS.
+SE USA PARA MOSTRAR DATOS REALES EN CONTROL DE ASISTENCIA Y PLANILLA.
+TAMBIEN DEVUELVE EL HISTORIAL DIARIO PARA AGRUPARLO POR USUARIO, SEMANA Y DIA.
+SI EXISTE LA COLUMNA dbo.ASISTENCIA.num_semana, EL HISTORIAL LA USA
+PARA FILTRAR RAPIDAMENTE POR SEMANA DESDE EL FRONTEND.
+
+CONSULTA:
+WITH asistencia_hoy AS (
+  SELECT
+    a.ID_EMPLEADO,
+    TRY_CONVERT(date, a.FECHA) AS FECHA_ASISTENCIA,
+    CONVERT(varchar(5), TRY_CONVERT(time, a.HORA_ENTRADA), 108) AS HORA_ENTRADA,
+    CONVERT(varchar(5), TRY_CONVERT(time, a.HORA_SALIDA), 108) AS HORA_SALIDA,
+    UPPER(LTRIM(RTRIM(ISNULL(a.ESTADO, '')))) AS ESTADO,
+    ROW_NUMBER() OVER (
+      PARTITION BY a.ID_EMPLEADO
+      ORDER BY a.ID_ASISTENCIA DESC
+    ) AS rn
+  FROM dbo.ASISTENCIA a
+  WHERE TRY_CONVERT(date, a.FECHA) = CAST(GETDATE() AS date)
+),
+horas_hoy AS (
+  SELECT
+    vh.ID_EMPLEADO,
+    SUM(CAST(ISNULL(vh.HORAS_TRABAJADAS, 0) AS decimal(18, 2))) AS HORAS_HOY
+  FROM dbo.VW_ASISTENCIA_HORAS vh
+  WHERE TRY_CONVERT(date, vh.FECHA) = CAST(GETDATE() AS date)
+  GROUP BY vh.ID_EMPLEADO
+),
+horas_semana AS (
+  SELECT
+    vh.ID_EMPLEADO,
+    SUM(CAST(ISNULL(vh.HORAS_TRABAJADAS, 0) AS decimal(18, 2))) AS HORAS_SEMANA,
+    COUNT(DISTINCT TRY_CONVERT(date, vh.FECHA)) AS DIAS_TRABAJADOS
+  FROM dbo.VW_ASISTENCIA_HORAS vh
+  WHERE TRY_CONVERT(date, vh.FECHA) BETWEEN DATEADD(day, -6, CAST(GETDATE() AS date)) AND CAST(GETDATE() AS date)
+  GROUP BY vh.ID_EMPLEADO
+)
+SELECT
+  u.id_usuario,
+  u.nombre,
+  u.usuario,
+  u.rol,
+  CAST(GETDATE() AS date) AS FECHA_REFERENCIA,
+  ah.FECHA_ASISTENCIA,
+  ah.HORA_ENTRADA,
+  ah.HORA_SALIDA,
+  CASE
+    WHEN ah.ESTADO IN ('AUSENTE', 'PERMISO', 'VACACIONES', 'INCAPACIDAD') THEN ah.ESTADO
+    WHEN ISNULL(hh.HORAS_HOY, 0) > 0 AND ISNULL(ah.HORA_ENTRADA, '00:00') > '08:00' THEN 'TARDE'
+    WHEN ISNULL(hh.HORAS_HOY, 0) > 0 THEN 'PUNTUAL'
+    ELSE 'SIN REGISTRO'
+  END AS ESTADO_ASISTENCIA,
+  CAST(ISNULL(hh.HORAS_HOY, 0) AS decimal(18, 2)) AS HORAS_HOY,
+  CAST(ISNULL(hs.HORAS_SEMANA, 0) AS decimal(18, 2)) AS HORAS_SEMANA,
+  CAST(ISNULL(hs.DIAS_TRABAJADOS, 0) AS int) AS DIAS_TRABAJADOS
+FROM dbo.usuario u
+LEFT JOIN asistencia_hoy ah
+  ON ah.ID_EMPLEADO = u.id_usuario
+  AND ah.rn = 1
+LEFT JOIN horas_hoy hh
+  ON hh.ID_EMPLEADO = u.id_usuario
+LEFT JOIN horas_semana hs
+  ON hs.ID_EMPLEADO = u.id_usuario
+WHERE u.activo = 1
+ORDER BY u.nombre ASC
+
+CONSULTA DE HISTORIAL:
+WITH asistencia_historial AS (
+  SELECT
+    a.ID_ASISTENCIA,
+    a.ID_EMPLEADO,
+    TRY_CONVERT(date, a.FECHA) AS FECHA_ASISTENCIA,
+    CONVERT(varchar(5), TRY_CONVERT(time, a.HORA_ENTRADA), 108) AS HORA_ENTRADA,
+    CONVERT(varchar(5), TRY_CONVERT(time, a.HORA_SALIDA), 108) AS HORA_SALIDA,
+    UPPER(LTRIM(RTRIM(ISNULL(a.ESTADO, '')))) AS ESTADO,
+    ROW_NUMBER() OVER (
+      PARTITION BY a.ID_EMPLEADO, TRY_CONVERT(date, a.FECHA)
+      ORDER BY a.ID_ASISTENCIA DESC
+    ) AS rn
+  FROM dbo.ASISTENCIA a
+  WHERE TRY_CONVERT(date, a.FECHA) >= DATEADD(day, -84, CAST(GETDATE() AS date))
+)
+SELECT
+  u.id_usuario,
+  ah.ID_ASISTENCIA,
+  ah.FECHA_ASISTENCIA,
+  ISNULL(ah.num_semana, DATEPART(ISO_WEEK, ah.FECHA_ASISTENCIA)) AS NUM_SEMANA,
+  ah.HORA_ENTRADA,
+  ah.HORA_SALIDA,
+  ah.ESTADO,
+  CAST(ISNULL(vh.HORAS_TRABAJADAS, 0) AS decimal(18, 2)) AS HORAS_TRABAJADAS
+FROM dbo.usuario u
+LEFT JOIN asistencia_historial ah
+  ON ah.ID_EMPLEADO = u.id_usuario
+  AND ah.rn = 1
+LEFT JOIN dbo.VW_ASISTENCIA_HORAS vh
+  ON vh.ID_EMPLEADO = ah.ID_EMPLEADO
+  AND TRY_CONVERT(date, vh.FECHA) = ah.FECHA_ASISTENCIA
+WHERE u.activo = 1
+  AND ah.FECHA_ASISTENCIA IS NOT NULL
+ORDER BY u.nombre ASC, ah.FECHA_ASISTENCIA DESC
+
+====================================================================
+RESPALDO DE CONSULTA PARA GUARDAR MARCAS DE ASISTENCIA
+
+UBICACION DEL CODIGO:
+server/data-access.js
+
+PROCEDIMIENTO QUE LA UTILIZA:
+saveAttendanceMark()
+
+QUE HACE:
+CREA O ACTUALIZA LA MARCA DIARIA EN dbo.ASISTENCIA
+USANDO FECHA, HORA_ENTRADA Y HORA_SALIDA EN FORMATO MILITAR HH:mm.
+SI YA EXISTE UNA FILA PARA EL USUARIO Y LA FECHA, LA ACTUALIZA.
+SI NO EXISTE, CREA UNA NUEVA FILA.
+TAMBIEN LLENA dbo.ASISTENCIA.num_semana CON DATEPART(ISO_WEEK, @attendance_date)
+PARA QUE ASISTENCIA Y PLANILLA PUEDAN FILTRAR RAPIDAMENTE POR SEMANA.
+
+CONSULTA:
+IF EXISTS (
+  SELECT 1
+  FROM dbo.ASISTENCIA
+  WHERE ID_EMPLEADO = @employee_id
+    AND FECHA = @attendance_date
+)
+BEGIN
+  UPDATE dbo.ASISTENCIA
+  SET HORA_ENTRADA = CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126),
+      HORA_SALIDA = CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126),
+      num_semana = DATEPART(ISO_WEEK, @attendance_date),
+      ESTADO = @attendance_status,
+      OBSERVACION = @observation,
+      USUARIO_REGISTRO = @recorded_by,
+      FECHA_REGISTRO = GETDATE()
+  WHERE ID_EMPLEADO = @employee_id
+    AND FECHA = @attendance_date;
+END
+ELSE
+BEGIN
+  INSERT INTO dbo.ASISTENCIA (
+    ID_EMPLEADO,
+    FECHA,
+    HORA_ENTRADA,
+    HORA_SALIDA,
+    num_semana,
+    ESTADO,
+    OBSERVACION,
+    USUARIO_REGISTRO,
+    FECHA_REGISTRO
+  )
+  VALUES (
+    @employee_id,
+    @attendance_date,
+    CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126),
+    CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126),
+    DATEPART(ISO_WEEK, @attendance_date),
+    @attendance_status,
+  @observation,
+  @recorded_by,
+    GETDATE()
+  );
+END
+
+====================================================================
+RESPALDO DE PROCEDIMIENTOS QUE USAN ASISTENCIA Y PLANILLA REALES
+
+UBICACION DEL CODIGO:
+server/server.js
+electron/main.js
+electron/preload.js
+src/electron-api.d.ts
+src/app/app.ts
+src/app/app.html
+
+PROCEDIMIENTOS QUE LO UTILIZAN:
+GET /api/attendance/users
+POST /api/attendance/mark
+ipcMain.handle('attendance:list')
+ipcMain.handle('attendance:save-mark')
+window.electronAPI.getAttendanceUsers()
+window.electronAPI.saveAttendanceMark()
+loadAttendanceUsers()
+saveAttendanceMark()
+setPage('attendance')
+setPage('payroll')
+setPage('payroll-generate')
+authenticateUser()
+
+QUE HACEN:
+CARGAN LOS MISMOS USUARIOS ACTIVOS DE dbo.usuario
+Y LOS USAN TANTO EN CONTROL DE ASISTENCIA COMO EN PLANILLA.
+LAS HORAS DEL DIA Y DE LA SEMANA SE CALCULAN DESDE dbo.VW_ASISTENCIA_HORAS
+Y EL ESTADO DEL DIA SE TOMA DESDE dbo.ASISTENCIA.
