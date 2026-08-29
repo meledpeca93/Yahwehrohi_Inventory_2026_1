@@ -1,0 +1,53 @@
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'scheduleGeneratedPayrollAudit' does not exist on type 'App'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:5867:9:
+[37m      5867 │     this.[32mscheduleGeneratedPayrollAudit[37m(userId, dayId, shiftId, v...
+           ╵          [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'createAuditHistoryRecord' does not exist on type 'App'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.ts:5895:16:
+[37m      5895 │       void this.[32mcreateAuditHistoryRecord[37m({
+           ╵                 [32m~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2551: Property 'formatAuditDateTime' does not exist on type 'App'. Did you mean 'formatCutDateTime'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.html:3525:21:
+[37m      3525 │           <strong>{{ [32mformatAuditDateTime[37m(lastRecord.date) }}</st...
+           ╵                      [32m~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component App.
+
+    src/app/app.ts:826:15:
+[37m      826 │   templateUrl: [32m'./app.html'[37m,
+          ╵                [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'formatAuditDate' does not exist on type 'App'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.html:3586:29:
+[37m      3586 │                   <strong>{{ [32mformatAuditDate[37m(item.date) }}</strong>
+           ╵                              [32m~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component App.
+
+    src/app/app.ts:826:15:
+[37m      826 │   templateUrl: [32m'./app.html'[37m,
+          ╵                [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2551: Property 'formatAuditTime' does not exist on type 'App'. Did you mean 'formatCutDateTime'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.html:3587:27:
+[37m      3587 │                   <span>{{ [32mformatAuditTime[37m(item.date) }}</span>
+           ╵                            [32m~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component App.
+
+    src/app/app.ts:826:15:
+[37m      826 │   templateUrl: [32m'./app.html'[37m,
+          ╵                [32m~~~~~~~~~~~~[0m
+
+[39m[22m

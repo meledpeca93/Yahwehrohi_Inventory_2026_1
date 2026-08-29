@@ -1,0 +1,80 @@
+[
+  {
+    "id": "1787927466440-053dd669bc0c",
+    "createdAt": "2026-08-28T14:31:06.440Z",
+    "type": "Restauración",
+    "status": "Correcto",
+    "fileName": "pre_restore_backup_2026-08-28_0830.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\pre_restore_backup_2026-08-28_0830.bak",
+    "size": 50426368,
+    "message": "Base restaurada correctamente. Respaldo previo: C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\pre_restore_backup_2026-08-28_0831.bak",
+    "userId": 1,
+    "user": "Admin",
+    "protected": false
+  },
+  {
+    "id": "1787927463828-77a98bb46a0e8",
+    "createdAt": "2026-08-28T14:31:01.743Z",
+    "type": "Pre-Restauración",
+    "status": "Correcto",
+    "fileName": "pre_restore_backup_2026-08-28_0831.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\pre_restore_backup_2026-08-28_0831.bak",
+    "size": 50426368,
+    "message": "Respaldo generado correctamente.",
+    "userId": 1,
+    "user": "Admin",
+    "protected": true
+  },
+  {
+    "id": "1787927411917-7fd06f2141137",
+    "createdAt": "2026-08-28T14:30:09.611Z",
+    "type": "Pre-Restauración",
+    "status": "Correcto",
+    "fileName": "pre_restore_backup_2026-08-28_0830.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\pre_restore_backup_2026-08-28_0830.bak",
+    "size": 50426368,
+    "message": "Respaldo generado correctamente.",
+    "userId": 1,
+    "user": "Admin",
+    "protected": true
+  },
+  {
+    "id": "1787927360341-4bb7ef5b121f5",
+    "createdAt": "2026-08-28T14:29:17.827Z",
+    "type": "Automático",
+    "status": "Correcto",
+    "fileName": "backup_2026-08-28_0829.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\backup_2026-08-28_0829.bak",
+    "size": 50426368,
+    "message": "Respaldo generado correctamente.",
+    "userId": null,
+    "user": "Sistema",
+    "protected": false
+  },
+  {
+    "id": "1787927314060-a531e87e389ee",
+    "createdAt": "2026-08-28T14:28:31.162Z",
+    "type": "Manual",
+    "status": "Correcto",
+    "fileName": "backup_2026-08-28_0828.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\backup_2026-08-28_0828.bak",
+    "size": 50426368,
+    "message": "Respaldo generado correctamente.",
+    "userId": 1,
+    "user": "Admin",
+    "protected": false
+  },
+  {
+    "id": "1787927300721-af057a0c0cfe5",
+    "createdAt": "2026-08-28T14:28:20.719Z",
+    "type": "Manual",
+    "status": "Error",
+    "fileName": "",
+    "filePath": "",
+    "size": 0,
+    "message": "Solo usuarios administrativos pueden ejecutar esta operacion.",
+    "userId": 99,
+    "user": "Caja",
+    "protected": false
+  }
+]

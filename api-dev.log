@@ -1,0 +1,6 @@
+
+> yahweh-rohi-inventory@0.0.0 start:api
+> node server/server.js
+
+◇ injected env (8) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+API escuchando en http://localhost:3000

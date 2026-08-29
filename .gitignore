@@ -46,6 +46,11 @@ __screenshots__/
 # Database exports with production data
 /database/*backup*.sql
 /database/respaldo*.sql
+/database-backups/
+
+# Recovery runtime artifacts
+/recovery/logs/
+/recovery/backups/
 
 # System files
 .DS_Store

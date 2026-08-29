@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "frequency": "daily",
+  "time": "23:00",
+  "maxBackups": 15,
+  "backupDir": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups",
+  "lastAutomaticRunKey": "2026-08-28-daily"
+}

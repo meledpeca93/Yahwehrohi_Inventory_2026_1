@@ -6,6 +6,7 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 - `docs/SISTEMA_DOCUMENTACION.md`: mapa operativo del proyecto por seccion, datos, conexiones, procedimientos y lugar donde se muestra cada dato.
 - `docs/CONSULTAS_BASE_DATOS.md`: consultas principales de `server/data-access.js`, tablas usadas, datos generados y pantallas que consumen cada resultado.
+- `docs/MANUAL_TECNICO_FEFO_LOTES.md`: manual tecnico de uso y mantenimiento del manejo de lotes, vencimientos y descuento FEFO.
 - `database/migrations/005_install_auditoria_triggers_sql_server.sql`: instalador de auditoria automatica para registrar movimientos de base de datos en `dbo.auditoria`.
 - `database/migrations/006_create_operational_costs_sql_server.sql`: costos operativos y columnas de costo real de compra para prorratear transporte por unidad.
 

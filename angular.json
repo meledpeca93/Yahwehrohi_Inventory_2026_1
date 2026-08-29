@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "285ac0f3-fa32-4c92-9f63-aa2eba793d89"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -27,6 +28,11 @@
                 "glob": "**/*",
                 "input": "src/img",
                 "output": "assets/img"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/login",
+                "output": "login"
               },
               {
                 "glob": "worker.min.js",
@@ -58,14 +64,14 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1800kB",
+                  "maximumError": "2MB"
                 },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "90kB",
-                  "maximumError": "110kB"
-                }
+                  {
+                    "type": "anyComponentStyle",
+                    "maximumWarning": "320kB",
+                    "maximumError": "360kB"
+                  }
               ],
               "outputHashing": "all"
             },

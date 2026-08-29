@@ -1,75 +1,222 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 const cors = require('cors');
 const express = require('express');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
-const { getPool } = require('./db');
+const { execFile } = require('child_process');
+const { fileURLToPath } = require('url');
+const { getPool, resetPool } = require('./db');
 const {
   activateInvoice,
   annulInvoice,
+  annulPurchase,
+  createAssembledOfferCode,
   createDailyCut,
+  createFinancialMovement,
+  createInventoryProduct,
   createOpeningCut,
+  createAuditHistoryRecord,
   createOperationalCost,
+  createPettyCashRecord,
+  createQuote,
+  deleteDailyCutCashManagement,
+  deletePettyCashRecord,
+  updateAssembledOfferCode,
   listMonthlyCostIncreaseAlerts,
+  getBillingProducts,
+  getInactiveProducts,
   getDashboardSalesSummary,
   getDashboardSalesTrend,
+  getSalesProfitabilityAnalytics,
   getSalesByCategoryForPeriod,
   getSalesDropAlert,
   getSalesTotalByPeriod,
   getInvoiceDetails,
   getInvoicesSummary,
   getNextInvoiceNumber,
+  getProductInventoryDetail,
   getProducts,
+  getQuoteDetails,
+  getSystemHealth,
+  listPayrollRecords,
   listActiveUsers,
   listAuditHistory,
   listAttendanceUsers,
   listCredits,
   listCreditPaymentsByDate,
+  listCreditPaymentsHistory,
+  listCreditPaymentsByCustomer,
   listDailyCuts,
   listCustomers,
   listExpiringProducts,
   listInvoices,
   listPurchases,
+  listFinancialMovements,
+  listAssembledOfferCodes,
   listOperationalCosts,
+  listPettyCashRecords,
+  listQuotes,
   listTodayInvoices,
   saveAttendanceMark,
+  savePayrollWeek,
   listSuppliers,
   loginUser,
   previewDailyCut,
   registerCreditPayment,
   registerPurchase,
+  registerQuickInventoryPurchase,
+  registerQuickInventoryReduction,
   registerSale,
+  reactivateInventoryProduct,
+  updateDailyCutCashManagement,
+  updatePettyCashRecord,
+  updateProductActiveStatus,
   updateInventoryStockLevels,
 } = require('./data-access');
+const { createFacturacionRouter } = require('./modules/facturacion/facturacion.routes');
+const { createDatabaseBackupRouter } = require('./modules/database-backup/backup.routes');
+const { scheduleAutomaticBackups } = require('./modules/database-backup/backup.service');
+const {
+  parseReactivarProductoRequest,
+  toInactiveProductsResponse,
+  toReactivatedProductResponse,
+} = require('./modules/inventario/inventario.dto');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
+let sharp = null;
+
+try {
+  sharp = require('sharp');
+} catch {
+  sharp = null;
+}
 
 app.use(cors({ origin: ['http://localhost:4200', 'http://127.0.0.1:4200'] }));
 app.use(express.json());
 
 const imageAssetsPrefix = 'assets/img/';
 const imageAssetsPath = path.join(__dirname, '..', 'src', 'img');
+const productThumbnailsPath = path.join(__dirname, '..', 'public', 'product-thumbnails');
+const legacyProductImagesPath = path.join(
+  process.env.USERPROFILE || 'C:\\Users\\InversionesYR',
+  'Documents',
+  'Vanguard Software Group',
+  'Sistema punto de venta VSG - Imagenes Productos',
+);
+let imageAssetFileNamesCache = null;
+
+function getImageAssetFileNames() {
+  if (imageAssetFileNamesCache) {
+    return imageAssetFileNamesCache;
+  }
+
+  if (!fs.existsSync(imageAssetsPath)) {
+    imageAssetFileNamesCache = [];
+    return imageAssetFileNamesCache;
+  }
+
+  imageAssetFileNamesCache = fs.readdirSync(imageAssetsPath, { recursive: true })
+    .filter((assetFileName) => fs.statSync(path.join(imageAssetsPath, assetFileName)).isFile())
+    .map((assetFileName) => String(assetFileName).replace(/\\/g, '/'));
+
+  return imageAssetFileNamesCache;
+}
 
 function findImageAssetFile(fileName) {
-  const safeFileName = path.basename(fileName || '');
+  const normalizedFileName = String(fileName || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  const safeRelativeFileName = normalizedFileName
+    .split('/')
+    .filter((part) => part && part !== '.' && part !== '..')
+    .join('/');
+  const safeFileName = path.basename(safeRelativeFileName);
 
-  if (!safeFileName || !fs.existsSync(imageAssetsPath)) {
+  if (!safeFileName) {
     return null;
   }
 
-  const assetFileNames = fs.readdirSync(imageAssetsPath);
+  const assetFileNames = getImageAssetFileNames();
+  const relativeFile = assetFileNames.find((assetFileName) => assetFileName === safeRelativeFileName);
+
+  if (relativeFile) {
+    return relativeFile;
+  }
+
   const exactFile = assetFileNames.find((assetFileName) => assetFileName === safeFileName);
 
   if (exactFile) {
     return exactFile;
   }
 
-  return assetFileNames.find((assetFileName) => assetFileName.toLowerCase() === safeFileName.toLowerCase()) || null;
+  const lowerSafeFileName = safeFileName.toLowerCase();
+  const lowerSafeBaseName = path.parse(safeFileName).name.toLowerCase();
+
+  return (
+    assetFileNames.find((assetFileName) => assetFileName.toLowerCase() === lowerSafeFileName) ||
+    assetFileNames.find((assetFileName) => path.parse(assetFileName).name.toLowerCase() === lowerSafeBaseName) ||
+    null
+  );
+}
+
+function isPathInside(parentPath, childPath) {
+  const relativePath = path.relative(parentPath, childPath);
+  return !!relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+}
+
+function encodeProductImagePath(filePath) {
+  return Buffer.from(filePath, 'utf8').toString('base64url');
+}
+
+function decodeProductImagePath(encodedPath) {
+  try {
+    return Buffer.from(String(encodedPath || ''), 'base64url').toString('utf8');
+  } catch {
+    return '';
+  }
+}
+
+function resolveLocalProductImageFile(imageUrl) {
+  const normalizedImageUrl = String(imageUrl || '').trim();
+
+  if (!normalizedImageUrl) {
+    return null;
+  }
+
+  let localImagePath = normalizedImageUrl;
+
+  if (normalizedImageUrl.toLowerCase().startsWith('file://')) {
+    try {
+      localImagePath = fileURLToPath(normalizedImageUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!path.isAbsolute(localImagePath)) {
+    return null;
+  }
+
+  const resolvedImagePath = path.resolve(localImagePath);
+  const allowedRoots = [imageAssetsPath, legacyProductImagesPath]
+    .filter((rootPath) => fs.existsSync(rootPath))
+    .map((rootPath) => path.resolve(rootPath));
+
+  if (!allowedRoots.some((rootPath) => resolvedImagePath === rootPath || isPathInside(rootPath, resolvedImagePath))) {
+    return null;
+  }
+
+  return fs.existsSync(resolvedImagePath) ? resolvedImagePath : null;
 }
 
 function resolveProductImageUrl(imageUrl) {
+  const localImageFile = resolveLocalProductImageFile(imageUrl);
+
+  if (localImageFile) {
+    return `/api/product-images-local/${encodeProductImagePath(localImageFile)}`;
+  }
+
   if (!imageUrl || !imageUrl.toLowerCase().startsWith(imageAssetsPrefix)) {
     return imageUrl;
   }
@@ -78,6 +225,109 @@ function resolveProductImageUrl(imageUrl) {
   const matchingFile = findImageAssetFile(fileName);
 
   return matchingFile ? `/api/product-images/${encodeURIComponent(matchingFile)}` : imageUrl;
+}
+
+function resolveProductImageRequestFile(source, fileRef) {
+  if (source === 'assets') {
+    const matchingFile = findImageAssetFile(fileRef);
+    return matchingFile ? path.join(imageAssetsPath, matchingFile) : null;
+  }
+
+  if (source === 'local') {
+    return resolveLocalProductImageFile(decodeProductImagePath(fileRef));
+  }
+
+  return null;
+}
+
+function createWindowsThumbnail(sourceFile, destinationFile, size) {
+  return new Promise((resolve, reject) => {
+    const script = `& {
+      param([string]$SourceFile, [string]$DestinationFile, [int]$Size)
+      Add-Type -AssemblyName System.Drawing
+      $image = [System.Drawing.Image]::FromFile($SourceFile)
+      try {
+        $thumb = New-Object System.Drawing.Bitmap $Size, $Size
+        try {
+          $graphics = [System.Drawing.Graphics]::FromImage($thumb)
+          try {
+            $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+            $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+            $scale = [Math]::Max($Size / $image.Width, $Size / $image.Height)
+            $drawWidth = [int][Math]::Ceiling($image.Width * $scale)
+            $drawHeight = [int][Math]::Ceiling($image.Height * $scale)
+            $x = [int](($Size - $drawWidth) / 2)
+            $y = [int](($Size - $drawHeight) / 2)
+            $graphics.DrawImage($image, $x, $y, $drawWidth, $drawHeight)
+            $encoder = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+            $params = New-Object System.Drawing.Imaging.EncoderParameters 1
+            $params.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 72L
+            $thumb.Save($DestinationFile, $encoder, $params)
+          } finally {
+            if ($graphics) { $graphics.Dispose() }
+          }
+        } finally {
+          $thumb.Dispose()
+        }
+      } finally {
+        $image.Dispose()
+      }
+    }`;
+
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script, '-SourceFile', sourceFile, '-DestinationFile', destinationFile, '-Size', String(size)],
+      { windowsHide: true, timeout: 20000 },
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      },
+    );
+  });
+}
+
+async function sendProductThumbnail(req, res, source, fileRef) {
+  const matchingFile = resolveProductImageRequestFile(source, fileRef);
+
+  if (!matchingFile) {
+    return res.status(404).json({ message: 'Imagen de producto no encontrada' });
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+
+  const size = Math.min(Math.max(Number(req.query.size || 120), 48), 320);
+  const stat = fs.statSync(matchingFile);
+  const cacheKey = crypto
+    .createHash('sha1')
+    .update(`${matchingFile}:${stat.mtimeMs}:${stat.size}:${size}`)
+    .digest('hex');
+  const thumbnailExtension = sharp ? 'webp' : 'jpg';
+  const cachedFile = path.join(productThumbnailsPath, `${cacheKey}.${thumbnailExtension}`);
+
+  try {
+    await fs.promises.mkdir(productThumbnailsPath, { recursive: true });
+
+    if (!fs.existsSync(cachedFile)) {
+      if (sharp) {
+        await sharp(matchingFile)
+          .rotate()
+          .resize(size, size, { fit: 'cover', withoutEnlargement: true })
+          .webp({ quality: 72 })
+          .toFile(cachedFile);
+      } else {
+        await createWindowsThumbnail(matchingFile, cachedFile, size);
+      }
+    }
+
+    return res.type(sharp ? 'image/webp' : 'image/jpeg').sendFile(cachedFile);
+  } catch {
+    return res.sendFile(matchingFile);
+  }
 }
 
 // PROCEDIMIENTO UBICADO EN server/server.js
@@ -91,6 +341,15 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.get('/api/system-health', async (_req, res) => {
+  try {
+    const health = await getSystemHealth();
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'No se pudo cargar la salud del sistema' });
+  }
+});
+
 app.get('/api/product-images/:fileName', (req, res) => {
   const matchingFile = findImageAssetFile(req.params.fileName);
 
@@ -98,8 +357,35 @@ app.get('/api/product-images/:fileName', (req, res) => {
     return res.status(404).json({ message: 'Imagen de producto no encontrada' });
   }
 
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
   return res.sendFile(path.join(imageAssetsPath, matchingFile));
 });
+
+app.get('/api/product-images-local/:encodedPath', (req, res) => {
+  const matchingFile = resolveLocalProductImageFile(decodeProductImagePath(req.params.encodedPath));
+
+  if (!matchingFile) {
+    return res.status(404).json({ message: 'Imagen de producto no encontrada' });
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  return res.sendFile(matchingFile);
+});
+
+app.get('/api/product-image-thumbnails/:source/:fileRef', (req, res) => {
+  return sendProductThumbnail(req, res, req.params.source, req.params.fileRef);
+});
+
+app.use('/api', createFacturacionRouter({
+  getBillingProducts,
+  registerSale,
+  resolveProductImageUrl,
+  resetPool,
+}));
+app.use('/api', createDatabaseBackupRouter({
+  audit: createAuditHistoryRecord,
+}));
+scheduleAutomaticBackups({ audit: createAuditHistoryRecord });
 
 // PROCEDIMIENTO UBICADO EN server/server.js
 // ESTA RUTA EJECUTA EL PROCEDIMIENTO loginUser DE server/data-access.js
@@ -122,6 +408,19 @@ app.post('/api/auth/login', async (req, res) => {
       user,
     });
   } catch (error) {
+    try {
+      await resetPool();
+      const user = await loginUser(usuario, pass);
+
+      if (!user) {
+        return res.status(401).json({ message: 'Credenciales invalidas o usuario inactivo' });
+      }
+
+      return res.json({ user });
+    } catch (retryError) {
+      console.error('Error al iniciar sesion:', retryError.message || retryError);
+    }
+
     return res.status(500).json({ message: 'Error al iniciar sesion' });
   }
 });
@@ -134,6 +433,14 @@ app.get('/api/auth/users', async (_req, res) => {
     const users = await listActiveUsers();
     return res.json({ users });
   } catch (error) {
+    try {
+      await resetPool();
+      const users = await listActiveUsers();
+      return res.json({ users });
+    } catch (retryError) {
+      console.error('Error al obtener usuarios:', retryError.message || retryError);
+    }
+
     return res.status(500).json({ message: 'Error al obtener usuarios' });
   }
 });
@@ -159,6 +466,24 @@ app.post('/api/attendance/mark', async (req, res) => {
     return res.json({ mark });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al guardar la marca de asistencia' });
+  }
+});
+
+app.post('/api/payroll/week', async (req, res) => {
+  try {
+    const result = await savePayrollWeek(req.body || {});
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al guardar planilla' });
+  }
+});
+
+app.get('/api/payroll/records', async (_req, res) => {
+  try {
+    const records = await listPayrollRecords();
+    return res.json({ records });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al cargar planilla' });
   }
 });
 
@@ -317,6 +642,81 @@ app.post('/api/daily-cuts/opening', async (req, res) => {
   }
 });
 
+app.put('/api/daily-cuts/:id/cash-management', async (req, res) => {
+  try {
+    const cut = await updateDailyCutCashManagement(req.params.id, req.body || {});
+    return res.json({ cut });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al actualizar caja chica del corte' });
+  }
+});
+
+app.delete('/api/daily-cuts/:id/cash-management', async (req, res) => {
+  try {
+    const result = await deleteDailyCutCashManagement(req.params.id, req.query.userId);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al eliminar corte de caja chica' });
+  }
+});
+
+app.get('/api/petty-cash', async (_req, res) => {
+  try {
+    const records = await listPettyCashRecords();
+    return res.json({ records });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener caja chica' });
+  }
+});
+
+app.post('/api/petty-cash', async (req, res) => {
+  try {
+    const record = await createPettyCashRecord(req.body || {});
+    return res.json({ record });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al guardar caja chica' });
+  }
+});
+
+app.put('/api/petty-cash/:id', async (req, res) => {
+  try {
+    const record = await updatePettyCashRecord(req.params.id, req.body || {});
+    return res.json({ record });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al actualizar caja chica' });
+  }
+});
+
+app.delete('/api/petty-cash/:id', async (req, res) => {
+  try {
+    const result = await deletePettyCashRecord(req.params.id, req.query.userId);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al eliminar caja chica' });
+  }
+});
+
+app.get('/api/financial-movements', async (req, res) => {
+  try {
+    const result = await listFinancialMovements({
+      year: req.query.year,
+      month: req.query.month,
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener movimientos financieros' });
+  }
+});
+
+app.post('/api/financial-movements', async (req, res) => {
+  try {
+    const movement = await createFinancialMovement(req.body || {});
+    return res.json({ movement });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al guardar movimiento financiero' });
+  }
+});
+
 // PROCEDIMIENTO UBICADO EN server/server.js
 // ESTA RUTA EJECUTA listCreditPaymentsByDate() UBICADO EN server/data-access.js.
 // CONSULTA dbo.PAGOS_CREDITO FILTRANDO POR FECHA PARA EL MODAL DE CORTE.
@@ -326,6 +726,24 @@ app.get('/api/credit-payments', async (req, res) => {
     return res.json({ payments });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al obtener pagos de credito' });
+  }
+});
+
+app.get('/api/credit-payments/history', async (req, res) => {
+  try {
+    const payments = await listCreditPaymentsHistory(req.query.limit);
+    return res.json({ payments });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener historico general de abonos' });
+  }
+});
+
+app.get('/api/credit-payments/customer/:customerId', async (req, res) => {
+  try {
+    const payments = await listCreditPaymentsByCustomer(req.params.customerId);
+    return res.json({ payments });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener historico de abonos' });
   }
 });
 
@@ -358,7 +776,7 @@ app.get('/api/invoices/:invoiceId/details', async (req, res) => {
 // ANULA LA FACTURA Y RESTABLECE EL STOCK DE SUS PRODUCTOS EN dbo.inventario.
 app.post('/api/invoices/:invoiceId/annul', async (req, res) => {
   try {
-    const result = await annulInvoice(req.params.invoiceId);
+    const result = await annulInvoice(req.params.invoiceId, req.body?.userId);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al anular factura' });
@@ -370,7 +788,7 @@ app.post('/api/invoices/:invoiceId/annul', async (req, res) => {
 // ACTIVA UNA FACTURA ANULADA Y DESCUENTA NUEVAMENTE EL STOCK EN dbo.inventario.
 app.post('/api/invoices/:invoiceId/activate', async (req, res) => {
   try {
-    const result = await activateInvoice(req.params.invoiceId);
+    const result = await activateInvoice(req.params.invoiceId, req.body?.userId);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al activar factura' });
@@ -386,6 +804,18 @@ app.get('/api/dashboard/sales-summary', async (_req, res) => {
     return res.json(summary);
   } catch (error) {
     return res.status(500).json({ message: 'Error al obtener resumen de ventas' });
+  }
+});
+
+// PROCEDIMIENTO UBICADO EN server/server.js
+// ESTA RUTA CARGA EL MODULO DE VENTAS Y RENTABILIDAD CON KPIS, GRAFICOS, KARDEX Y ALERTAS.
+app.get('/api/analytics/sales-profitability', async (_req, res) => {
+  try {
+    const analytics = await getSalesProfitabilityAnalytics({ year: _req.query.year, month: _req.query.month });
+    return res.json(analytics);
+  } catch (error) {
+    console.error('Error al consultar ventas y rentabilidad:', error);
+    return res.status(500).json({ message: 'Error al obtener ventas y rentabilidad' });
   }
 });
 
@@ -476,18 +906,39 @@ app.get('/api/history/audit', async (req, res) => {
   }
 });
 
-// PROCEDIMIENTO UBICADO EN server/server.js
-// ESTA RUTA EJECUTA EL PROCEDIMIENTO registerSale DE server/data-access.js
-// PARA INSERTAR LAS LINEAS DE LA VENTA EN LA TABLA VENTA.
-// RECIBE user, userId, paymentTypeId, customerId Y lines DESDE src/app/app.ts, PROCEDIMIENTO requestCreateSale().
-app.post('/api/sales', async (req, res) => {
-  const { user, userId, paymentTypeId, customerId, lines } = req.body || {};
-
+app.post('/api/history/audit', async (req, res) => {
   try {
-    const sale = await registerSale({ user, userId, paymentTypeId, customerId, lines });
-    return res.status(201).json(sale);
+    const result = await createAuditHistoryRecord(req.body || {});
+    return res.status(201).json(result);
   } catch (error) {
-    return res.status(500).json({ message: error.message || 'Error al registrar la venta' });
+    return res.status(500).json({ message: error.message || 'Error al registrar historico de auditoria' });
+  }
+});
+
+app.get('/api/quotes', async (req, res) => {
+  try {
+    const quotes = await listQuotes(req.query.status);
+    return res.json({ quotes });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener cotizaciones' });
+  }
+});
+
+app.get('/api/quotes/:quoteId', async (req, res) => {
+  try {
+    const quote = await getQuoteDetails(req.params.quoteId);
+    return res.json(quote);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener cotizacion' });
+  }
+});
+
+app.post('/api/quotes', async (req, res) => {
+  try {
+    const quote = await createQuote(req.body || {});
+    return res.status(201).json(quote);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al crear cotizacion' });
   }
 });
 
@@ -503,6 +954,33 @@ app.post('/api/purchases', async (req, res) => {
   }
 });
 
+app.post('/api/inventory/quick-purchase', async (req, res) => {
+  try {
+    const purchase = await registerQuickInventoryPurchase(req.body || {});
+    return res.status(201).json(purchase);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al registrar ingreso rapido de inventario' });
+  }
+});
+
+app.post('/api/inventory/quick-reduction', async (req, res) => {
+  try {
+    const reduction = await registerQuickInventoryReduction(req.body || {});
+    return res.status(201).json(reduction);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al rebajar inventario' });
+  }
+});
+
+app.post('/api/purchases/annul', async (req, res) => {
+  try {
+    const result = await annulPurchase(req.body || {});
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al anular compra' });
+  }
+});
+
 // PROCEDIMIENTO UBICADO EN server/server.js
 // ESTA RUTA EJECUTA EL PROCEDIMIENTO getProducts DE server/data-access.js
 // PARA CARGAR LOS PRODUCTOS Y LOS DATOS DE INVENTARIO DESDE SQL SERVER.
@@ -512,7 +990,105 @@ app.get('/api/products', async (_req, res) => {
 
     return res.json({ products });
   } catch (error) {
-    return res.status(500).json({ message: 'Error al obtener productos de inventario' });
+    try {
+      await resetPool();
+      const products = await getProducts({ resolveProductImageUrl });
+
+      return res.json({ products });
+    } catch (retryError) {
+      console.error('Error al obtener productos de inventario:', retryError.message || retryError);
+      return res.status(500).json({ message: retryError.message || 'Error al obtener productos de inventario' });
+    }
+  }
+});
+
+app.get('/api/assembled-offers', async (_req, res) => {
+  try {
+    const offers = await listAssembledOfferCodes({ includeInactive: true, resolveProductImageUrl });
+    return res.json({ offers });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener codigos armados' });
+  }
+});
+
+app.post('/api/assembled-offers', async (req, res) => {
+  try {
+    const offer = await createAssembledOfferCode(req.body || {});
+    return res.status(201).json({ offer });
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Error al crear codigo armado' });
+  }
+});
+
+app.put('/api/assembled-offers/:offerId', async (req, res) => {
+  try {
+    const offer = await updateAssembledOfferCode({
+      ...(req.body || {}),
+      offerId: Number(req.params.offerId),
+    });
+    return res.json({ offer });
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Error al editar codigo armado' });
+  }
+});
+
+app.get('/api/products/inactive', async (req, res) => {
+  try {
+    const products = await getInactiveProducts({
+      search: req.query.search,
+      resolveProductImageUrl,
+    });
+
+    return res.json(toInactiveProductsResponse(products));
+  } catch (error) {
+    try {
+      await resetPool();
+      const products = await getInactiveProducts({
+        search: req.query.search,
+        resolveProductImageUrl,
+      });
+
+      return res.json(toInactiveProductsResponse(products));
+    } catch (retryError) {
+      console.error('Error al obtener productos inactivos:', retryError.message || retryError);
+      return res.status(500).json({ message: retryError.message || 'Error al obtener productos inactivos' });
+    }
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const result = await createInventoryProduct(req.body || {});
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al crear producto' });
+  }
+});
+
+app.put('/api/products/:productId/reactivate', async (req, res) => {
+  try {
+    const payload = parseReactivarProductoRequest(req.body || {});
+    const result = await reactivateInventoryProduct({
+      productId: req.params.productId,
+      ...payload,
+      resolveProductImageUrl,
+    });
+
+    return res.json(toReactivatedProductResponse(result));
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al reactivar producto' });
+  }
+});
+
+// PROCEDIMIENTO UBICADO EN server/server.js
+// ESTA RUTA CARGA EL DETALLE PROFESIONAL DE INVENTARIO DE UN PRODUCTO.
+// INCLUYE LOTES FEFO Y MOVIMIENTOS RECIENTES PARA EL MODAL DE INVENTARIO.
+app.get('/api/products/:productId/inventory-detail', async (req, res) => {
+  try {
+    const detail = await getProductInventoryDetail(req.params.productId, { resolveProductImageUrl });
+    return res.json(detail);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener detalle del producto' });
   }
 });
 
@@ -520,18 +1096,60 @@ app.get('/api/products', async (_req, res) => {
 // ESTA RUTA EJECUTA updateInventoryStockLevels() UBICADO EN server/data-access.js.
 // ACTUALIZA stock, stock_minimo Y stock_maximo EN dbo.inventario DESDE EL MODAL DE INVENTARIO.
 app.put('/api/products/:productId/inventory', async (req, res) => {
-  const { stock, minStock, maxStock } = req.body || {};
+  const {
+    sku,
+    name,
+    imageUrl,
+    category,
+    primaryLotExpiryDate,
+    stock,
+    minStock,
+    maxStock,
+    unitCost,
+    salePrice,
+    unitMeasure,
+    allowsDecimalQuantity,
+    userId,
+    user,
+  } = req.body || {};
 
   try {
     const result = await updateInventoryStockLevels({
       productId: req.params.productId,
+      sku,
+      name,
+      imageUrl,
+      category,
+      primaryLotExpiryDate,
       stock,
       minStock,
       maxStock,
+      unitCost,
+      salePrice,
+      unitMeasure,
+      allowsDecimalQuantity,
+      userId,
+      user,
     });
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al actualizar inventario' });
+  }
+});
+
+app.put('/api/products/:productId/status', async (req, res) => {
+  const { active, userId, user } = req.body || {};
+
+  try {
+    const result = await updateProductActiveStatus({
+      productId: req.params.productId,
+      active,
+      userId,
+      user,
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al actualizar estado del producto' });
   }
 });
 
