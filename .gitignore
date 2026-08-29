@@ -51,6 +51,7 @@ __screenshots__/
 # Recovery runtime artifacts
 /recovery/logs/
 /recovery/backups/
+/recovery/checkpoints.json
 
 # System files
 .DS_Store

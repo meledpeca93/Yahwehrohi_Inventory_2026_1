@@ -575,6 +575,7 @@ function createCheckpoint({ stable = false, label = '' } = {}) {
       '.',
       ':(exclude)recovery/logs/**',
       ':(exclude)recovery/backups/**',
+      ':(exclude)recovery/checkpoints.json',
       ':(exclude)database-backups/**',
       ':(exclude)public/product-thumbnails/**',
       ':(exclude)node_modules/**',
