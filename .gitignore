@@ -42,6 +42,7 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/public/product-thumbnails/
 
 # Database exports with production data
 /database/*backup*.sql
