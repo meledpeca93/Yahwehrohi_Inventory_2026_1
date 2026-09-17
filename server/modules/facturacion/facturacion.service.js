@@ -11,6 +11,10 @@ function createFacturacionService(dependencies) {
     createSale(payload) {
       return repository.createSale(payload);
     },
+
+    getBillingProductAvailability(productIds) {
+      return repository.getBillingProductAvailability(productIds);
+    },
   };
 }
 

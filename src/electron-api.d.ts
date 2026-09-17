@@ -11,6 +11,7 @@ interface DesktopProductsResponse {
   products: Array<{
     id: number;
     sku: string;
+    barcodes?: DesktopProductBarcode[];
     name: string;
     description?: string | null;
     imageUrl?: string | null;
@@ -36,6 +37,16 @@ interface DesktopProductsResponse {
     activeLotNumbers?: string[];
     margin?: number;
   }>;
+}
+
+interface DesktopProductBarcode {
+  id: number;
+  productId: number;
+  code: string;
+  isPrimary: boolean;
+  active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 interface DesktopUsersResponse {
@@ -825,6 +836,13 @@ interface Window {
     }) => Promise<{ ok: boolean }>;
     getProducts: () => Promise<DesktopProductsResponse>;
     getBillingProducts: () => Promise<DesktopProductsResponse>;
+    getBillingProductAvailability: (productIds: number[]) => Promise<{
+      products: Array<{
+        productId: number;
+        stock: number;
+        available: boolean;
+      }>;
+    }>;
     getAssembledOffers: () => Promise<{
       offers: Array<{
         id: number;
@@ -927,6 +945,26 @@ interface Window {
       userId?: number | null;
       user?: string | null;
     }) => Promise<{ product: DesktopProductsResponse['products'][number] }>;
+    getProductBarcodes: (productId: number) => Promise<{ barcodes: DesktopProductBarcode[] }>;
+    createProductBarcode: (payload: {
+      productId: number;
+      code: string;
+      userId?: number | null;
+      user?: string | null;
+    }) => Promise<{ productId: number; sku?: string; barcodes: DesktopProductBarcode[] }>;
+    setPrimaryProductBarcode: (payload: {
+      productId: number;
+      barcodeId: number;
+      userId?: number | null;
+      user?: string | null;
+    }) => Promise<{ productId: number; sku?: string; barcodes: DesktopProductBarcode[] }>;
+    updateProductBarcodeStatus: (payload: {
+      productId: number;
+      barcodeId: number;
+      active: boolean;
+      userId?: number | null;
+      user?: string | null;
+    }) => Promise<{ productId: number; sku?: string; barcodes: DesktopProductBarcode[] }>;
     getInactiveProducts: (search?: string) => Promise<{
       products: Array<DesktopProductsResponse['products'][number] & {
         deactivatedAt?: string | null;

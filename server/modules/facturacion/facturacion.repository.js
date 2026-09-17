@@ -1,5 +1,6 @@
 function createFacturacionRepository({
   getBillingProducts,
+  getBillingProductAvailability,
   registerSale,
   resolveProductImageUrl,
 }) {
@@ -10,6 +11,10 @@ function createFacturacionRepository({
 
     createSale(payload) {
       return registerSale(payload);
+    },
+
+    getBillingProductAvailability(productIds) {
+      return getBillingProductAvailability(productIds);
     },
   };
 }

@@ -14,6 +14,7 @@ const {
   createDailyCut,
   createFinancialMovement,
   createInventoryProduct,
+  createProductBarcode,
   createOpeningCut,
   createAuditHistoryRecord,
   createOperationalCost,
@@ -36,6 +37,7 @@ const {
   getNextInvoiceNumber,
   getProductInventoryDetail,
   getProducts,
+  getBillingProductAvailability,
   getQuoteDetails,
   getSystemHealth,
   listPayrollRecords,
@@ -55,6 +57,7 @@ const {
   listAssembledOfferCodes,
   listOperationalCosts,
   listPettyCashRecords,
+  listProductBarcodes,
   listQuotes,
   listTodayInvoices,
   listSuppliers,
@@ -70,7 +73,9 @@ const {
   savePayrollWeek,
   updateDailyCutCashManagement,
   updatePettyCashRecord,
+  setPrimaryProductBarcode,
   updateProductActiveStatus,
+  updateProductBarcodeStatus,
   updateInventoryStockLevels,
 } = require('../server/data-access');
 const {
@@ -97,20 +102,46 @@ const legacyProductImagesPath = path.join(
 );
 const isDev = !app.isPackaged && process.env.ELECTRON_DEV === 'true';
 let imageAssetFileNamesCache = null;
+let imageAssetDirectoryMtimeMs = 0;
+let imageAssetsWatcherStarted = false;
 
-function getImageAssetFileNames() {
-  if (imageAssetFileNamesCache) {
-    return imageAssetFileNamesCache;
+function invalidateImageAssetFileNamesCache() {
+  imageAssetFileNamesCache = null;
+  imageAssetDirectoryMtimeMs = 0;
+}
+
+function watchImageAssetsDirectory() {
+  if (imageAssetsWatcherStarted || !fs.existsSync(imageAssetsPath)) {
+    return;
   }
 
+  imageAssetsWatcherStarted = true;
+
+  try {
+    fs.watch(imageAssetsPath, { recursive: true }, invalidateImageAssetFileNamesCache);
+  } catch {
+    // Directory mtime below still refreshes the cache when fs.watch is unavailable.
+  }
+}
+
+function getImageAssetFileNames() {
   if (!fs.existsSync(imageAssetsPath)) {
-    imageAssetFileNamesCache = [];
+    invalidateImageAssetFileNamesCache();
+    return [];
+  }
+
+  watchImageAssetsDirectory();
+
+  const directoryMtimeMs = fs.statSync(imageAssetsPath).mtimeMs;
+
+  if (imageAssetFileNamesCache && imageAssetDirectoryMtimeMs === directoryMtimeMs) {
     return imageAssetFileNamesCache;
   }
 
   imageAssetFileNamesCache = fs.readdirSync(imageAssetsPath, { recursive: true })
     .filter((assetFileName) => fs.statSync(path.join(imageAssetsPath, assetFileName)).isFile())
     .map((assetFileName) => String(assetFileName).replace(/\\/g, '/'));
+  imageAssetDirectoryMtimeMs = directoryMtimeMs;
 
   return imageAssetFileNamesCache;
 }
@@ -732,6 +763,11 @@ ipcMain.handle('billing:products', async () => {
   return { products };
 });
 
+ipcMain.handle('billing:products-availability', async (_event, productIds) => {
+  const products = await getBillingProductAvailability(productIds);
+  return { products };
+});
+
 ipcMain.handle('assembled-offers:list', async () => {
   const offers = await listAssembledOfferCodes({ includeInactive: true, resolveProductImageUrl: resolveProductImagePath });
   return { offers };
@@ -761,6 +797,23 @@ ipcMain.handle('products:create', async (_event, payload) => {
     console.error('Error controlado al crear producto:', error);
     throw new Error(error?.message || 'No se pudo crear el producto. La conexion con la base de datos sigue disponible.');
   }
+});
+
+ipcMain.handle('products:barcodes-list', async (_event, productId) => {
+  const barcodes = await listProductBarcodes(productId);
+  return { barcodes };
+});
+
+ipcMain.handle('products:barcodes-create', async (_event, payload) => {
+  return createProductBarcode(payload || {});
+});
+
+ipcMain.handle('products:barcodes-primary', async (_event, payload) => {
+  return setPrimaryProductBarcode(payload || {});
+});
+
+ipcMain.handle('products:barcodes-status', async (_event, payload) => {
+  return updateProductBarcodeStatus(payload || {});
 });
 
 // PROCEDIMIENTO UBICADO EN electron/main.js

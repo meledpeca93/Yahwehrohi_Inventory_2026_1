@@ -5,6 +5,8 @@ const path = require('path');
 
 const rootDir = path.join(__dirname, '..');
 const children = [];
+const apiHealthUrl = 'http://127.0.0.1:3000/api/health';
+const angularDevUrl = 'http://127.0.0.1:4200';
 let electronProcess = null;
 let electronRestartTimer = null;
 
@@ -46,33 +48,51 @@ function shutdown(code) {
   process.exit(code);
 }
 
-function waitForAngularDevServer(retries = 120) {
-  return new Promise((resolve, reject) => {
-    const attempt = () => {
-      const request = http.get('http://127.0.0.1:4200', (response) => {
-        response.resume();
-        resolve();
-      });
+function checkUrl(url) {
+  return new Promise((resolve) => {
+    const request = http.get(url, (response) => {
+      response.resume();
+      resolve(true);
+    });
 
-      request.on('error', () => {
-        if (retries <= 0) {
-          reject(new Error('No se pudo iniciar Angular en http://127.0.0.1:4200'));
-          return;
-        }
-
-        retries -= 1;
-        setTimeout(attempt, 1000);
-      });
-    };
-
-    attempt();
+    request.on('error', () => resolve(false));
+    request.setTimeout(2500, () => {
+      request.destroy();
+      resolve(false);
+    });
   });
+}
+
+async function waitForUrl(url, retries, errorMessage) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    if (await checkUrl(url)) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error(errorMessage);
+}
+
+function waitForAngularDevServer(retries = 120) {
+  return waitForUrl(angularDevUrl, retries, `No se pudo iniciar Angular en ${angularDevUrl}`);
+}
+
+async function ensureApiDevServer() {
+  if (await checkUrl(apiHealthUrl)) {
+    return;
+  }
+
+  startProcess('node', ['server/server.js']);
+  await waitForUrl(apiHealthUrl, 60, 'No se pudo iniciar el API en http://127.0.0.1:3000');
 }
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
 async function main() {
+  await ensureApiDevServer();
   startProcess('npx', ['ng', 'serve', '--host', '127.0.0.1', '--proxy-config', 'proxy.conf.json']);
   await waitForAngularDevServer();
   startElectron();

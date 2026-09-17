@@ -943,8 +943,8 @@ async function listAttendanceUsers() {
 }
 
 // PROCEDIMIENTO UBICADO EN server/data-access.js
-// ESTE PROCEDIMIENTO CREA O ACTUALIZA LA MARCA DIARIA EN dbo.ASISTENCIA
-// USANDO FECHA, HORA_ENTRADA Y HORA_SALIDA EN FORMATO MILITAR PARA EL USUARIO INDICADO.
+// ESTE PROCEDIMIENTO CREA O ACTUALIZA LA MARCA DIARIA EN dbo.ASISTENCIA.
+// ACEPTA ENTRADA Y SALIDA JUNTAS, O UNA MARCA PARCIAL DESDE EL BOTON DEL USUARIO.
 async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recordedBy, recordedById, observation }) {
   const pool = await getPool();
   const normalizedEmployeeId = Number(employeeId || 0);
@@ -963,11 +963,19 @@ async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recor
     throw new Error('Fecha invalida');
   }
 
-  if (!/^\d{2}:\d{2}$/.test(normalizedEntryTime) || !/^\d{2}:\d{2}$/.test(normalizedExitTime)) {
-    throw new Error('Las horas deben estar en formato militar HH:mm');
+  if (!normalizedEntryTime && !normalizedExitTime) {
+    throw new Error('Debes enviar una hora de entrada o salida');
   }
 
-  if (normalizedEntryTime >= normalizedExitTime) {
+  if (normalizedEntryTime && !/^\d{2}:\d{2}$/.test(normalizedEntryTime)) {
+    throw new Error('La hora de entrada debe estar en formato militar HH:mm');
+  }
+
+  if (normalizedExitTime && !/^\d{2}:\d{2}$/.test(normalizedExitTime)) {
+    throw new Error('La hora de salida debe estar en formato militar HH:mm');
+  }
+
+  if (normalizedEntryTime && normalizedExitTime && normalizedEntryTime >= normalizedExitTime) {
     throw new Error('La hora de salida debe ser mayor que la hora de entrada');
   }
 
@@ -976,8 +984,8 @@ async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recor
     .input('employee_id', sql.Int, normalizedEmployeeId)
     .input('attendance_date', sql.Date, normalizedDate)
     .input('attendance_date_text', sql.VarChar(10), normalizedDate)
-    .input('entry_time_text', sql.VarChar(5), normalizedEntryTime)
-    .input('exit_time_text', sql.VarChar(5), normalizedExitTime)
+    .input('entry_time_text', sql.VarChar(5), normalizedEntryTime || null)
+    .input('exit_time_text', sql.VarChar(5), normalizedExitTime || null)
     .input('attendance_status', sql.VarChar(20), 'PRESENTE')
     .input('observation', sql.VarChar(255), normalizedObservation || null)
     .input('recorded_by', sql.VarChar(30), normalizedRecordedBy)
@@ -991,8 +999,14 @@ async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recor
       )
       BEGIN
         UPDATE dbo.ASISTENCIA
-        SET HORA_ENTRADA = CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126),
-            HORA_SALIDA = CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126),
+        SET HORA_ENTRADA = CASE
+              WHEN @entry_time_text IS NULL THEN HORA_ENTRADA
+              ELSE CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126)
+            END,
+            HORA_SALIDA = CASE
+              WHEN @exit_time_text IS NULL THEN HORA_SALIDA
+              ELSE CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126)
+            END,
             num_semana = DATEPART(WEEK, @attendance_date),
             ESTADO = @attendance_status,
             OBSERVACION = @observation,
@@ -1017,8 +1031,14 @@ async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recor
         VALUES (
           @employee_id,
           @attendance_date,
-          CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126),
-          CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126),
+          CASE
+            WHEN @entry_time_text IS NULL THEN NULL
+            ELSE CONVERT(datetime, @attendance_date_text + 'T' + @entry_time_text + ':00', 126)
+          END,
+          CASE
+            WHEN @exit_time_text IS NULL THEN NULL
+            ELSE CONVERT(datetime, @attendance_date_text + 'T' + @exit_time_text + ':00', 126)
+          END,
           DATEPART(WEEK, @attendance_date),
           @attendance_status,
           @observation,
@@ -1048,7 +1068,7 @@ async function saveAttendanceMark({ employeeId, date, entryTime, exitTime, recor
     userId: normalizedRecordedById || null,
     user: normalizedRecordedBy,
     previousData: '',
-    newData: `empleado=${row.ID_EMPLEADO}; fecha=${normalizedDate}; entrada=${normalizedEntryTime}; salida=${normalizedExitTime}; estado=${row.ESTADO || 'PRESENTE'}`,
+    newData: `empleado=${row.ID_EMPLEADO}; fecha=${normalizedDate}; entrada=${row.HORA_ENTRADA || ''}; salida=${row.HORA_SALIDA || ''}; estado=${row.ESTADO || 'PRESENTE'}`,
   });
 
   return {
@@ -1457,6 +1477,443 @@ async function listSuppliers() {
     comprasRealizadas: Number(supplier.COMPRAS_REALIZADAS || 0),
     fechaHora: supplier.FECHA_HORA,
   }));
+}
+
+async function ensureProductBarcodeObjects(executor) {
+  const request = executor.request ? executor.request() : new sql.Request(executor);
+  await request.query(`
+    IF OBJECT_ID('dbo.PRODUCTO_CODIGO_BARRA', 'U') IS NULL
+    BEGIN
+      CREATE TABLE dbo.PRODUCTO_CODIGO_BARRA (
+        ID_CODIGO_BARRA int IDENTITY(1,1) NOT NULL,
+        ID_PRODUCTO int NOT NULL,
+        CODIGO_BARRA nvarchar(120) NOT NULL,
+        ES_PRINCIPAL bit NOT NULL CONSTRAINT DF_PRODUCTO_CODIGO_BARRA_PRINCIPAL DEFAULT (0),
+        ACTIVO bit NOT NULL CONSTRAINT DF_PRODUCTO_CODIGO_BARRA_ACTIVO DEFAULT (1),
+        CREADO_POR nvarchar(100) NULL,
+        CREADO_EN datetime2(0) NOT NULL CONSTRAINT DF_PRODUCTO_CODIGO_BARRA_CREADO_EN DEFAULT (SYSDATETIME()),
+        ACTUALIZADO_POR nvarchar(100) NULL,
+        ACTUALIZADO_EN datetime2(0) NULL,
+        CONSTRAINT PK_PRODUCTO_CODIGO_BARRA PRIMARY KEY CLUSTERED (ID_CODIGO_BARRA),
+        CONSTRAINT FK_PRODUCTO_CODIGO_BARRA_PRODUCTO FOREIGN KEY (ID_PRODUCTO)
+          REFERENCES dbo.producto (id_producto)
+      );
+    END;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM sys.indexes
+      WHERE name = 'UX_PRODUCTO_CODIGO_BARRA_CODIGO'
+        AND object_id = OBJECT_ID('dbo.PRODUCTO_CODIGO_BARRA')
+    )
+    BEGIN
+      CREATE UNIQUE INDEX UX_PRODUCTO_CODIGO_BARRA_CODIGO
+        ON dbo.PRODUCTO_CODIGO_BARRA (CODIGO_BARRA);
+    END;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM sys.indexes
+      WHERE name = 'UX_PRODUCTO_CODIGO_BARRA_PRINCIPAL_ACTIVO'
+        AND object_id = OBJECT_ID('dbo.PRODUCTO_CODIGO_BARRA')
+    )
+    BEGIN
+      CREATE UNIQUE INDEX UX_PRODUCTO_CODIGO_BARRA_PRINCIPAL_ACTIVO
+        ON dbo.PRODUCTO_CODIGO_BARRA (ID_PRODUCTO)
+        WHERE ES_PRINCIPAL = 1 AND ACTIVO = 1;
+    END;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM sys.indexes
+      WHERE name = 'IX_PRODUCTO_CODIGO_BARRA_PRODUCTO'
+        AND object_id = OBJECT_ID('dbo.PRODUCTO_CODIGO_BARRA')
+    )
+    BEGIN
+      CREATE INDEX IX_PRODUCTO_CODIGO_BARRA_PRODUCTO
+        ON dbo.PRODUCTO_CODIGO_BARRA (ID_PRODUCTO, ACTIVO, ES_PRINCIPAL);
+    END;
+
+    ;WITH codigos_existentes AS (
+      SELECT
+        p.id_producto,
+        LTRIM(RTRIM(CONVERT(nvarchar(120), p.codigo))) AS codigo_barra,
+        ROW_NUMBER() OVER (
+          PARTITION BY LTRIM(RTRIM(CONVERT(nvarchar(120), p.codigo)))
+          ORDER BY ISNULL(p.activo, 0) DESC, p.id_producto ASC
+        ) AS rn
+      FROM dbo.producto p
+      WHERE NULLIF(LTRIM(RTRIM(CONVERT(nvarchar(120), p.codigo))), '') IS NOT NULL
+    )
+    INSERT INTO dbo.PRODUCTO_CODIGO_BARRA (
+      ID_PRODUCTO,
+      CODIGO_BARRA,
+      ES_PRINCIPAL,
+      ACTIVO,
+      CREADO_POR,
+      CREADO_EN
+    )
+    SELECT
+      ce.id_producto,
+      ce.codigo_barra,
+      1,
+      1,
+      N'Migracion Codex',
+      SYSDATETIME()
+    FROM codigos_existentes ce
+    WHERE ce.rn = 1
+      AND NOT EXISTS (
+        SELECT 1
+        FROM dbo.PRODUCTO_CODIGO_BARRA pcb
+        WHERE pcb.CODIGO_BARRA = ce.codigo_barra
+      );
+  `);
+}
+
+async function listProductBarcodesByProductIds(executor, productIds) {
+  const uniqueProductIds = [...new Set(
+    (Array.isArray(productIds) ? productIds : [])
+      .map((productId) => Number(productId || 0))
+      .filter((productId) => Number.isInteger(productId) && productId > 0),
+  )];
+
+  if (uniqueProductIds.length === 0) {
+    return new Map();
+  }
+
+  await ensureProductBarcodeObjects(executor);
+
+  const request = executor.request ? executor.request() : new sql.Request(executor);
+  const parameters = uniqueProductIds.map((productId, index) => {
+    const inputName = `product_id_${index}`;
+    request.input(inputName, sql.Int, productId);
+    return `@${inputName}`;
+  });
+
+  const result = await request.query(`
+    SELECT
+      ID_CODIGO_BARRA,
+      ID_PRODUCTO,
+      CODIGO_BARRA,
+      ES_PRINCIPAL,
+      ACTIVO,
+      CREADO_EN,
+      ACTUALIZADO_EN
+    FROM dbo.PRODUCTO_CODIGO_BARRA
+    WHERE ID_PRODUCTO IN (${parameters.join(', ')})
+    ORDER BY ES_PRINCIPAL DESC, ACTIVO DESC, CODIGO_BARRA ASC;
+  `);
+
+  const grouped = new Map();
+  for (const row of result.recordset) {
+    const productId = Number(row.ID_PRODUCTO);
+    grouped.set(productId, [
+      ...(grouped.get(productId) || []),
+      {
+        id: Number(row.ID_CODIGO_BARRA),
+        productId,
+        code: row.CODIGO_BARRA || '',
+        isPrimary: Boolean(row.ES_PRINCIPAL),
+        active: Boolean(row.ACTIVO),
+        createdAt: row.CREADO_EN ? new Date(row.CREADO_EN).toISOString() : null,
+        updatedAt: row.ACTUALIZADO_EN ? new Date(row.ACTUALIZADO_EN).toISOString() : null,
+      },
+    ]);
+  }
+
+  return grouped;
+}
+
+async function listProductBarcodes(productId) {
+  if (!productId || Number(productId) <= 0) {
+    throw new Error('Producto requerido para consultar codigos de barra');
+  }
+
+  const pool = await getPool();
+  const grouped = await listProductBarcodesByProductIds(pool, [Number(productId)]);
+  return grouped.get(Number(productId)) || [];
+}
+
+async function createProductBarcode({ productId, code, userId = null, user = null } = {}) {
+  const resolvedProductId = Number(productId || 0);
+  const resolvedCode = String(code || '').trim();
+  const resolvedUser = (String(user || 'Sistema').trim() || 'Sistema').slice(0, 100);
+
+  if (!resolvedProductId) {
+    throw new Error('Producto requerido para agregar codigo de barra');
+  }
+
+  if (!resolvedCode) {
+    throw new Error('Codigo de barra requerido');
+  }
+
+  if (resolvedCode.length > 120) {
+    throw new Error('El codigo de barra no puede superar 120 caracteres');
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    await setAuditContext(transaction, { userId, user: resolvedUser });
+    await ensureProductBarcodeObjects(transaction);
+
+    const productResult = await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .query(`
+        SELECT TOP 1 id_producto, nombre
+        FROM dbo.producto
+        WHERE id_producto = @product_id;
+      `);
+
+    if (productResult.recordset.length === 0) {
+      throw new Error('Producto no encontrado');
+    }
+
+    const duplicateResult = await new sql.Request(transaction)
+      .input('code', sql.NVarChar(120), resolvedCode)
+      .input('product_id', sql.Int, resolvedProductId)
+      .query(`
+        SELECT TOP 1
+          pcb.ID_PRODUCTO,
+          p.nombre
+        FROM dbo.PRODUCTO_CODIGO_BARRA pcb
+        INNER JOIN dbo.producto p
+          ON p.id_producto = pcb.ID_PRODUCTO
+        WHERE pcb.CODIGO_BARRA = @code;
+      `);
+
+    const duplicate = duplicateResult.recordset[0];
+    if (duplicate && Number(duplicate.ID_PRODUCTO) !== resolvedProductId) {
+      throw new Error(`El codigo ${resolvedCode} ya pertenece a otro producto: ${duplicate.nombre || 'Producto sin nombre'}`);
+    }
+
+    if (duplicate) {
+      await new sql.Request(transaction)
+        .input('code', sql.NVarChar(120), resolvedCode)
+        .input('product_id', sql.Int, resolvedProductId)
+        .input('updated_by', sql.NVarChar(100), resolvedUser)
+        .query(`
+          UPDATE dbo.PRODUCTO_CODIGO_BARRA
+          SET
+            ACTIVO = 1,
+            ACTUALIZADO_POR = @updated_by,
+            ACTUALIZADO_EN = SYSDATETIME()
+          WHERE ID_PRODUCTO = @product_id
+            AND CODIGO_BARRA = @code;
+        `);
+    } else {
+      await new sql.Request(transaction)
+        .input('product_id', sql.Int, resolvedProductId)
+        .input('code', sql.NVarChar(120), resolvedCode)
+        .input('created_by', sql.NVarChar(100), resolvedUser)
+        .query(`
+          INSERT INTO dbo.PRODUCTO_CODIGO_BARRA (
+            ID_PRODUCTO,
+            CODIGO_BARRA,
+            ES_PRINCIPAL,
+            ACTIVO,
+            CREADO_POR,
+            CREADO_EN
+          )
+          VALUES (
+            @product_id,
+            @code,
+            0,
+            1,
+            @created_by,
+            SYSDATETIME()
+          );
+        `);
+    }
+
+    await insertAuditRecord(transaction, {
+      tableName: 'dbo.PRODUCTO_CODIGO_BARRA',
+      action: 'CODIGO_BARRA_AGREGADO',
+      recordKey: `id_producto=${resolvedProductId}`,
+      userId,
+      user: resolvedUser,
+      previousData: '',
+      newData: `codigo=${resolvedCode}`,
+    });
+
+    await transaction.commit();
+    return { productId: resolvedProductId, barcodes: await listProductBarcodes(resolvedProductId) };
+  } catch (error) {
+    await safeRollback(transaction);
+    throw error;
+  }
+}
+
+async function updateProductBarcodeStatus({ productId, barcodeId, active, userId = null, user = null } = {}) {
+  const resolvedProductId = Number(productId || 0);
+  const resolvedBarcodeId = Number(barcodeId || 0);
+  const nextActive = Boolean(active);
+  const resolvedUser = (String(user || 'Sistema').trim() || 'Sistema').slice(0, 100);
+
+  if (!resolvedProductId || !resolvedBarcodeId) {
+    throw new Error('Producto y codigo de barra requeridos');
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    await setAuditContext(transaction, { userId, user: resolvedUser });
+    await ensureProductBarcodeObjects(transaction);
+
+    const barcodeResult = await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .input('barcode_id', sql.Int, resolvedBarcodeId)
+      .query(`
+        SELECT TOP 1 ID_CODIGO_BARRA, CODIGO_BARRA, ES_PRINCIPAL, ACTIVO
+        FROM dbo.PRODUCTO_CODIGO_BARRA WITH (UPDLOCK, HOLDLOCK)
+        WHERE ID_PRODUCTO = @product_id
+          AND ID_CODIGO_BARRA = @barcode_id;
+      `);
+
+    const barcode = barcodeResult.recordset[0];
+    if (!barcode) {
+      throw new Error('Codigo de barra no encontrado');
+    }
+
+    if (!nextActive && Boolean(barcode.ES_PRINCIPAL)) {
+      throw new Error('No se puede desactivar el codigo principal. Marque otro codigo como principal primero.');
+    }
+
+    await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .input('barcode_id', sql.Int, resolvedBarcodeId)
+      .input('active', sql.Bit, nextActive)
+      .input('updated_by', sql.NVarChar(100), resolvedUser)
+      .query(`
+        UPDATE dbo.PRODUCTO_CODIGO_BARRA
+        SET
+          ACTIVO = @active,
+          ACTUALIZADO_POR = @updated_by,
+          ACTUALIZADO_EN = SYSDATETIME()
+        WHERE ID_PRODUCTO = @product_id
+          AND ID_CODIGO_BARRA = @barcode_id;
+      `);
+
+    await insertAuditRecord(transaction, {
+      tableName: 'dbo.PRODUCTO_CODIGO_BARRA',
+      action: nextActive ? 'CODIGO_BARRA_ACTIVADO' : 'CODIGO_BARRA_DESACTIVADO',
+      recordKey: `id_producto=${resolvedProductId}; id_codigo_barra=${resolvedBarcodeId}`,
+      userId,
+      user: resolvedUser,
+      previousData: `activo=${Boolean(barcode.ACTIVO)}`,
+      newData: `codigo=${barcode.CODIGO_BARRA}; activo=${nextActive}`,
+    });
+
+    await transaction.commit();
+    return { productId: resolvedProductId, barcodes: await listProductBarcodes(resolvedProductId) };
+  } catch (error) {
+    await safeRollback(transaction);
+    throw error;
+  }
+}
+
+async function setPrimaryProductBarcode({ productId, barcodeId, userId = null, user = null } = {}) {
+  const resolvedProductId = Number(productId || 0);
+  const resolvedBarcodeId = Number(barcodeId || 0);
+  const resolvedUser = (String(user || 'Sistema').trim() || 'Sistema').slice(0, 100);
+
+  if (!resolvedProductId || !resolvedBarcodeId) {
+    throw new Error('Producto y codigo de barra requeridos');
+  }
+
+  const pool = await getPool();
+  const transaction = new sql.Transaction(pool);
+  await transaction.begin();
+
+  try {
+    await setAuditContext(transaction, { userId, user: resolvedUser });
+    await ensureProductBarcodeObjects(transaction);
+
+    const barcodeResult = await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .input('barcode_id', sql.Int, resolvedBarcodeId)
+      .query(`
+        SELECT TOP 1
+          p.codigo AS CODIGO_ANTERIOR,
+          pcb.CODIGO_BARRA
+        FROM dbo.PRODUCTO_CODIGO_BARRA pcb WITH (UPDLOCK, HOLDLOCK)
+        INNER JOIN dbo.producto p WITH (UPDLOCK, HOLDLOCK)
+          ON p.id_producto = pcb.ID_PRODUCTO
+        WHERE pcb.ID_PRODUCTO = @product_id
+          AND pcb.ID_CODIGO_BARRA = @barcode_id;
+      `);
+
+    const barcode = barcodeResult.recordset[0];
+    if (!barcode) {
+      throw new Error('Codigo de barra no encontrado');
+    }
+
+    if (String(barcode.CODIGO_BARRA || '').length > 50) {
+      throw new Error('Este codigo no puede marcarse como principal porque supera 50 caracteres');
+    }
+
+    await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .input('barcode_id', sql.Int, resolvedBarcodeId)
+      .input('updated_by', sql.NVarChar(100), resolvedUser)
+      .query(`
+        UPDATE dbo.PRODUCTO_CODIGO_BARRA
+        SET
+          ES_PRINCIPAL = 0,
+          ACTUALIZADO_POR = @updated_by,
+          ACTUALIZADO_EN = SYSDATETIME()
+        WHERE ID_PRODUCTO = @product_id;
+
+        UPDATE dbo.PRODUCTO_CODIGO_BARRA
+        SET
+          ES_PRINCIPAL = 1,
+          ACTIVO = 1,
+          ACTUALIZADO_POR = @updated_by,
+          ACTUALIZADO_EN = SYSDATETIME()
+        WHERE ID_PRODUCTO = @product_id
+          AND ID_CODIGO_BARRA = @barcode_id;
+      `);
+
+    await new sql.Request(transaction)
+      .input('product_id', sql.Int, resolvedProductId)
+      .input('code', sql.VarChar(50), String(barcode.CODIGO_BARRA || '').slice(0, 50))
+      .input('previous_code', sql.VarChar(50), String(barcode.CODIGO_ANTERIOR || '').slice(0, 50))
+      .input('updated_by', sql.VarChar(100), resolvedUser)
+      .query(`
+        UPDATE dbo.producto
+        SET
+          codigo = @code,
+          actualizado_por = @updated_by,
+          actualizado_en = GETDATE()
+        WHERE id_producto = @product_id;
+
+        UPDATE dbo.inventario
+        SET
+          codigo = @code,
+          actualizado_por = @updated_by,
+          actualizado_en = GETDATE()
+        WHERE id_inventario = @product_id
+           OR id_pd = @product_id
+           OR codigo = @previous_code;
+      `);
+
+    await insertAuditRecord(transaction, {
+      tableName: 'dbo.PRODUCTO_CODIGO_BARRA',
+      action: 'CODIGO_BARRA_PRINCIPAL',
+      recordKey: `id_producto=${resolvedProductId}; id_codigo_barra=${resolvedBarcodeId}`,
+      userId,
+      user: resolvedUser,
+      previousData: `codigo=${barcode.CODIGO_ANTERIOR || ''}`,
+      newData: `codigo=${barcode.CODIGO_BARRA || ''}`,
+    });
+
+    await transaction.commit();
+    return { productId: resolvedProductId, sku: barcode.CODIGO_BARRA || '', barcodes: await listProductBarcodes(resolvedProductId) };
+  } catch (error) {
+    await safeRollback(transaction);
+    throw error;
+  }
 }
 
 // PROCEDIMIENTO UBICADO EN server/data-access.js
@@ -3506,6 +3963,7 @@ async function createAssembledOfferCode(payload = {}) {
   try {
     await setAuditContext(transaction, { userId, user });
     await ensureOfferObjects(transaction);
+    await ensureProductBarcodeObjects(transaction);
 
     const duplicateResult = await new sql.Request(transaction)
       .input('code', sql.NVarChar(80), code)
@@ -3514,6 +3972,7 @@ async function createAssembledOfferCode(payload = {}) {
           CASE
             WHEN EXISTS (SELECT 1 FROM dbo.CODIGO_ARMADO_OFERTA WHERE CODIGO = @code) THEN 1
             WHEN EXISTS (SELECT 1 FROM dbo.producto WHERE codigo = @code) THEN 1
+            WHEN EXISTS (SELECT 1 FROM dbo.PRODUCTO_CODIGO_BARRA WHERE CODIGO_BARRA = @code) THEN 1
             ELSE 0
           END AS exists_code;
       `);
@@ -5264,6 +5723,8 @@ async function registerSale({ user, userId, paymentTypeId, customerId, lines, qu
         throw new Error('Linea de venta invalida');
       }
 
+      await ensureProductLotCoverage(transaction, Number(line.productId), saleUserName);
+
       const utility = (Number(line.salePrice) - Number(line.unitCost)) * Number(line.quantity);
 
       const result = await new sql.Request(transaction)
@@ -5314,31 +5775,6 @@ async function registerSale({ user, userId, paymentTypeId, customerId, lines, qu
       }
 
       const insertedSaleId = Number(result.recordset[0]?.inserted_sale_id || 0);
-      const stockResult = await new sql.Request(transaction)
-        .input('product_id', sql.Int, Number(line.productId))
-        .input('quantity', sql.Decimal(18, 3), roundLotQuantity(line.quantity))
-        .query(`
-          UPDATE i
-          SET
-            i.stock = i.stock - @quantity,
-            i.actualizado_en = GETDATE()
-          OUTPUT
-            deleted.stock AS STOCK_ANT,
-            inserted.stock AS STOCK_ACT,
-            inserted.precio_costo AS PRECIO_COSTO
-          FROM dbo.inventario i
-          INNER JOIN dbo.producto p
-            ON p.codigo = i.codigo
-          WHERE p.id_producto = @product_id
-            AND p.activo = 1
-            AND i.stock >= @quantity;
-        `);
-
-      const stockRow = stockResult.recordset[0];
-
-      if (!stockRow) {
-        throw new Error(`Stock insuficiente para facturar el producto ${line.productId}.`);
-      }
 
       await allocateSaleLotsFefo(transaction, {
         invoiceId,
@@ -5347,18 +5783,6 @@ async function registerSale({ user, userId, paymentTypeId, customerId, lines, qu
         productId: Number(line.productId),
         quantity: Number(line.quantity),
         userName: saleUserName,
-      });
-
-      await insertInventoryLogRecord(transaction, {
-        action: line.assembledOffer ? 'VENTA_OFERTA' : 'VENTA',
-        productId: Number(line.productId),
-        quantity: Number(line.quantity || 0),
-        previousStock: Number(stockRow.STOCK_ANT || 0),
-        newStock: Number(stockRow.STOCK_ACT || 0),
-        unitCost: Number(stockRow.PRECIO_COSTO || 0),
-        userId: Number(userId),
-        customerId: resolvedCustomerId,
-        paymentTypeId: Number(paymentTypeId),
       });
 
       if (line.assembledOffer) {
@@ -5475,6 +5899,7 @@ async function registerSale({ user, userId, paymentTypeId, customerId, lines, qu
 // HACIENDO JOIN ENTRE LAS TABLAS producto E inventario.
 async function getProducts({ resolveProductImageUrl } = {}) {
   const pool = await getPool();
+  await ensureProductBarcodeObjects(pool);
   const result = await pool.request().query(`
     WITH ventas_mes_anterior AS (
       SELECT
@@ -5588,9 +6013,12 @@ async function getProducts({ resolveProductImageUrl } = {}) {
     ORDER BY p.nombre ASC
   `);
 
+  const barcodeMap = await listProductBarcodesByProductIds(pool, result.recordset.map((product) => product.id_producto));
+
   return result.recordset.map((product) => ({
     id: product.id_producto,
     sku: product.codigo,
+    barcodes: barcodeMap.get(Number(product.id_producto)) || [],
     name: product.nombre,
     description: product.descripcion,
     imageUrl: resolveProductImageUrl
@@ -5624,6 +6052,7 @@ async function getInactiveProducts({ search = '', resolveProductImageUrl } = {})
   const request = pool.request()
     .input('search', sql.NVarChar(255), `%${resolvedSearch}%`);
 
+  await ensureProductBarcodeObjects(pool);
   const result = await request.query(`
     SELECT
       p.id_producto,
@@ -5656,13 +6085,22 @@ async function getInactiveProducts({ search = '', resolveProductImageUrl } = {})
         OR p.codigo LIKE @search
         OR p.nombre LIKE @search
         OR i.categoria LIKE @search
+        OR EXISTS (
+          SELECT 1
+          FROM dbo.PRODUCTO_CODIGO_BARRA pcb
+          WHERE pcb.ID_PRODUCTO = p.id_producto
+            AND pcb.CODIGO_BARRA LIKE @search
+        )
       )
     ORDER BY p.actualizado_en DESC, p.nombre ASC;
   `);
 
+  const barcodeMap = await listProductBarcodesByProductIds(pool, result.recordset.map((product) => product.id_producto));
+
   return result.recordset.map((product) => ({
     id: Number(product.id_producto),
     sku: product.codigo || '',
+    barcodes: barcodeMap.get(Number(product.id_producto)) || [],
     name: product.nombre || 'Producto sin nombre',
     description: product.descripcion || null,
     imageUrl: resolveProductImageUrl
@@ -5694,6 +6132,7 @@ async function getInactiveProducts({ search = '', resolveProductImageUrl } = {})
 async function getBillingProducts({ resolveProductImageUrl } = {}) {
   const pool = await getPool();
   await ensureOfferObjects(pool);
+  await ensureProductBarcodeObjects(pool);
   const result = await pool.request().query(`
     SELECT
       p.id_producto,
@@ -5721,9 +6160,12 @@ async function getBillingProducts({ resolveProductImageUrl } = {}) {
     ORDER BY p.nombre ASC
   `);
 
+  const barcodeMap = await listProductBarcodesByProductIds(pool, result.recordset.map((product) => product.id_producto));
+
   const products = result.recordset.map((product) => ({
     id: product.id_producto,
     sku: product.codigo,
+    barcodes: barcodeMap.get(Number(product.id_producto)) || [],
     name: product.nombre,
     description: product.descripcion || null,
     imageUrl: resolveProductImageUrl
@@ -5813,6 +6255,77 @@ async function getUpdatedBillingProductStocks(executor, productIds) {
   return result.recordset.map((product) => ({
     productId: Number(product.id_producto),
     stock: Number(product.stock || 0),
+  }));
+}
+
+async function getAvailableBillingProductStocks(executor, productIds) {
+  const uniqueProductIds = [...new Set(
+    (Array.isArray(productIds) ? productIds : [])
+      .map((productId) => Number(productId || 0))
+      .filter((productId) => Number.isInteger(productId) && productId > 0),
+  )];
+
+  if (uniqueProductIds.length === 0) {
+    return [];
+  }
+
+  const request = new sql.Request(executor);
+  const parameters = uniqueProductIds.map((productId, index) => {
+    const inputName = `available_product_id_${index}`;
+    request.input(inputName, sql.Int, productId);
+    return `@${inputName}`;
+  });
+
+  const result = await request.query(`
+    SELECT
+      p.id_producto,
+      i.stock
+    FROM dbo.producto p
+    INNER JOIN dbo.inventario i
+      ON i.codigo = p.codigo
+    WHERE p.activo = 1
+      AND p.id_producto IN (${parameters.join(', ')})
+  `);
+
+  return result.recordset.map((product) => ({
+    productId: Number(product.id_producto),
+    stock: Number(product.stock || 0),
+  }));
+}
+
+async function getBillingProductAvailability(productIds) {
+  const pool = await getPool();
+  const requestedProductIds = [...new Set(
+    (Array.isArray(productIds) ? productIds : [])
+      .map((productId) => Number(productId || 0))
+      .filter((productId) => Number.isInteger(productId) && productId !== 0),
+  )];
+  const stocks = await getAvailableBillingProductStocks(pool, requestedProductIds);
+  const requestedOfferProductIds = requestedProductIds.filter((productId) => productId < 0);
+  let offerStocks = [];
+
+  if (requestedOfferProductIds.length > 0) {
+    const requestedOfferIds = new Set(requestedOfferProductIds.map((productId) => Math.abs(productId)));
+    offerStocks = (await listAssembledOfferCodes({ includeInactive: true }))
+      .filter((offer) => requestedOfferIds.has(Number(offer.id)))
+      .map((offer) => ({
+        productId: Number(offer.virtualProductId),
+        stock: offer.active &&
+          offer.status === 'ACTIVO' &&
+          !offer.components.some((component) => !component.productActive)
+          ? Number(offer.stock || 0)
+          : 0,
+      }));
+  }
+
+  const stockByProductId = new Map(
+    [...stocks, ...offerStocks].map((product) => [Number(product.productId), Number(product.stock || 0)]),
+  );
+
+  return requestedProductIds.map((productId) => ({
+    productId,
+    stock: stockByProductId.get(productId) ?? 0,
+    available: stockByProductId.has(productId) && Number(stockByProductId.get(productId) || 0) > 0,
   }));
 }
 
@@ -6135,13 +6648,20 @@ async function createInventoryProduct({
   try {
     await setAuditContext(transaction, { userId: resolvedUserId, user: resolvedUser });
     await ensureFefoLotObjects(transaction);
+    await ensureProductBarcodeObjects(transaction);
 
     const duplicateResult = await new sql.Request(transaction)
       .input('sku', sql.VarChar(50), resolvedSku)
       .query(`
-        SELECT TOP 1 id_producto, nombre, activo
-        FROM dbo.producto
-        WHERE codigo = @sku;
+        SELECT TOP 1 p.id_producto, p.nombre, p.activo
+        FROM dbo.producto p
+        WHERE p.codigo = @sku
+           OR EXISTS (
+             SELECT 1
+             FROM dbo.PRODUCTO_CODIGO_BARRA pcb
+             WHERE pcb.ID_PRODUCTO = p.id_producto
+               AND pcb.CODIGO_BARRA = @sku
+           );
       `);
 
     if (duplicateResult.recordset.length > 0) {
@@ -6267,6 +6787,36 @@ async function createInventoryProduct({
       userId: resolvedUserId,
     });
 
+    await new sql.Request(transaction)
+      .input('product_id', sql.Int, productId)
+      .input('sku', sql.NVarChar(120), resolvedSku)
+      .input('created_by', sql.NVarChar(100), resolvedUser.slice(0, 100))
+      .query(`
+        IF NOT EXISTS (
+          SELECT 1
+          FROM dbo.PRODUCTO_CODIGO_BARRA
+          WHERE CODIGO_BARRA = @sku
+        )
+        BEGIN
+          INSERT INTO dbo.PRODUCTO_CODIGO_BARRA (
+            ID_PRODUCTO,
+            CODIGO_BARRA,
+            ES_PRINCIPAL,
+            ACTIVO,
+            CREADO_POR,
+            CREADO_EN
+          )
+          VALUES (
+            @product_id,
+            @sku,
+            1,
+            1,
+            @created_by,
+            SYSDATETIME()
+          );
+        END;
+      `);
+
     if (resolvedStock > LOT_QUANTITY_EPSILON) {
       await insertPurchaseLot(transaction, {
         productId,
@@ -6298,6 +6848,15 @@ async function createInventoryProduct({
       product: {
         id: productId,
         sku: resolvedSku,
+        barcodes: [{
+          id: 0,
+          productId,
+          code: resolvedSku,
+          isPrimary: true,
+          active: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: null,
+        }],
         name: resolvedName,
         description: `Ubicacion: ; CategoriaId: ${resolvedCategory}`,
         imageUrl: resolvedImageUrl,
@@ -6379,6 +6938,7 @@ async function updateInventoryStockLevels({
   try {
     await setAuditContext(transaction, { userId, user });
     await ensureFefoLotObjects(transaction);
+    await ensureProductBarcodeObjects(transaction);
 
     const previousResult = await new sql.Request(transaction)
       .input('product_id', sql.Int, Number(productId))
@@ -6430,15 +6990,91 @@ async function updateInventoryStockLevels({
       .input('product_id', sql.Int, Number(productId))
       .input('sku', sql.VarChar(50), resolvedSku)
       .query(`
-        SELECT TOP 1 id_producto
-        FROM dbo.producto
-        WHERE codigo = @sku
-          AND id_producto <> @product_id;
+        SELECT TOP 1 p.id_producto
+        FROM dbo.producto p
+        WHERE p.id_producto <> @product_id
+          AND (
+            p.codigo = @sku
+            OR EXISTS (
+              SELECT 1
+              FROM dbo.PRODUCTO_CODIGO_BARRA pcb
+              WHERE pcb.ID_PRODUCTO = p.id_producto
+                AND pcb.CODIGO_BARRA = @sku
+            )
+          );
       `);
 
     if (duplicateResult.recordset.length > 0) {
       throw new Error(`Ya existe otro producto con el codigo ${resolvedSku}`);
     }
+
+    await new sql.Request(transaction)
+      .input('product_id', sql.Int, Number(productId))
+      .input('previous_sku', sql.NVarChar(120), previous.codigo)
+      .input('sku', sql.NVarChar(120), resolvedSku)
+      .input('updated_by', sql.NVarChar(100), truncateText(user || 'Sistema', 100))
+      .query(`
+        UPDATE dbo.PRODUCTO_CODIGO_BARRA
+        SET
+          ES_PRINCIPAL = 0,
+          ACTUALIZADO_POR = @updated_by,
+          ACTUALIZADO_EN = SYSDATETIME()
+        WHERE ID_PRODUCTO = @product_id
+          AND ES_PRINCIPAL = 1;
+
+        IF EXISTS (
+          SELECT 1
+          FROM dbo.PRODUCTO_CODIGO_BARRA
+          WHERE ID_PRODUCTO = @product_id
+            AND CODIGO_BARRA = @sku
+        )
+        BEGIN
+          UPDATE dbo.PRODUCTO_CODIGO_BARRA
+          SET
+            ES_PRINCIPAL = 1,
+            ACTIVO = 1,
+            ACTUALIZADO_POR = @updated_by,
+            ACTUALIZADO_EN = SYSDATETIME()
+          WHERE ID_PRODUCTO = @product_id
+            AND CODIGO_BARRA = @sku;
+        END
+        ELSE IF EXISTS (
+          SELECT 1
+          FROM dbo.PRODUCTO_CODIGO_BARRA
+          WHERE ID_PRODUCTO = @product_id
+            AND CODIGO_BARRA = @previous_sku
+        )
+        BEGIN
+          UPDATE dbo.PRODUCTO_CODIGO_BARRA
+          SET
+            CODIGO_BARRA = @sku,
+            ES_PRINCIPAL = 1,
+            ACTIVO = 1,
+            ACTUALIZADO_POR = @updated_by,
+            ACTUALIZADO_EN = SYSDATETIME()
+          WHERE ID_PRODUCTO = @product_id
+            AND CODIGO_BARRA = @previous_sku;
+        END
+        ELSE
+        BEGIN
+          INSERT INTO dbo.PRODUCTO_CODIGO_BARRA (
+            ID_PRODUCTO,
+            CODIGO_BARRA,
+            ES_PRINCIPAL,
+            ACTIVO,
+            CREADO_POR,
+            CREADO_EN
+          )
+          VALUES (
+            @product_id,
+            @sku,
+            1,
+            1,
+            @updated_by,
+            SYSDATETIME()
+          );
+        END;
+      `);
 
     await new sql.Request(transaction)
       .input('product_id', sql.Int, Number(productId))
@@ -10062,6 +10698,7 @@ module.exports = {
   createDailyCut,
   createFinancialMovement,
   createInventoryProduct,
+  createProductBarcode,
   createPettyCashRecord,
   deleteDailyCutCashManagement,
   deletePettyCashRecord,
@@ -10084,7 +10721,9 @@ module.exports = {
   getInvoicesSummary,
   getNextInvoiceNumber,
   getBillingProducts,
+  getBillingProductAvailability,
   getInactiveProducts,
+  listProductBarcodes,
   getProductInventoryDetail,
   getProducts,
   getQuoteDetails,
@@ -10120,6 +10759,8 @@ module.exports = {
   updateDailyCutCashManagement,
   updatePettyCashRecord,
   updateProductActiveStatus,
+  setPrimaryProductBarcode,
+  updateProductBarcodeStatus,
   reactivateInventoryProduct,
   updateInventoryStockLevels,
 };

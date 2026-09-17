@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 export interface BillingProductDto {
   id: number;
   sku: string;
+  barcodes?: ProductBarcodeDto[];
   name: string;
   description?: string | null;
   imageUrl?: string | null;
@@ -23,8 +24,28 @@ export interface BillingProductDto {
   updatedAt?: string | null;
 }
 
+export interface ProductBarcodeDto {
+  id: number;
+  productId: number;
+  code: string;
+  isPrimary: boolean;
+  active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface BillingProductsResponse {
   products: BillingProductDto[];
+}
+
+export interface BillingProductAvailabilityDto {
+  productId: number;
+  stock: number;
+  available: boolean;
+}
+
+export interface BillingProductAvailabilityResponse {
+  products: BillingProductAvailabilityDto[];
 }
 
 export interface SaleCreatePayload {
@@ -77,5 +98,16 @@ export class FacturacionApiService {
     }
 
     return firstValueFrom(this.http.post<SaleResponseDto>('/api/sales', payload));
+  }
+
+  getBillingProductAvailability(productIds: number[]): Promise<BillingProductAvailabilityResponse> {
+    if (this.desktopApi?.getBillingProductAvailability) {
+      return this.desktopApi.getBillingProductAvailability(productIds);
+    }
+
+    return firstValueFrom(this.http.post<BillingProductAvailabilityResponse>(
+      '/api/billing/products/availability',
+      { productIds },
+    ));
   }
 }

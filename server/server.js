@@ -20,6 +20,7 @@ const {
   createAuditHistoryRecord,
   createOperationalCost,
   createPettyCashRecord,
+  createProductBarcode,
   createQuote,
   deleteDailyCutCashManagement,
   deletePettyCashRecord,
@@ -38,6 +39,7 @@ const {
   getNextInvoiceNumber,
   getProductInventoryDetail,
   getProducts,
+  getBillingProductAvailability,
   getQuoteDetails,
   getSystemHealth,
   listPayrollRecords,
@@ -57,6 +59,7 @@ const {
   listAssembledOfferCodes,
   listOperationalCosts,
   listPettyCashRecords,
+  listProductBarcodes,
   listQuotes,
   listTodayInvoices,
   saveAttendanceMark,
@@ -72,7 +75,9 @@ const {
   reactivateInventoryProduct,
   updateDailyCutCashManagement,
   updatePettyCashRecord,
+  setPrimaryProductBarcode,
   updateProductActiveStatus,
+  updateProductBarcodeStatus,
   updateInventoryStockLevels,
 } = require('./data-access');
 const { createFacturacionRouter } = require('./modules/facturacion/facturacion.routes');
@@ -107,20 +112,46 @@ const legacyProductImagesPath = path.join(
   'Sistema punto de venta VSG - Imagenes Productos',
 );
 let imageAssetFileNamesCache = null;
+let imageAssetDirectoryMtimeMs = 0;
+let imageAssetsWatcherStarted = false;
 
-function getImageAssetFileNames() {
-  if (imageAssetFileNamesCache) {
-    return imageAssetFileNamesCache;
+function invalidateImageAssetFileNamesCache() {
+  imageAssetFileNamesCache = null;
+  imageAssetDirectoryMtimeMs = 0;
+}
+
+function watchImageAssetsDirectory() {
+  if (imageAssetsWatcherStarted || !fs.existsSync(imageAssetsPath)) {
+    return;
   }
 
+  imageAssetsWatcherStarted = true;
+
+  try {
+    fs.watch(imageAssetsPath, { recursive: true }, invalidateImageAssetFileNamesCache);
+  } catch {
+    // Directory mtime below still refreshes the cache when fs.watch is unavailable.
+  }
+}
+
+function getImageAssetFileNames() {
   if (!fs.existsSync(imageAssetsPath)) {
-    imageAssetFileNamesCache = [];
+    invalidateImageAssetFileNamesCache();
+    return [];
+  }
+
+  watchImageAssetsDirectory();
+
+  const directoryMtimeMs = fs.statSync(imageAssetsPath).mtimeMs;
+
+  if (imageAssetFileNamesCache && imageAssetDirectoryMtimeMs === directoryMtimeMs) {
     return imageAssetFileNamesCache;
   }
 
   imageAssetFileNamesCache = fs.readdirSync(imageAssetsPath, { recursive: true })
     .filter((assetFileName) => fs.statSync(path.join(imageAssetsPath, assetFileName)).isFile())
     .map((assetFileName) => String(assetFileName).replace(/\\/g, '/'));
+  imageAssetDirectoryMtimeMs = directoryMtimeMs;
 
   return imageAssetFileNamesCache;
 }
@@ -378,6 +409,7 @@ app.get('/api/product-image-thumbnails/:source/:fileRef', (req, res) => {
 
 app.use('/api', createFacturacionRouter({
   getBillingProducts,
+  getBillingProductAvailability,
   registerSale,
   resolveProductImageUrl,
   resetPool,
@@ -1062,6 +1094,53 @@ app.post('/api/products', async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al crear producto' });
+  }
+});
+
+app.get('/api/products/:productId/barcodes', async (req, res) => {
+  try {
+    const barcodes = await listProductBarcodes(req.params.productId);
+    return res.json({ barcodes });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Error al obtener codigos de barra' });
+  }
+});
+
+app.post('/api/products/:productId/barcodes', async (req, res) => {
+  try {
+    const result = await createProductBarcode({
+      ...(req.body || {}),
+      productId: req.params.productId,
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Error al agregar codigo de barra' });
+  }
+});
+
+app.put('/api/products/:productId/barcodes/:barcodeId/primary', async (req, res) => {
+  try {
+    const result = await setPrimaryProductBarcode({
+      ...(req.body || {}),
+      productId: req.params.productId,
+      barcodeId: req.params.barcodeId,
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Error al marcar codigo principal' });
+  }
+});
+
+app.put('/api/products/:productId/barcodes/:barcodeId/status', async (req, res) => {
+  try {
+    const result = await updateProductBarcodeStatus({
+      ...(req.body || {}),
+      productId: req.params.productId,
+      barcodeId: req.params.barcodeId,
+    });
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'Error al actualizar codigo de barra' });
   }
 });
 

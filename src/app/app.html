@@ -115,24 +115,32 @@
       >
         Creditos
       </button>
-      <button
-        class="nav-item"
-        data-icon="◴"
-        type="button"
-        [class.active]="activePage() === 'attendance'"
-        (click)="setPage('attendance')"
-      >
-        Asistencia
-      </button>
-      <button
-        class="nav-item"
-        data-icon="▥"
-        type="button"
-        [class.active]="activePage() === 'payroll'"
-        (click)="setPage('payroll')"
-      >
-        Planillas
-      </button>
+      <section class="nav-module" [class.active]="activePage() === 'attendance' || activePage() === 'payroll' || activePage() === 'payroll-generate'" [class.collapsed]="payrollNavCollapsed()">
+        <button class="nav-module-title" data-icon="P" type="button" (click)="togglePayrollNav()" [attr.aria-expanded]="!payrollNavCollapsed()">
+          <span>Planillas</span>
+          <span class="nav-module-chevron" aria-hidden="true">{{ payrollNavCollapsed() ? '+' : '-' }}</span>
+        </button>
+        @if (!payrollNavCollapsed()) {
+        <button
+          class="nav-item nav-subitem"
+          data-icon="A"
+          type="button"
+          [class.active]="activePage() === 'attendance'"
+          (click)="setPage('attendance')"
+        >
+          Asistencia
+        </button>
+        <button
+          class="nav-item nav-subitem"
+          data-icon="P"
+          type="button"
+          [class.active]="activePage() === 'payroll'"
+          (click)="setPage('payroll')"
+        >
+          Planillas
+        </button>
+        }
+      </section>
       <button
         class="nav-item"
         data-icon="▦"
@@ -151,42 +159,50 @@
       >
         Compras
       </button>
-      <button
-        class="nav-item"
-        data-icon="◇"
-        type="button"
-        [class.active]="activePage() === 'costs'"
-        (click)="setPage('costs')"
-      >
-        Costos
-      </button>
-      <button
-        class="nav-item"
-        data-icon="C"
-        type="button"
-        [class.active]="activePage() === 'petty-cash'"
-        (click)="setPage('petty-cash')"
-      >
-        Caja chica
-      </button>
-      <button
-        class="nav-item"
-        data-icon="$"
-        type="button"
-        [class.active]="activePage() === 'financial-movements'"
-        (click)="setPage('financial-movements')"
-      >
-        Finanzas
-      </button>
-      <button
-        class="nav-item"
-        data-icon="↗"
-        type="button"
-        [class.active]="activePage() === 'sales-profitability'"
-        (click)="setPage('sales-profitability')"
-      >
-        Ventas y Rentabilidad
-      </button>
+      <section class="nav-module" [class.active]="activePage() === 'costs' || activePage() === 'petty-cash' || activePage() === 'financial-movements' || activePage() === 'sales-profitability'" [class.collapsed]="financeNavCollapsed()">
+        <button class="nav-module-title" data-icon="$" type="button" (click)="toggleFinanceNav()" [attr.aria-expanded]="!financeNavCollapsed()">
+          <span>Finanzas</span>
+          <span class="nav-module-chevron" aria-hidden="true">{{ financeNavCollapsed() ? '+' : '-' }}</span>
+        </button>
+        @if (!financeNavCollapsed()) {
+        <button
+          class="nav-item nav-subitem"
+          data-icon="C"
+          type="button"
+          [class.active]="activePage() === 'costs'"
+          (click)="setPage('costs')"
+        >
+          Costos
+        </button>
+        <button
+          class="nav-item nav-subitem"
+          data-icon="CH"
+          type="button"
+          [class.active]="activePage() === 'petty-cash'"
+          (click)="setPage('petty-cash')"
+        >
+          Caja chica
+        </button>
+        <button
+          class="nav-item nav-subitem"
+          data-icon="$"
+          type="button"
+          [class.active]="activePage() === 'financial-movements'"
+          (click)="setPage('financial-movements')"
+        >
+          Finanzas
+        </button>
+        <button
+          class="nav-item nav-subitem"
+          data-icon="VR"
+          type="button"
+          [class.active]="activePage() === 'sales-profitability'"
+          (click)="setPage('sales-profitability')"
+        >
+          Ventas y Rentabilidad
+        </button>
+        }
+      </section>
       <button
         class="nav-item"
         data-icon="◉"
@@ -217,11 +233,96 @@
     </nav>
 
     <button class="nav-item logout-item" data-icon="×" type="button" (click)="openLogoutCutModal()">Cerrar sesion</button>
+    <section class="sidebar-user-panel" [class.open]="userMenuOpen()">
+      <button
+        class="sidebar-user-button"
+        type="button"
+        aria-label="Menu de usuario"
+        [attr.aria-expanded]="userMenuOpen()"
+        (click)="toggleUserMenu()"
+      >
+        <span class="sidebar-user-avatar" aria-hidden="true"></span>
+        <span class="sidebar-user-name">{{ currentUserDisplayName() }}</span>
+      </button>
+      @if (userMenuOpen()) {
+        <div class="sidebar-user-menu">
+          <button type="button" (click)="openSelfAttendanceMarkModal()">Agregar marca</button>
+          <button type="button" class="danger" (click)="openLogoutFromUserMenu()">Cerrar sesion</button>
+        </div>
+      }
+    </section>
   </aside>
 
   @if (sidebarTooltip(); as tooltip) {
     <div class="sidebar-floating-tooltip" [style.top.px]="tooltip.top" [style.left.px]="tooltip.left">
       {{ tooltip.label }}
+    </div>
+  }
+
+  @if (selfAttendanceMarkModalOpen()) {
+    <div class="customer-modal-backdrop" role="presentation" (click)="closeSelfAttendanceMarkModal()">
+      <section
+        class="customer-modal self-attendance-mark-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Agregar marca de asistencia"
+        (click)="$event.stopPropagation()"
+      >
+        <button class="customer-modal-close" type="button" aria-label="Cerrar" (click)="closeSelfAttendanceMarkModal()">×</button>
+        @if (selfAttendanceToastMessage()) {
+          <div
+            class="sale-toast self-attendance-toast"
+            [class.sale-toast-error]="selfAttendanceToastVariant() === 'error'"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="sale-toast-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                @if (selfAttendanceToastVariant() === 'error') {
+                  <path d="M8 8l8 8M16 8l-8 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
+                } @else {
+                  <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
+                }
+              </svg>
+            </span>
+            <div class="sale-toast-copy">
+              <strong>{{ selfAttendanceToastVariant() === 'error' ? 'Marca no guardada' : 'Marca registrada' }}</strong>
+              <span>{{ selfAttendanceToastMessage() }}</span>
+            </div>
+          </div>
+        }
+        <div class="customer-modal-title self-attendance-mark-title">
+          <p class="eyebrow">Marcaje personal</p>
+          <h3>{{ selectedSelfAttendanceUserName() }}</h3>
+          <p class="self-attendance-date-line">{{ todayDateKey() }} - {{ currentTimeLabel() }}</p>
+          <p>{{ todayDateKey() }} · {{ currentTimeLabel() }}</p>
+        </div>
+
+        <label class="self-attendance-user-field">
+          Usuario
+          <select [value]="selectedSelfAttendanceUserId() || ''" (change)="updateSelfAttendanceUser($event)">
+            @for (user of selfAttendanceUserOptions(); track user.id) {
+              <option [value]="user.id">{{ user.name }} - {{ user.username }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="self-attendance-mark-actions">
+          <button type="button" [disabled]="selfAttendanceMarkSaving()" (click)="saveSelfAttendanceMark('entry')">
+            Agregar entrada
+          </button>
+          <button type="button" [disabled]="selfAttendanceMarkSaving()" (click)="saveSelfAttendanceMark('exit')">
+            Agregar salida
+          </button>
+        </div>
+
+        @if (selfAttendanceMarkError()) {
+          <p class="checkout-error attendance-mark-error">{{ selfAttendanceMarkError() }}</p>
+        }
+        @if (selfAttendanceMarkSuccess()) {
+          <p class="self-attendance-mark-success">{{ selfAttendanceMarkSuccess() }}</p>
+        }
+      </section>
     </div>
   }
 
@@ -968,6 +1069,102 @@
               <button class="primary-button" type="button" (click)="saveInventoryProduct()">
                 {{ inventoryEditingProductId() === null ? 'Guardar producto' : 'Guardar cambios' }}
               </button>
+            </div>
+          </section>
+        </div>
+      }
+
+      @if (productBarcodeModalOpen()) {
+        <div class="inventory-modal-backdrop" role="presentation" (click)="closeProductBarcodeModal()">
+          <section
+            class="inventory-modal product-barcode-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Codigos de barra"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="analytics-heading">
+              <div>
+                <p class="eyebrow">Producto</p>
+                <h2>Codigos de barra</h2>
+                <p>{{ productBarcodeTarget()?.name || 'Producto sin nombre' }}</p>
+              </div>
+              <button class="ghost-button" type="button" [disabled]="productBarcodeSaving()" (click)="closeProductBarcodeModal()">
+                Cerrar
+              </button>
+            </div>
+
+            <div class="product-barcode-form">
+              <label>
+                Nuevo codigo
+                <input
+                  [value]="productBarcodeDraft()"
+                  [disabled]="productBarcodeSaving()"
+                  (input)="updateProductBarcodeDraft($event)"
+                  (keyup.enter)="addProductBarcode()"
+                />
+              </label>
+              <button class="primary-button" type="button" [disabled]="productBarcodeSaving()" (click)="addProductBarcode()">
+                {{ productBarcodeSaving() ? 'Guardando...' : 'Agregar' }}
+              </button>
+            </div>
+
+            @if (productBarcodeError()) {
+              <p class="login-error">{{ productBarcodeError() }}</p>
+            }
+
+            <div class="table-wrap product-barcode-table-wrap">
+              <table class="inventory-table product-barcode-table">
+                <thead>
+                  <tr>
+                    <th>Codigo</th>
+                    <th>Estado</th>
+                    <th>Principal</th>
+                    <th>Accion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (productBarcodeLoading()) {
+                    <tr>
+                      <td colspan="4" class="table-feedback-row">Cargando codigos de barra...</td>
+                    </tr>
+                  } @else {
+                    @for (barcode of productBarcodeTarget()?.barcodes || []; track barcode.id) {
+                      <tr>
+                        <td><span class="inventory-code">{{ barcode.code }}</span></td>
+                        <td>
+                          <span [class]="barcode.active ? 'status-pill success' : 'status-pill muted'">
+                            {{ barcode.active ? 'Activo' : 'Inactivo' }}
+                          </span>
+                        </td>
+                        <td>
+                          @if (barcode.isPrimary) {
+                            <span class="status-pill success">Principal</span>
+                          } @else {
+                            <button class="ghost-button compact-action-button" type="button" [disabled]="productBarcodeSaving()" (click)="markProductBarcodePrimary(barcode)">
+                              Marcar
+                            </button>
+                          }
+                        </td>
+                        <td>
+                          <button
+                            class="ghost-button compact-action-button"
+                            type="button"
+                            [disabled]="productBarcodeSaving() || barcode.isPrimary"
+                            (click)="toggleProductBarcodeStatus(barcode)"
+                          >
+                            {{ barcode.active ? 'Desactivar' : 'Activar' }}
+                          </button>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="4" class="table-feedback-row">No hay codigos registrados para este producto.</td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
             </div>
           </section>
         </div>
@@ -2103,6 +2300,15 @@
                         <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                           <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
                           <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                      <button type="button" title="Codigos de barra" aria-label="Codigos de barra" (click)="openProductBarcodeModal(product)">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                          <path d="M4 7v10" />
+                          <path d="M8 7v10" />
+                          <path d="M12 7v10" />
+                          <path d="M17 7v10" />
+                          <path d="M20 7v10" />
                         </svg>
                       </button>
                       <button class="inventory-disable-button" type="button" title="Inactivar" aria-label="Inactivar" (click)="deactivateInventoryProduct(product)">
@@ -8435,12 +8641,66 @@
           <p class="eyebrow">Auditoria</p>
           <h2>Movimientos registrados</h2>
         </div>
-        <span>{{ auditHistoryLoading() ? 'Cargando...' : (auditHistory().length + ' registros') }}</span>
+        <span>
+          {{
+            auditHistoryLoading()
+              ? 'Cargando...'
+              : (filteredAuditHistory().length + ' de ' + auditHistory().length + ' registros')
+          }}
+        </span>
       </div>
 
       @if (auditHistoryError()) {
         <p class="login-error history-error">{{ auditHistoryError() }}</p>
       }
+
+      <section
+        class="history-table-toolbar"
+        aria-label="Filtros de tabla historica"
+        style="display:flex;align-items:center;gap:22px;min-height:62px;padding:0 22px;border-bottom:1px solid #e5edf5;background:#fff;"
+      >
+        <svg style="width:18px;height:18px;color:#64748b;fill:currentColor;" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 5h16l-6 7v5l-4 2v-7z" />
+        </svg>
+        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
+          <span>Accion</span>
+          <select style="height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryActionFilter()" (change)="updateAuditHistoryActionFilter($event)">
+            <option value="all">Todos</option>
+            <option value="insert">Creacion</option>
+            <option value="update">Actualizacion</option>
+            <option value="delete">Eliminacion</option>
+            <option value="movement">Movimiento</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
+          <span>Tabla</span>
+          <select style="height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryTableFilter()" (change)="updateAuditHistoryTableFilter($event)">
+            <option value="all">Todos</option>
+            @for (tableName of auditHistoryTables(); track tableName) {
+              <option [value]="tableName">{{ tableName }}</option>
+            }
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
+          <span>Nombre</span>
+          <input style="width:230px;height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" type="search" [value]="auditHistorySearchFilter()" (input)="updateAuditHistorySearchFilter($event)" />
+        </label>
+        <button style="display:grid;width:44px;height:38px;place-items:center;border:0;background:#2da0da;color:#fff;" type="button" aria-label="Buscar en historico">
+          <svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m16 16 4 4" />
+          </svg>
+        </button>
+        <label style="display:flex;align-items:center;gap:10px;margin-left:auto;color:#64748b;font-size:.78rem;font-weight:800;">
+          <span>Mostrar</span>
+          <select style="width:78px;height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryPageSize()" (change)="updateAuditHistoryPageSize($event)">
+            <option value="8">8</option>
+            <option value="15">15</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+      </section>
 
       <div class="history-table-wrap">
         <table class="history-audit-table">
@@ -8455,23 +8715,32 @@
           </colgroup>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Accion</th>
-              <th>Tabla</th>
-              <th>Registro</th>
-              <th>Usuario</th>
-              <th>Dato anterior</th>
-              <th>Dato nuevo</th>
+              <th (click)="setAuditHistorySort('date')">Fecha <span>{{ auditHistorySortLabel('date') }}</span></th>
+              <th (click)="setAuditHistorySort('action')">Accion <span>{{ auditHistorySortLabel('action') }}</span></th>
+              <th (click)="setAuditHistorySort('table')">Tabla <span>{{ auditHistorySortLabel('table') }}</span></th>
+              <th (click)="setAuditHistorySort('record')">Registro <span>{{ auditHistorySortLabel('record') }}</span></th>
+              <th (click)="setAuditHistorySort('user')">Usuario <span>{{ auditHistorySortLabel('user') }}</span></th>
+              <th (click)="setAuditHistorySort('previousStock')">Stock anterior <span>{{ auditHistorySortLabel('previousStock') }}</span></th>
+              <th (click)="setAuditHistorySort('currentStock')">Stock nuevo <span>{{ auditHistorySortLabel('currentStock') }}</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (item of auditHistory(); track item.id) {
-              <tr>
+            @for (item of visibleAuditHistory(); track item.id) {
+              <tr
+                class="history-audit-row"
+                title="Doble clic para ver el detalle completo del log"
+                (dblclick)="openAuditLogDetail(item)"
+              >
                 <td class="history-date-cell">
                   <strong>{{ formatAuditDate(item.date) }}</strong>
                   <span>{{ formatAuditTime(item.date) }}</span>
                 </td>
-                <td>
+                <td
+                  class="history-action-cell"
+                  [class.insert]="auditActionClass(item.action) === 'insert'"
+                  [class.update]="auditActionClass(item.action) === 'update'"
+                  [class.delete]="auditActionClass(item.action) === 'delete'"
+                >
                   <span
                     class="history-action-badge"
                     [class.insert]="auditActionClass(item.action) === 'insert'"
@@ -8494,31 +8763,121 @@
                   }
                 </td>
                 <td class="history-data-cell previous">
-                  @for (part of splitAuditData(item.previousData); track part) {
-                    <span>{{ part }}</span>
-                  } @empty {
-                    <em>Sin dato anterior</em>
+                  @if (auditStockDataPart(item.previousData); as stockPart) {
+                    <span class="history-stock-value" [title]="stockPart.raw">{{ stockPart.value }}</span>
+                  } @else {
+                    <em>Sin stock</em>
                   }
                 </td>
                 <td class="history-data-cell current">
-                  @for (part of splitAuditData(item.newData); track part) {
-                    <span>{{ part }}</span>
-                  } @empty {
-                    <em>Sin dato nuevo</em>
+                  @if (auditStockDataPart(item.newData); as stockPart) {
+                    <span class="history-stock-value" [title]="stockPart.raw">{{ stockPart.value }}</span>
+                  } @else {
+                    <em>Sin stock</em>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
                 <td colspan="7" class="history-empty-state">
-                  No hay movimientos de auditoria para mostrar.
+                  No hay movimientos de auditoria para mostrar con los filtros actuales.
                 </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
+      <footer
+        class="history-table-footer"
+        style="display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:0 22px;color:#64748b;font-size:.86rem;font-weight:800;"
+      >
+        <span>{{ auditHistoryPaginationLabel() }}</span>
+        <nav style="display:flex;align-items:center;gap:8px;" aria-label="Paginacion del historico">
+          <button style="min-width:34px;min-height:34px;border:0;background:transparent;color:#64748b;font-weight:800;" type="button" [disabled]="auditHistoryPageIndex() === 0" (click)="previousAuditHistoryPage()">Anterior</button>
+          @for (page of auditHistoryPageNumbers(); track page) {
+            <button
+              style="min-width:34px;min-height:34px;border:0;font-weight:800;"
+              type="button"
+              [style.background]="auditHistoryPageIndex() === page ? '#1d9bf0' : 'transparent'"
+              [style.color]="auditHistoryPageIndex() === page ? '#fff' : '#64748b'"
+              (click)="setAuditHistoryPage(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          }
+          <button style="min-width:34px;min-height:34px;border:0;background:transparent;color:#64748b;font-weight:800;" type="button" [disabled]="auditHistoryPageIndex() >= auditHistoryPageCount() - 1" (click)="nextAuditHistoryPage()">Siguiente</button>
+        </nav>
+      </footer>
     </section>
+
+    @if (selectedAuditHistoryRecord(); as logRecord) {
+      <div class="customer-modal-backdrop history-log-detail-backdrop" role="presentation" (click)="closeAuditLogDetail()">
+        <section
+          class="customer-modal history-log-detail-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Detalle completo del log"
+          (click)="$event.stopPropagation()"
+        >
+          <header class="customer-modal-header history-log-detail-header">
+            <div>
+              <p class="eyebrow">Detalle de auditoria</p>
+              <h2 class="customer-modal-title">{{ logRecord.action }}</h2>
+              <p>{{ logRecord.tableName }} - {{ formatAuditDateTime(logRecord.date) }}</p>
+            </div>
+            <button class="product-catalog-close" type="button" aria-label="Cerrar detalle" title="Cerrar" (click)="closeAuditLogDetail()">X</button>
+          </header>
+
+          <section class="history-log-detail-summary" aria-label="Resumen del log">
+            <article>
+              <span>Registro</span>
+              <strong>{{ logRecord.recordKey || 'Sin clave' }}</strong>
+            </article>
+            <article>
+              <span>Usuario</span>
+              <strong>{{ logRecord.user || 'Sistema' }}</strong>
+              @if (logRecord.userId) {
+                <small>ID {{ logRecord.userId }}</small>
+              }
+            </article>
+            <article>
+              <span>Fecha</span>
+              <strong>{{ formatAuditDate(logRecord.date) }}</strong>
+              <small>{{ formatAuditTime(logRecord.date) }}</small>
+            </article>
+          </section>
+
+          <section class="history-log-detail-grid">
+            <article class="history-log-detail-block previous">
+              <h3>Dato anterior</h3>
+              <div class="history-log-detail-list">
+                @for (part of auditLogDetailParts(logRecord.previousData); track part.raw) {
+                  <div>
+                    <span>{{ part.key }}</span>
+                    <strong>{{ part.value }}</strong>
+                  </div>
+                } @empty {
+                  <p>Sin dato anterior.</p>
+                }
+              </div>
+            </article>
+            <article class="history-log-detail-block current">
+              <h3>Dato nuevo</h3>
+              <div class="history-log-detail-list">
+                @for (part of auditLogDetailParts(logRecord.newData); track part.raw) {
+                  <div>
+                    <span>{{ part.key }}</span>
+                    <strong>{{ part.value }}</strong>
+                  </div>
+                } @empty {
+                  <p>Sin dato nuevo.</p>
+                }
+              </div>
+            </article>
+          </section>
+        </section>
+      </div>
+    }
 
   </section>
   } @else if (activePage() === 'billing') {
@@ -8614,6 +8973,7 @@
           <label>
             Buscar producto
             <input
+              #billingSearchInput
               type="search"
               placeholder="Nombre, SKU o codigo de barra"
               [value]="searchTerm()"

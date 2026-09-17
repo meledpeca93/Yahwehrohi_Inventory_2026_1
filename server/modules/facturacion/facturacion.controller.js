@@ -1,5 +1,5 @@
 const { createFacturacionService } = require('./facturacion.service');
-const { toBillingProductsResponse, toSaleResponse } = require('./facturacion.dto');
+const { toBillingProductAvailabilityResponse, toBillingProductsResponse, toSaleResponse } = require('./facturacion.dto');
 
 function createFacturacionController({
   resetPool,
@@ -36,9 +36,28 @@ function createFacturacionController({
     }
   }
 
+  async function getBillingProductAvailability(req, res) {
+    const { productIds } = req.body || {};
+
+    try {
+      const products = await facturacionService.getBillingProductAvailability(productIds);
+      return res.json(toBillingProductAvailabilityResponse(products));
+    } catch (error) {
+      try {
+        await resetPool();
+        const products = await facturacionService.getBillingProductAvailability(productIds);
+        return res.json(toBillingProductAvailabilityResponse(products));
+      } catch (retryError) {
+        console.error('Error al validar disponibilidad de productos:', retryError.message || retryError);
+        return res.status(500).json({ message: retryError.message || 'Error al validar disponibilidad de productos' });
+      }
+    }
+  }
+
   return {
     listBillingProducts,
     createSale,
+    getBillingProductAvailability,
   };
 }
 

@@ -39,7 +39,18 @@ function toSaleResponse(sale) {
   };
 }
 
+function toBillingProductAvailabilityResponse(products) {
+  return {
+    products: (Array.isArray(products) ? products : []).map((product) => ({
+      productId: Number(product.productId),
+      stock: Number(product.stock || 0),
+      available: Boolean(product.available),
+    })),
+  };
+}
+
 module.exports = {
   toBillingProductsResponse,
+  toBillingProductAvailabilityResponse,
   toSaleResponse,
 };

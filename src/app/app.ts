@@ -54,6 +54,9 @@ type Page =
   | 'attendance'
   | 'payroll'
   | 'payroll-generate';
+type AuditHistorySortKey = 'date' | 'action' | 'table' | 'record' | 'user' | 'previousStock' | 'currentStock';
+type AuditHistorySortDirection = 'asc' | 'desc';
+type AuditHistoryAlignment = 'left' | 'center' | 'right';
 type ThemeId =
   | 'black-green'
   | 'forest-light'
@@ -117,6 +120,7 @@ interface SystemFontOption {
 interface Product {
   id: number;
   sku: string;
+  barcodes?: ProductBarcode[];
   name: string;
   description?: string | null;
   imageUrl?: string | null;
@@ -146,6 +150,16 @@ interface Product {
   offerStartsAt?: string | null;
   offerEndsAt?: string | null;
   offerComponents?: AssembledOfferComponent[];
+}
+
+interface ProductBarcode {
+  id: number;
+  productId: number;
+  code: string;
+  isPrimary: boolean;
+  active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 interface AssembledOfferComponent {
@@ -602,6 +616,12 @@ interface AuditHistoryRecord {
 
 interface AuditHistoryResponse {
   history: AuditHistoryRecord[];
+}
+
+interface AuditDataPart {
+  key: string;
+  value: string;
+  raw: string;
 }
 
 interface ActivityNotification {
@@ -1423,6 +1443,12 @@ interface ProductCreateResponse {
   product: Omit<Product, 'margin'> & { margin?: number };
 }
 
+interface ProductBarcodesResponse {
+  productId?: number;
+  sku?: string;
+  barcodes: ProductBarcode[];
+}
+
 interface InactiveProductsResponse {
   products: Array<Omit<InactiveProduct, 'margin'> & { margin?: number }>;
 }
@@ -2102,6 +2128,14 @@ const availablePages: Page[] = [
 })
 export class App implements OnDestroy {
   private customerDisplayWindow: Window | null = null;
+  private billingSearchInput?: ElementRef<HTMLInputElement>;
+  private billingSearchFocusTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private lastEditablePointerDownAt = 0;
+  private readonly trackEditablePointerDown = (event: Event): void => {
+    if (this.isEditableElement(event.target)) {
+      this.lastEditablePointerDownAt = Date.now();
+    }
+  };
   private salesTrendCanvas?: ElementRef<HTMLCanvasElement>;
   private profitabilitySalesTrendCanvas?: ElementRef<HTMLCanvasElement>;
   private invoicesSalesTrendCanvas?: ElementRef<HTMLCanvasElement>;
@@ -2145,6 +2179,12 @@ export class App implements OnDestroy {
   private payrollDataLoadPromise: Promise<void> | null = null;
   private salesProfitabilityCache = new Map<string, SalesProfitabilityAnalytics>();
   private salesProfitabilityLoadPromises = new Map<string, Promise<void>>();
+
+  @ViewChild('billingSearchInput')
+  protected set billingSearchInputRef(input: ElementRef<HTMLInputElement> | undefined) {
+    this.billingSearchInput = input;
+    this.scheduleBillingSearchFocus();
+  }
 
   @ViewChild('salesTrendCanvas')
   protected set salesTrendCanvasRef(canvas: ElementRef<HTMLCanvasElement> | undefined) {
@@ -2713,6 +2753,38 @@ export class App implements OnDestroy {
   protected readonly expandedCreditDayKeys = signal<string[]>([]);
   protected readonly expandedCreditDayCustomerKeys = signal<string[]>([]);
   protected readonly currentUser = signal<LoginResponse['user'] | null>(null);
+  protected readonly currentUserDisplayName = computed(() => this.currentUser()?.nombre || this.currentUser()?.usuario || 'Usuario');
+  protected readonly selectedSelfAttendanceUserId = signal<number | null>(null);
+  protected readonly selectedSelfAttendanceUserName = computed(() => {
+    const selectedUserId = this.selectedSelfAttendanceUserId();
+    const selectedUser = selectedUserId ? this.attendanceUsers().find((user) => user.id === selectedUserId) : null;
+    return selectedUser?.name || this.currentUserDisplayName();
+  });
+  protected readonly selfAttendanceUserOptions = computed(() => {
+    const currentUserId = this.currentUser()?.id || 0;
+    const users = [...this.attendanceUsers()];
+
+    return users.sort((left, right) => {
+      if (left.id === currentUserId) {
+        return -1;
+      }
+
+      if (right.id === currentUserId) {
+        return 1;
+      }
+
+      return left.name.localeCompare(right.name, 'es');
+    });
+  });
+  protected readonly payrollNavCollapsed = signal(true);
+  protected readonly financeNavCollapsed = signal(true);
+  protected readonly userMenuOpen = signal(false);
+  protected readonly selfAttendanceMarkModalOpen = signal(false);
+  protected readonly selfAttendanceMarkSaving = signal(false);
+  protected readonly selfAttendanceMarkError = signal('');
+  protected readonly selfAttendanceMarkSuccess = signal('');
+  protected readonly selfAttendanceToastMessage = signal('');
+  protected readonly selfAttendanceToastVariant = signal<'success' | 'error'>('success');
   protected readonly activePage = signal<Page>('billing');
   protected readonly activeMode = signal<Mode>('sale');
   protected readonly searchTerm = signal('');
@@ -3010,6 +3082,168 @@ export class App implements OnDestroy {
       .map((item) => item.trim())
       .filter(Boolean)
       .slice(0, 6);
+  }
+
+  protected auditDataParts(value: string): AuditDataPart[] {
+    return this.parseAuditDataParts(value, 6);
+  }
+
+  protected auditLogDetailParts(value: string): AuditDataPart[] {
+    return this.parseAuditDataParts(value);
+  }
+
+  protected auditStockDataPart(value: string): AuditDataPart | null {
+    return this.parseAuditDataParts(value).find((part) => {
+      const normalizedKey = this.normalizeText(part.key);
+      return normalizedKey.includes('stock') || normalizedKey.includes('existencia');
+    }) || null;
+  }
+
+  protected openAuditLogDetail(record: AuditHistoryRecord): void {
+    this.selectedAuditHistoryRecord.set(record);
+  }
+
+  protected closeAuditLogDetail(): void {
+    this.selectedAuditHistoryRecord.set(null);
+  }
+
+  protected setAuditHistorySort(key: AuditHistorySortKey): void {
+    if (this.auditHistorySortKey() === key) {
+      this.auditHistorySortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+      this.auditHistoryPageIndex.set(0);
+      return;
+    }
+
+    this.auditHistorySortKey.set(key);
+    this.auditHistorySortDirection.set(key === 'date' ? 'desc' : 'asc');
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected auditHistorySortLabel(key: AuditHistorySortKey): string {
+    if (this.auditHistorySortKey() !== key) {
+      return '';
+    }
+
+    return this.auditHistorySortDirection() === 'asc' ? 'Asc' : 'Desc';
+  }
+
+  protected updateAuditHistoryActionFilter(event: Event): void {
+    this.auditHistoryActionFilter.set((event.target as HTMLSelectElement).value);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistoryDateFilter(event: Event): void {
+    this.auditHistoryDateFilter.set((event.target as HTMLInputElement).value);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistoryUserFilter(event: Event): void {
+    this.auditHistoryUserFilter.set((event.target as HTMLSelectElement).value);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistoryTableFilter(event: Event): void {
+    this.auditHistoryTableFilter.set((event.target as HTMLSelectElement).value);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistorySearchFilter(event: Event): void {
+    this.auditHistorySearchFilter.set((event.target as HTMLInputElement).value);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistoryPageSize(event: Event): void {
+    this.auditHistoryPageSize.set(Number((event.target as HTMLSelectElement).value) || 8);
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected updateAuditHistoryAlignment(event: Event): void {
+    this.auditHistoryAlignment.set((event.target as HTMLSelectElement).value as AuditHistoryAlignment);
+  }
+
+  protected clearAuditHistoryFilters(): void {
+    this.auditHistoryActionFilter.set('all');
+    this.auditHistoryDateFilter.set('');
+    this.auditHistoryUserFilter.set('all');
+    this.auditHistoryTableFilter.set('all');
+    this.auditHistorySearchFilter.set('');
+    this.auditHistoryPageIndex.set(0);
+  }
+
+  protected setAuditHistoryPage(index: number): void {
+    const lastPage = this.auditHistoryPageCount() - 1;
+    this.auditHistoryPageIndex.set(Math.max(0, Math.min(index, lastPage)));
+  }
+
+  protected previousAuditHistoryPage(): void {
+    this.setAuditHistoryPage(this.auditHistoryPageIndex() - 1);
+  }
+
+  protected nextAuditHistoryPage(): void {
+    this.setAuditHistoryPage(this.auditHistoryPageIndex() + 1);
+  }
+
+  private parseAuditDataParts(value: string, limit?: number): AuditDataPart[] {
+    const parts = String(value || '')
+      .split(';')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const visibleParts = typeof limit === 'number' ? parts.slice(0, limit) : parts;
+
+    return visibleParts.map((part) => {
+      const separatorIndex = part.indexOf('=');
+
+      if (separatorIndex <= 0) {
+        return {
+          key: 'Detalle',
+          value: part,
+          raw: part,
+        };
+      }
+
+      const key = part.slice(0, separatorIndex).trim();
+      const rawValue = part.slice(separatorIndex + 1).trim();
+
+      return {
+        key: this.formatAuditDataKey(key),
+        value: rawValue || 'Sin valor',
+        raw: part,
+      };
+    });
+  }
+
+  private formatAuditDataKey(value: string): string {
+    return value
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  private auditHistorySortValue(record: AuditHistoryRecord, key: AuditHistorySortKey): string | number {
+    if (key === 'date') {
+      return this.parseAuditDate(record.date)?.getTime() || 0;
+    }
+
+    if (key === 'action') {
+      return record.action || '';
+    }
+
+    if (key === 'table') {
+      return record.tableName || '';
+    }
+
+    if (key === 'record') {
+      return record.recordKey || '';
+    }
+
+    if (key === 'user') {
+      return record.user || 'Sistema';
+    }
+
+    const stockPart = this.auditStockDataPart(key === 'previousStock' ? record.previousData : record.newData);
+    const stockValue = Number(stockPart?.value);
+    return Number.isFinite(stockValue) ? stockValue : -1;
   }
 
   protected readonly highestExpiringStockAlert = computed<ExpiringProductAlert | null>(() => {
@@ -3392,6 +3626,12 @@ export class App implements OnDestroy {
 
   protected readonly products = signal<Product[]>([]);
   protected readonly inventoryEditingProductId = signal<number | null>(null);
+  protected readonly productBarcodeModalOpen = signal(false);
+  protected readonly productBarcodeTarget = signal<Product | null>(null);
+  protected readonly productBarcodeDraft = signal('');
+  protected readonly productBarcodeLoading = signal(false);
+  protected readonly productBarcodeSaving = signal(false);
+  protected readonly productBarcodeError = signal('');
   protected readonly inventoryDraft = signal<InventoryDraft>({
     sku: 'NVO-001',
     name: '',
@@ -3449,6 +3689,17 @@ export class App implements OnDestroy {
   protected readonly auditHistory = signal<AuditHistoryRecord[]>([]);
   protected readonly auditHistoryLoading = signal(false);
   protected readonly auditHistoryError = signal('');
+  protected readonly selectedAuditHistoryRecord = signal<AuditHistoryRecord | null>(null);
+  protected readonly auditHistoryActionFilter = signal('all');
+  protected readonly auditHistoryDateFilter = signal('');
+  protected readonly auditHistoryUserFilter = signal('all');
+  protected readonly auditHistoryTableFilter = signal('all');
+  protected readonly auditHistorySearchFilter = signal('');
+  protected readonly auditHistoryPageSize = signal(8);
+  protected readonly auditHistoryPageIndex = signal(0);
+  protected readonly auditHistorySortKey = signal<AuditHistorySortKey>('date');
+  protected readonly auditHistorySortDirection = signal<AuditHistorySortDirection>('desc');
+  protected readonly auditHistoryAlignment = signal<AuditHistoryAlignment>('left');
   protected readonly activityNotificationsOpen = signal(false);
   protected readonly priceChangeAlertModalOpen = signal(false);
   protected readonly priceChangeAlertMode = signal<'auto' | 'manual'>('manual');
@@ -3458,6 +3709,74 @@ export class App implements OnDestroy {
     new Set(this.auditHistory().map((item) => item.tableName)).size,
   );
   protected readonly auditHistoryLastRecord = computed(() => this.auditHistory()[0] || null);
+  protected readonly auditHistoryUsers = computed(() =>
+    Array.from(new Set(this.auditHistory().map((item) => item.user || 'Sistema'))).sort((left, right) =>
+      left.localeCompare(right, 'es'),
+    ),
+  );
+  protected readonly auditHistoryTables = computed(() =>
+    Array.from(new Set(this.auditHistory().map((item) => item.tableName || 'Sin tabla'))).sort((left, right) =>
+      left.localeCompare(right, 'es'),
+    ),
+  );
+  protected readonly filteredAuditHistory = computed(() => {
+    const actionFilter = this.auditHistoryActionFilter();
+    const dateFilter = this.auditHistoryDateFilter();
+    const userFilter = this.auditHistoryUserFilter();
+    const tableFilter = this.auditHistoryTableFilter();
+    const searchFilter = this.normalizeText(this.auditHistorySearchFilter());
+    const sortKey = this.auditHistorySortKey();
+    const sortDirection = this.auditHistorySortDirection();
+
+    return this.auditHistory()
+      .filter((item) => {
+        const matchesAction = actionFilter === 'all' || this.auditActionClass(item.action) === actionFilter;
+        const parsedDate = this.parseAuditDate(item.date);
+        const matchesDate = !dateFilter || (parsedDate ? this.formatDateKey(parsedDate) === dateFilter : false);
+        const itemUser = item.user || 'Sistema';
+        const matchesUser = userFilter === 'all' || itemUser === userFilter;
+        const itemTable = item.tableName || 'Sin tabla';
+        const matchesTable = tableFilter === 'all' || itemTable === tableFilter;
+        const searchableText = this.normalizeText(
+          `${item.user || ''} ${item.tableName || ''} ${item.recordKey || ''} ${item.action || ''}`,
+        );
+        const matchesSearch = !searchFilter || searchableText.includes(searchFilter);
+        return matchesAction && matchesDate && matchesUser && matchesTable && matchesSearch;
+      })
+      .sort((left, right) => {
+        const leftValue = this.auditHistorySortValue(left, sortKey);
+        const rightValue = this.auditHistorySortValue(right, sortKey);
+        const comparison =
+          typeof leftValue === 'number' && typeof rightValue === 'number'
+            ? leftValue - rightValue
+            : String(leftValue).localeCompare(String(rightValue), 'es', { numeric: true, sensitivity: 'base' });
+
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+  });
+  protected readonly auditHistoryPageCount = computed(() =>
+    Math.max(1, Math.ceil(this.filteredAuditHistory().length / this.auditHistoryPageSize())),
+  );
+  protected readonly auditHistoryPageNumbers = computed(() =>
+    Array.from({ length: this.auditHistoryPageCount() }, (_, index) => index),
+  );
+  protected readonly visibleAuditHistory = computed(() => {
+    const pageSize = this.auditHistoryPageSize();
+    const safePage = Math.min(this.auditHistoryPageIndex(), this.auditHistoryPageCount() - 1);
+    return this.filteredAuditHistory().slice(safePage * pageSize, safePage * pageSize + pageSize);
+  });
+  protected readonly auditHistoryPaginationLabel = computed(() => {
+    const total = this.filteredAuditHistory().length;
+    if (total === 0) {
+      return 'Mostrando 0 registros';
+    }
+
+    const pageSize = this.auditHistoryPageSize();
+    const safePage = Math.min(this.auditHistoryPageIndex(), this.auditHistoryPageCount() - 1);
+    const start = safePage * pageSize + 1;
+    const end = Math.min(start + pageSize - 1, total);
+    return `Mostrando ${start} al ${end} de ${total} registros`;
+  });
   protected readonly priceChangeAlerts = computed<PriceChangeAlert[]>(() =>
     this.auditHistory()
       .map((record) => this.mapPriceChangeAlert(record))
@@ -3599,8 +3918,7 @@ export class App implements OnDestroy {
         (lotFilter === 'Sin lote' && !hasActiveLot);
       const matchesExpiry = expiryFilter === 'Todos' || productExpiryStatus === expiryFilter;
       const matchesSearch =
-        product.name.toLowerCase().includes(search) ||
-        product.sku.toLowerCase().includes(search) ||
+        this.productMatchesSearch(product, search) ||
         (product.offerComponents || []).some((component) =>
           `${component.sku || ''} ${component.name || ''}`.toLowerCase().includes(search),
         ) ||
@@ -6050,6 +6368,7 @@ export class App implements OnDestroy {
   private creditPaymentSuccessTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private pettyCashToastTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private payrollToastTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private selfAttendanceToastTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private priceChangeAlertIntervalId: ReturnType<typeof setInterval> | null = null;
   private readonly pettyCashPageSize = 10;
   protected readonly financialMovements = signal<FinancialMovement[]>([]);
@@ -6278,6 +6597,7 @@ export class App implements OnDestroy {
     private readonly facturacionApi: FacturacionApiService,
   ) {
     this.ensureBillingInvoiceSession();
+    document.addEventListener('pointerdown', this.trackEditablePointerDown, true);
 
     effect(() => {
       this.salesTrendData();
@@ -6434,6 +6754,11 @@ export class App implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.billingSearchFocusTimeoutId) {
+      clearTimeout(this.billingSearchFocusTimeoutId);
+      this.billingSearchFocusTimeoutId = null;
+    }
+    document.removeEventListener('pointerdown', this.trackEditablePointerDown, true);
     this.salesTrendChart?.destroy();
     this.profitabilitySalesTrendChart?.destroy();
     this.invoicesSalesTrendChart?.destroy();
@@ -6476,6 +6801,10 @@ export class App implements OnDestroy {
       clearTimeout(this.payrollToastTimeoutId);
     }
 
+    if (this.selfAttendanceToastTimeoutId !== null) {
+      clearTimeout(this.selfAttendanceToastTimeoutId);
+    }
+
     if (this.priceChangeAlertIntervalId !== null) {
       clearInterval(this.priceChangeAlertIntervalId);
     }
@@ -6490,6 +6819,7 @@ export class App implements OnDestroy {
       this.activeQuoteNumber.set('');
       this.quoteModalOpen.set(false);
     }
+    this.scheduleBillingSearchFocus();
   }
 
   private createBillingInvoiceSession(title?: string): BillingInvoiceSession {
@@ -7454,6 +7784,7 @@ export class App implements OnDestroy {
 
   protected closeDailySalesModal(): void {
     this.dailySalesModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected openProductCatalogModal(): void {
@@ -7462,6 +7793,7 @@ export class App implements OnDestroy {
 
   protected closeProductCatalogModal(): void {
     this.productCatalogModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected productCatalogInitials(product: Product): string {
@@ -7483,6 +7815,7 @@ export class App implements OnDestroy {
 
   protected closeExpiringProductsModal(): void {
     this.expiringProductsModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected openLowStockAlertModal(): void {
@@ -7491,6 +7824,7 @@ export class App implements OnDestroy {
 
   protected closeLowStockAlertModal(): void {
     this.lowStockAlertModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected openSalesDropAlertModal(): void {
@@ -7500,6 +7834,7 @@ export class App implements OnDestroy {
 
   protected closeSalesDropAlertModal(): void {
     this.salesDropAlertModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected async updateSystemFromDashboard(): Promise<void> {
@@ -7589,6 +7924,7 @@ export class App implements OnDestroy {
 
   protected closeCutModal(): void {
     this.cutModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected updateCutFilterFromDate(event: Event): void {
@@ -9488,7 +9824,7 @@ export class App implements OnDestroy {
     ].join('-');
   }
 
-  private todayDateKey(): string {
+  protected todayDateKey(): string {
     return this.formatDateKey(new Date());
   }
 
@@ -9665,7 +10001,173 @@ export class App implements OnDestroy {
     this.activatePage('credits', true);
   }
 
+  protected togglePayrollNav(): void {
+    this.payrollNavCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected toggleFinanceNav(): void {
+    this.financeNavCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected toggleUserMenu(): void {
+    this.userMenuOpen.update((open) => !open);
+  }
+
+  protected openLogoutFromUserMenu(): void {
+    this.userMenuOpen.set(false);
+    this.openLogoutCutModal();
+  }
+
+  protected async openSelfAttendanceMarkModal(): Promise<void> {
+    this.userMenuOpen.set(false);
+    this.selfAttendanceMarkError.set('');
+    this.selfAttendanceMarkSuccess.set('');
+    this.selfAttendanceMarkModalOpen.set(true);
+    await this.loadAttendanceUsers(true);
+    this.selectedSelfAttendanceUserId.set(this.defaultSelfAttendanceUserId());
+  }
+
+  protected closeSelfAttendanceMarkModal(): void {
+    this.selfAttendanceMarkModalOpen.set(false);
+    this.selfAttendanceMarkSaving.set(false);
+    this.selfAttendanceMarkError.set('');
+    this.selfAttendanceMarkSuccess.set('');
+    this.selfAttendanceToastMessage.set('');
+    this.selfAttendanceToastVariant.set('success');
+  }
+
+  protected currentTimeLabel(): string {
+    return this.currentTimeKey();
+  }
+
+  protected updateSelfAttendanceUser(event: Event): void {
+    const value = Number((event.target as HTMLSelectElement).value);
+    this.selectedSelfAttendanceUserId.set(Number.isFinite(value) && value > 0 ? value : null);
+    this.selfAttendanceMarkError.set('');
+    this.selfAttendanceMarkSuccess.set('');
+  }
+
+  protected async saveSelfAttendanceMark(markType: 'entry' | 'exit'): Promise<void> {
+    const currentUser = this.currentUser();
+    const employeeId = this.selectedSelfAttendanceUserId();
+
+    if (!currentUser || !employeeId) {
+      const message = 'Selecciona un usuario para agregar la marca.';
+      this.selfAttendanceMarkError.set(message);
+      this.showSelfAttendanceToast(message, 'error');
+      return;
+    }
+
+    this.selfAttendanceMarkSaving.set(true);
+    this.selfAttendanceMarkError.set('');
+    this.selfAttendanceMarkSuccess.set('');
+
+    try {
+      await this.loadAttendanceUsers(true);
+      const employee = this.attendanceUserById(employeeId);
+      const today = this.todayDateKey();
+      const todayRecord = employee?.history.find((record) => record.date.toISOString().slice(0, 10) === today) || null;
+      const now = this.currentTimeKey();
+
+      if (markType === 'entry' && todayRecord?.entryTime) {
+        const message = `Ya existe una entrada registrada hoy a las ${todayRecord.entryTime}.`;
+        this.selfAttendanceMarkError.set(message);
+        this.showSelfAttendanceToast(message, 'error');
+        return;
+      }
+
+      if (markType === 'exit' && !todayRecord?.entryTime) {
+        const message = 'Primero debes agregar la marca de entrada de hoy.';
+        this.selfAttendanceMarkError.set(message);
+        this.showSelfAttendanceToast(message, 'error');
+        return;
+      }
+
+      if (markType === 'exit' && todayRecord?.exitTime) {
+        const message = `Ya existe una salida registrada hoy a las ${todayRecord.exitTime}.`;
+        this.selfAttendanceMarkError.set(message);
+        this.showSelfAttendanceToast(message, 'error');
+        return;
+      }
+
+      if (markType === 'exit' && todayRecord?.entryTime && now <= todayRecord.entryTime) {
+        const message = 'La salida debe ser mayor que la hora de entrada.';
+        this.selfAttendanceMarkError.set(message);
+        this.showSelfAttendanceToast(message, 'error');
+        return;
+      }
+
+      const payload = {
+        employeeId,
+        date: today,
+        entryTime: markType === 'entry' ? now : todayRecord?.entryTime || '',
+        exitTime: markType === 'exit' ? now : todayRecord?.exitTime || '',
+        recordedBy: currentUser.usuario,
+        recordedById: currentUser.id,
+        observation: markType === 'entry' ? 'Marca de entrada registrada por el usuario.' : 'Marca de salida registrada por el usuario.',
+      };
+
+      const response = this.desktopApi?.saveAttendanceMark
+        ? await this.desktopApi.saveAttendanceMark(payload)
+        : await firstValueFrom(this.http.post<AttendanceMarkResponse>('/api/attendance/mark', payload));
+
+      await this.loadAttendanceUsers(true);
+      const savedDate = response.mark?.date ? new Date(response.mark.date) : new Date(today);
+      const weekKey = `${employeeId}-${this.attendanceWeekKeyForDate(savedDate)}`;
+      this.attendanceExpandedUserIds.update((ids) => (ids.includes(employeeId) ? ids : [...ids, employeeId]));
+      this.attendanceExpandedWeekKeys.update((keys) => (keys.includes(weekKey) ? keys : [...keys, weekKey]));
+      const message = markType === 'entry' ? `Entrada registrada a las ${now}.` : `Salida registrada a las ${now}.`;
+      this.selfAttendanceMarkSuccess.set(message);
+      this.showSelfAttendanceToast(message);
+    } catch (error) {
+      const message = this.extractErrorMessage(error, 'No se pudo guardar la marca personal.');
+      this.selfAttendanceMarkError.set(message);
+      this.showSelfAttendanceToast(message, 'error');
+    } finally {
+      this.selfAttendanceMarkSaving.set(false);
+    }
+  }
+
+  private showSelfAttendanceToast(message: string, variant: 'success' | 'error' = 'success'): void {
+    this.selfAttendanceToastVariant.set(variant);
+    this.selfAttendanceToastMessage.set(message);
+
+    if (this.selfAttendanceToastTimeoutId !== null) {
+      clearTimeout(this.selfAttendanceToastTimeoutId);
+    }
+
+    this.selfAttendanceToastTimeoutId = setTimeout(() => {
+      this.selfAttendanceToastMessage.set('');
+      this.selfAttendanceToastVariant.set('success');
+      this.selfAttendanceToastTimeoutId = null;
+    }, 3000);
+  }
+
+  private defaultSelfAttendanceUserId(): number | null {
+    const users = this.attendanceUsers();
+    const currentUserId = this.currentUser()?.id || 0;
+    const currentAttendanceUser = users.find((user) => user.id === currentUserId);
+
+    if (currentAttendanceUser) {
+      return currentAttendanceUser.id;
+    }
+
+    const seydiUser = users.find((user) => {
+      const haystack = this.normalizeSearchText(`${user.name} ${user.username}`);
+      return haystack.includes('seydi') || haystack.includes('seidy');
+    });
+
+    return seydiUser?.id || users[0]?.id || currentUserId || null;
+  }
+
+  private currentTimeKey(): string {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  }
+
   protected logout(): void {
+    this.userMenuOpen.set(false);
+    this.selfAttendanceMarkModalOpen.set(false);
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     this.loginPassword.set('');
@@ -10137,6 +10639,7 @@ export class App implements OnDestroy {
         : await firstValueFrom(this.http.get<AuditHistoryResponse>('/api/history/audit?limit=200'));
 
       this.auditHistory.set(response.history || []);
+      this.auditHistoryPageIndex.set(0);
       this.evaluateAutomaticPriceChangeAlert();
     } catch {
       this.auditHistory.set([]);
@@ -11254,6 +11757,7 @@ export class App implements OnDestroy {
     }
 
     this.financialMovementModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected updateFinancialPeriod(event: Event): void {
@@ -11897,6 +12401,7 @@ export class App implements OnDestroy {
       this.products.set(
         response.products.map((product) => ({
           ...product,
+          barcodes: product.barcodes || [],
           margin: this.productMarkupRatio(product.unitCost, product.salePrice),
         })),
       );
@@ -11935,6 +12440,7 @@ export class App implements OnDestroy {
       this.products.set(
         response.products.map((product) => ({
           ...product,
+          barcodes: product.barcodes || [],
           description: product.description || null,
           supplier: null,
           previousMonthSales: 0,
@@ -12365,6 +12871,7 @@ export class App implements OnDestroy {
   }
 
   private activatePage(page: Page, persist: boolean): void {
+    this.closeInventoryTransientModals();
     this.activePage.set(page);
 
     if (persist) {
@@ -12377,6 +12884,17 @@ export class App implements OnDestroy {
 
     this.loadPageData(page);
     this.scheduleVisibleChartsRefresh();
+  }
+
+  private closeInventoryTransientModals(): void {
+    this.inactiveProductsPanelOpen.set(false);
+    this.productBarcodeModalOpen.set(false);
+    this.productBarcodeTarget.set(null);
+    this.productBarcodeDraft.set('');
+    this.productBarcodeError.set('');
+    this.productReactivationModalOpen.set(false);
+    this.productReactivationConfirmOpen.set(false);
+    this.selectedInactiveProduct.set(null);
   }
 
   private loadPageData(page: Page): void {
@@ -12402,6 +12920,7 @@ export class App implements OnDestroy {
       void this.loadSalesDropAlert();
       void this.loadNextInvoiceNumber();
       void this.loadTodayInvoices();
+      this.scheduleBillingSearchFocus();
       return;
     }
 
@@ -15226,10 +15745,89 @@ export class App implements OnDestroy {
     this.inventoryPage.set(1);
   }
 
+  protected scheduleBillingSearchFocus(): void {
+    if (this.activePage() !== 'billing' || this.activeMode() !== 'sale') {
+      return;
+    }
+
+    if (this.billingSearchFocusTimeoutId) {
+      clearTimeout(this.billingSearchFocusTimeoutId);
+    }
+
+    this.billingSearchFocusTimeoutId = window.setTimeout(() => {
+      this.billingSearchFocusTimeoutId = null;
+      this.focusBillingSearchInput();
+    }, 0);
+  }
+
+  private focusBillingSearchInput(): void {
+    if (this.activePage() !== 'billing' || this.activeMode() !== 'sale' || this.billingFocusBlocked()) {
+      return;
+    }
+
+    const input = this.billingSearchInput?.nativeElement;
+
+    if (!input) {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+
+    if (activeElement === input) {
+      return;
+    }
+
+    if (
+      this.isEditableElement(activeElement) ||
+      Date.now() - this.lastEditablePointerDownAt < 500
+    ) {
+      return;
+    }
+
+    input.focus();
+  }
+
+  private isEditableElement(target: EventTarget | null | undefined): boolean {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+
+    const tagName = target.tagName.toLowerCase();
+
+    return (
+      tagName === 'input' ||
+      tagName === 'select' ||
+      tagName === 'textarea' ||
+      tagName === 'button' ||
+      target.isContentEditable
+    );
+  }
+
+  private billingFocusBlocked(): boolean {
+    return (
+      this.customerModalOpen() ||
+      this.supplierModalOpen() ||
+      this.orderInvoiceModalOpen() ||
+      this.quoteModalOpen() ||
+      this.dailySalesModalOpen() ||
+      this.productCatalogModalOpen() ||
+      this.cutModalOpen() ||
+      this.openingCutModalOpen() ||
+      this.logoutCutModalOpen() ||
+      this.expiringProductsModalOpen() ||
+      this.lowStockAlertModalOpen() ||
+      this.salesDropAlertModalOpen() ||
+      this.financialMovementModalOpen() ||
+      this.inactiveProductsPanelOpen() ||
+      this.productBarcodeModalOpen() ||
+      this.productReactivationModalOpen()
+    );
+  }
+
   // PROCEDIMIENTO UBICADO EN src/app/app.ts
   // ESTE PROCEDIMIENTO PERMITE LEER CODIGO DE BARRA DESDE EL BUSCADOR DE FACTURACION.
   // EL ESCANER ESCRIBE EL CODIGO EN EL INPUT Y NORMALMENTE ENVIA ENTER AL FINAL.
-  // SI EL CODIGO COINCIDE EXACTAMENTE CON EL SKU/CODIGO DEL PRODUCTO, LO AGREGA AL CARRITO.
+  // SI EL CODIGO COINCIDE CON EL SKU PRINCIPAL O UN CODIGO ALTERNO ACTIVO, LO AGREGA AL CARRITO.
   protected handleBillingSearchEnter(event: Event): void {
     event.preventDefault();
 
@@ -15240,14 +15838,37 @@ export class App implements OnDestroy {
       return;
     }
 
-    const exactProduct = this.products().find((product) => product.sku.trim().toLowerCase() === code);
+    const exactProduct = this.products().find((product) => this.productMatchesBarcode(product, code));
 
     if (!exactProduct) {
       return;
     }
 
     this.addToCart(exactProduct.id);
+    this.searchTerm.set('');
     input.value = '';
+    this.scheduleBillingSearchFocus();
+  }
+
+  private productMatchesSearch(product: Product, search: string): boolean {
+    if (!search) {
+      return true;
+    }
+
+    return (
+      product.name.toLowerCase().includes(search) ||
+      product.sku.toLowerCase().includes(search) ||
+      (product.barcodes || []).some((barcode) => barcode.code.toLowerCase().includes(search))
+    );
+  }
+
+  private productMatchesBarcode(product: Product, normalizedCode: string): boolean {
+    const activeCodes = (product.barcodes || [])
+      .filter((barcode) => barcode.active)
+      .map((barcode) => barcode.code.trim().toLowerCase())
+      .filter(Boolean);
+
+    return product.sku.trim().toLowerCase() === normalizedCode || activeCodes.includes(normalizedCode);
   }
 
   protected updateCategory(event: Event): void {
@@ -16132,6 +16753,14 @@ export class App implements OnDestroy {
     this.inactiveProductsError.set('');
     this.inactiveProductSearch.set('');
     this.inactiveProductsPage.set(1);
+    this.blurActiveElementIfRemoved();
+  }
+
+  private blurActiveElementIfRemoved(): void {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+      activeElement.blur();
+    }
   }
 
   protected updateInactiveProductSearch(event: Event): void {
@@ -16277,6 +16906,155 @@ export class App implements OnDestroy {
     return '';
   }
 
+  protected async openProductBarcodeModal(product: Product): Promise<void> {
+    this.productBarcodeTarget.set(product);
+    this.productBarcodeDraft.set('');
+    this.productBarcodeError.set('');
+    this.productBarcodeModalOpen.set(true);
+    await this.refreshProductBarcodes(product.id);
+  }
+
+  protected closeProductBarcodeModal(): void {
+    if (this.productBarcodeSaving()) {
+      return;
+    }
+
+    this.productBarcodeModalOpen.set(false);
+    this.productBarcodeTarget.set(null);
+    this.productBarcodeDraft.set('');
+    this.productBarcodeError.set('');
+    this.blurActiveElementIfRemoved();
+  }
+
+  protected updateProductBarcodeDraft(event: Event): void {
+    this.productBarcodeDraft.set((event.target as HTMLInputElement).value);
+    this.productBarcodeError.set('');
+  }
+
+  protected async addProductBarcode(): Promise<void> {
+    const product = this.productBarcodeTarget();
+    const code = this.productBarcodeDraft().trim();
+
+    if (!product) {
+      this.productBarcodeError.set('Producto requerido.');
+      return;
+    }
+
+    if (!code) {
+      this.productBarcodeError.set('Codigo de barra requerido.');
+      return;
+    }
+
+    this.productBarcodeSaving.set(true);
+    this.productBarcodeError.set('');
+
+    try {
+      const response = await this.requestCreateProductBarcode({
+        productId: product.id,
+        code,
+        userId: this.currentUser()?.id || null,
+        user: this.currentUser()?.nombre || this.currentUser()?.usuario || null,
+      });
+      this.applyProductBarcodeResponse(product.id, response.barcodes, response.sku);
+      this.productBarcodeDraft.set('');
+      this.showInventorySuccess('Codigo de barra agregado correctamente.');
+    } catch (error) {
+      this.productBarcodeError.set(this.extractErrorMessage(error, 'No se pudo agregar el codigo de barra.'));
+    } finally {
+      this.productBarcodeSaving.set(false);
+    }
+  }
+
+  protected async markProductBarcodePrimary(barcode: ProductBarcode): Promise<void> {
+    const product = this.productBarcodeTarget();
+
+    if (!product || barcode.isPrimary) {
+      return;
+    }
+
+    this.productBarcodeSaving.set(true);
+    this.productBarcodeError.set('');
+
+    try {
+      const response = await this.requestSetPrimaryProductBarcode({
+        productId: product.id,
+        barcodeId: barcode.id,
+        userId: this.currentUser()?.id || null,
+        user: this.currentUser()?.nombre || this.currentUser()?.usuario || null,
+      });
+      this.applyProductBarcodeResponse(product.id, response.barcodes, response.sku);
+      this.billingCatalogLoaded = false;
+      this.showInventorySuccess('Codigo principal actualizado correctamente.');
+    } catch (error) {
+      this.productBarcodeError.set(this.extractErrorMessage(error, 'No se pudo marcar el codigo principal.'));
+    } finally {
+      this.productBarcodeSaving.set(false);
+    }
+  }
+
+  protected async toggleProductBarcodeStatus(barcode: ProductBarcode): Promise<void> {
+    const product = this.productBarcodeTarget();
+
+    if (!product) {
+      return;
+    }
+
+    this.productBarcodeSaving.set(true);
+    this.productBarcodeError.set('');
+
+    try {
+      const response = await this.requestUpdateProductBarcodeStatus({
+        productId: product.id,
+        barcodeId: barcode.id,
+        active: !barcode.active,
+        userId: this.currentUser()?.id || null,
+        user: this.currentUser()?.nombre || this.currentUser()?.usuario || null,
+      });
+      this.applyProductBarcodeResponse(product.id, response.barcodes, response.sku);
+      this.billingCatalogLoaded = false;
+    } catch (error) {
+      this.productBarcodeError.set(this.extractErrorMessage(error, 'No se pudo actualizar el codigo de barra.'));
+    } finally {
+      this.productBarcodeSaving.set(false);
+    }
+  }
+
+  private async refreshProductBarcodes(productId: number): Promise<void> {
+    this.productBarcodeLoading.set(true);
+
+    try {
+      const response = await this.requestProductBarcodes(productId);
+      this.applyProductBarcodeResponse(productId, response.barcodes);
+    } catch (error) {
+      this.productBarcodeError.set(this.extractErrorMessage(error, 'No se pudieron cargar los codigos de barra.'));
+    } finally {
+      this.productBarcodeLoading.set(false);
+    }
+  }
+
+  private applyProductBarcodeResponse(productId: number, barcodes: ProductBarcode[], sku?: string): void {
+    this.products.update((products) =>
+      products.map((product) =>
+        product.id === productId
+          ? {
+              ...product,
+              sku: sku || barcodes.find((barcode) => barcode.isPrimary)?.code || product.sku,
+              barcodes,
+            }
+          : product,
+      ),
+    );
+
+    const target = this.productBarcodeTarget();
+    if (target?.id === productId) {
+      this.productBarcodeTarget.set({
+        ...target,
+        sku: sku || barcodes.find((barcode) => barcode.isPrimary)?.code || target.sku,
+        barcodes,
+      });
+    }
+  }
+
   protected async saveInventoryProduct(): Promise<void> {
     const draft = this.inventoryDraft();
     const name = draft.name.trim();
@@ -16380,7 +17158,7 @@ export class App implements OnDestroy {
         return;
       }
 
-      const activeDuplicate = this.products().find((product) => product.sku.toLowerCase() === sku.toLowerCase());
+      const activeDuplicate = this.products().find((product) => this.productMatchesBarcode(product, sku.toLowerCase()));
       if (activeDuplicate) {
         const message = `No se puede crear. Ya existe un producto activo con el codigo ${sku}.`;
         this.productsError.set(message);
@@ -16587,6 +17365,68 @@ export class App implements OnDestroy {
     return firstValueFrom(this.http.post<ProductCreateResponse>('/api/products', payload));
   }
 
+  private async requestProductBarcodes(productId: number): Promise<ProductBarcodesResponse> {
+    if (this.desktopApi?.getProductBarcodes) {
+      return this.desktopApi.getProductBarcodes(productId);
+    }
+
+    return firstValueFrom(
+      this.http.get<ProductBarcodesResponse>(`/api/products/${encodeURIComponent(productId)}/barcodes`),
+    );
+  }
+
+  private async requestCreateProductBarcode(payload: {
+    productId: number;
+    code: string;
+    userId?: number | null;
+    user?: string | null;
+  }): Promise<ProductBarcodesResponse> {
+    if (this.desktopApi?.createProductBarcode) {
+      return this.desktopApi.createProductBarcode(payload);
+    }
+
+    return firstValueFrom(
+      this.http.post<ProductBarcodesResponse>(`/api/products/${encodeURIComponent(payload.productId)}/barcodes`, payload),
+    );
+  }
+
+  private async requestSetPrimaryProductBarcode(payload: {
+    productId: number;
+    barcodeId: number;
+    userId?: number | null;
+    user?: string | null;
+  }): Promise<ProductBarcodesResponse> {
+    if (this.desktopApi?.setPrimaryProductBarcode) {
+      return this.desktopApi.setPrimaryProductBarcode(payload);
+    }
+
+    return firstValueFrom(
+      this.http.put<ProductBarcodesResponse>(
+        `/api/products/${encodeURIComponent(payload.productId)}/barcodes/${encodeURIComponent(payload.barcodeId)}/primary`,
+        payload,
+      ),
+    );
+  }
+
+  private async requestUpdateProductBarcodeStatus(payload: {
+    productId: number;
+    barcodeId: number;
+    active: boolean;
+    userId?: number | null;
+    user?: string | null;
+  }): Promise<ProductBarcodesResponse> {
+    if (this.desktopApi?.updateProductBarcodeStatus) {
+      return this.desktopApi.updateProductBarcodeStatus(payload);
+    }
+
+    return firstValueFrom(
+      this.http.put<ProductBarcodesResponse>(
+        `/api/products/${encodeURIComponent(payload.productId)}/barcodes/${encodeURIComponent(payload.barcodeId)}/status`,
+        payload,
+      ),
+    );
+  }
+
   private async requestInactiveProducts(search = ''): Promise<InactiveProductsResponse> {
     if (this.desktopApi?.getInactiveProducts) {
       return this.desktopApi.getInactiveProducts(search);
@@ -16652,6 +17492,7 @@ export class App implements OnDestroy {
   protected addToCart(productId: number): void {
     const product = this.products().find((item) => item.id === productId);
     if (!product) {
+      this.scheduleBillingSearchFocus();
       return;
     }
 
@@ -16659,6 +17500,7 @@ export class App implements OnDestroy {
 
     if (this.activeMode() === 'sale' && Number(product.stock || 0) <= 0) {
       this.showSaleSuccess('El articulo esta en cero y no puede ser facturado.', 'error');
+      this.scheduleBillingSearchFocus();
       return;
     }
 
@@ -16700,6 +17542,7 @@ export class App implements OnDestroy {
       ...prices,
       [productId]: prices[productId] ?? product.salePrice,
     }));
+    this.scheduleBillingSearchFocus();
   }
 
   protected openCustomerDisplay(): void {
@@ -17677,6 +18520,7 @@ export class App implements OnDestroy {
     this.selectedCustomerId.set(customer.id);
     this.checkoutError.set('');
     this.customerModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected openCustomerModal(): void {
@@ -17686,6 +18530,7 @@ export class App implements OnDestroy {
 
   protected closeCustomerModal(): void {
     this.customerModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected selectSupplier(supplierName: string): void {
@@ -17700,6 +18545,7 @@ export class App implements OnDestroy {
 
   protected closeSupplierModal(): void {
     this.supplierModalOpen.set(false);
+    this.scheduleBillingSearchFocus();
   }
 
   protected decreaseQuantity(productId: number): void {
@@ -17936,6 +18782,7 @@ export class App implements OnDestroy {
     this.checkoutError.set('');
 
     try {
+      await this.refreshBillingStockBeforeSale();
       const lines = this.salePayloadLines();
 
       const sale = await this.requestCreateSale({
@@ -17952,11 +18799,138 @@ export class App implements OnDestroy {
       this.nextInvoiceNumber.set((sale.invoiceId || this.nextInvoiceNumber() || 0) + 1);
       this.showSaleSuccess('Venta realizada correctamente.');
       this.checkoutLoading.set(false);
+      this.scheduleBillingSearchFocus();
       void this.refreshAfterSale(paymentTypeId);
     } catch (error) {
-      this.checkoutError.set(this.extractErrorMessage(error, 'No se pudo registrar la venta.'));
+      const errorMessage = this.extractErrorMessage(error, 'No se pudo registrar la venta.');
+
+      if (this.isInsufficientStockError(errorMessage)) {
+        await this.refreshBillingStockAfterStockError();
+      }
+
+      this.checkoutError.set(this.formatSaleErrorMessage(errorMessage));
       this.checkoutLoading.set(false);
+      this.scheduleBillingSearchFocus();
     }
+  }
+
+  private async refreshBillingStockBeforeSale(): Promise<void> {
+    if (this.activeMode() !== 'sale') {
+      return;
+    }
+
+    const productIds = [...new Set(
+      this.cart()
+        .map((line) => Number(line.productId || 0))
+        .filter((productId) => Number.isInteger(productId) && productId !== 0),
+    )];
+
+    if (productIds.length === 0) {
+      return;
+    }
+
+    const response = await this.facturacionApi.getBillingProductAvailability(productIds);
+    const stockByProductId = new Map(
+      (response.products || []).map((product) => [Number(product.productId), Number(product.stock || 0)]),
+    );
+
+    this.products.update((products) =>
+      products.map((product) =>
+        stockByProductId.has(product.id)
+          ? { ...product, stock: stockByProductId.get(product.id)! }
+          : product,
+      ),
+    );
+
+    const issue = this.firstCartStockIssue();
+
+    if (issue) {
+      this.trimCartToAvailableStock();
+      throw new Error(issue);
+    }
+  }
+
+  private async refreshBillingStockAfterStockError(): Promise<void> {
+    try {
+      await this.fetchBillingProducts(true);
+      this.trimCartToAvailableStock();
+    } catch {
+      // Preserve the original checkout error when the recovery refresh also fails.
+    }
+  }
+
+  private firstCartStockIssue(): string {
+    for (const line of this.cart()) {
+      const product = this.products().find((item) => item.id === line.productId);
+
+      if (!product) {
+        return 'Uno de los productos del carrito ya no esta disponible para facturar. Se actualizo el catalogo.';
+      }
+
+      const stock = Number(product.stock || 0);
+      const quantity = this.normalizeCartQuantity(product, line.quantity);
+
+      if (stock <= 0) {
+        return `${product.name} ya no tiene stock disponible. Se actualizo el catalogo.`;
+      }
+
+      if (quantity > stock) {
+        return `${product.name} solo tiene ${this.formatNumber(stock)} disponible. Ajusta la cantidad para facturar.`;
+      }
+    }
+
+    return '';
+  }
+
+  private trimCartToAvailableStock(): void {
+    this.cart.update((lines) =>
+      lines
+        .map((line) => {
+          const product = this.products().find((item) => item.id === line.productId);
+
+          if (!product) {
+            return null;
+          }
+
+          const stock = Number(product.stock || 0);
+
+          if (stock <= 0) {
+            return null;
+          }
+
+          return {
+            ...line,
+            quantity: this.normalizeCartQuantity(product, Math.min(line.quantity, stock)),
+          };
+        })
+        .filter((line): line is CartLine => line !== null && line.quantity > 0),
+    );
+  }
+
+  private isInsufficientStockError(message: string): boolean {
+    return this.normalizeSearchText(message).includes('stock insuficiente');
+  }
+
+  private formatSaleErrorMessage(message: string): string {
+    if (!this.isInsufficientStockError(message)) {
+      return message;
+    }
+
+    const productIdMatch = message.match(/producto\s+(\d+)/i);
+    const productId = productIdMatch ? Number(productIdMatch[1]) : 0;
+    const product = productId > 0 ? this.products().find((item) => item.id === productId) : null;
+
+    if (product) {
+      const stock = Number(product.stock || 0);
+
+      if (stock <= 0) {
+        return `${product.name} esta en cero y no puede ser facturado. El catalogo se actualizo.`;
+      }
+
+      return `${product.name} tiene ${this.formatNumber(stock)} disponible. Ajusta la cantidad en el carrito.`;
+    }
+
+    return 'La cantidad supera el stock disponible. El catalogo se actualizo; revisa el carrito.';
   }
 
   private async refreshAfterSale(paymentTypeId: number): Promise<void> {
@@ -17966,7 +18940,7 @@ export class App implements OnDestroy {
       refreshes.push(this.loadCredits(), this.loadCustomers());
     }
 
-    if (this.dailySalesModalOpen()) {
+    if (this.activePage() === 'billing' || this.dailySalesModalOpen()) {
       refreshes.push(this.loadTodayInvoices());
     }
 

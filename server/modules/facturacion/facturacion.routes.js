@@ -6,6 +6,7 @@ function createFacturacionRouter(dependencies) {
   const controller = createFacturacionController(dependencies);
 
   router.get('/billing/products', controller.listBillingProducts);
+  router.post('/billing/products/availability', controller.getBillingProductAvailability);
   router.post('/sales', controller.createSale);
 
   return router;

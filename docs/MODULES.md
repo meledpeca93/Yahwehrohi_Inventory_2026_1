@@ -5,9 +5,9 @@
 - Responsabilidad: catalogo de productos vendibles, carrito, cotizaciones a venta, registro de ventas, actualizacion visual de stock, facturas y anulaciones/activaciones.
 - Frontend: secciones `billing` e `invoices` en `src/app/app.ts/html`; servicio `src/app/modules/facturacion/services/facturacion-api.service.ts`.
 - Backend modular: `server/modules/facturacion/*`.
-- Acceso a datos: `getBillingProducts`, `registerSale`, `getNextInvoiceNumber`, `listInvoices`, `listTodayInvoices`, `getInvoiceDetails`, `annulInvoice`, `activateInvoice`.
-- Endpoints: `GET /api/billing/products`, `POST /api/sales`, `GET /api/invoices/next`, `GET /api/invoices`, `GET /api/invoices/today`, `GET /api/invoices/summary`, `GET /api/invoices/:invoiceId/details`, `POST /api/invoices/:invoiceId/annul`, `POST /api/invoices/:invoiceId/activate`.
-- Dependencias: productos activos, inventario, lotes FEFO, clientes, usuarios, formas de pago, cotizaciones.
+- Acceso a datos: `getBillingProducts`, `getBillingProductAvailability`, `registerSale`, `getNextInvoiceNumber`, `listInvoices`, `listTodayInvoices`, `getInvoiceDetails`, `annulInvoice`, `activateInvoice`.
+- Endpoints: `GET /api/billing/products`, `POST /api/billing/products/availability`, `POST /api/sales`, `GET /api/invoices/next`, `GET /api/invoices`, `GET /api/invoices/today`, `GET /api/invoices/summary`, `GET /api/invoices/:invoiceId/details`, `POST /api/invoices/:invoiceId/annul`, `POST /api/invoices/:invoiceId/activate`.
+- Dependencias: productos activos, codigos de barra de producto, inventario, lotes FEFO, clientes, usuarios, formas de pago, cotizaciones.
 - Estado: implementado y parcialmente modularizado. Importante: despues de vender se actualizan solo los productos afectados con `updatedProducts`.
 
 ## Inventario
@@ -15,8 +15,8 @@
 - Responsabilidad: productos, stock, costos, precios, minimos/maximos, lotes, vencimientos, ajustes rapidos, rebajas e inactivacion logica.
 - Frontend: pagina `inventory-sheet`, pagina `inventory-out-of-stock`, modales en `src/app/app.ts/html/css`.
 - Backend: funciones en `server/data-access.js`.
-- Endpoints: `GET /api/products`, `GET /api/products/inactive`, `POST /api/products`, `GET /api/products/expiring`, `GET /api/products/:productId/inventory-detail`, `PUT /api/products/:productId/inventory`, `PUT /api/products/:productId/status`, `PUT /api/products/:productId/reactivate`, `POST /api/inventory/quick-purchase`, `POST /api/inventory/quick-reduction`.
-- Dependencias: `dbo.producto`, `dbo.inventario`, `dbo.PRODUCTO_LOTE`, `dbo.INVENTARIO_LOG`, auditoria, compras y ventas.
+- Endpoints: `GET /api/products`, `GET /api/products/inactive`, `POST /api/products`, `GET /api/products/expiring`, `GET /api/products/:productId/inventory-detail`, `GET/POST /api/products/:productId/barcodes`, `PUT /api/products/:productId/barcodes/:barcodeId/primary`, `PUT /api/products/:productId/barcodes/:barcodeId/status`, `PUT /api/products/:productId/inventory`, `PUT /api/products/:productId/status`, `PUT /api/products/:productId/reactivate`, `POST /api/inventory/quick-purchase`, `POST /api/inventory/quick-reduction`.
+- Dependencias: `dbo.producto`, `dbo.PRODUCTO_CODIGO_BARRA`, `dbo.inventario`, `dbo.PRODUCTO_LOTE`, `dbo.INVENTARIO_LOG`, auditoria, compras y ventas.
 - Estado: implementado para activos e inactivos. Reactivacion usa el mismo producto historico, movimiento de inventario y lote FEFO nuevo.
 
 ## Compras
@@ -37,14 +37,16 @@
 - Dependencias: clientes, ventas a credito, `CREDITO_ABONO_DETALLE`, caja/cortes.
 - Estado: implementado con migraciones recientes para clientes/abonos.
 
-## Planillas y asistencia
+## Planillas
+
+- Submodulos: Planillas y Asistencia.
 
 - Responsabilidad: usuarios/empleados, marcas de asistencia, calculo y guardado de planillas semanales.
-- Frontend: paginas `attendance`, `payroll`, `payroll-generate`.
+- Frontend: paginas `attendance`, `payroll`, `payroll-generate`; panel de usuario en el menu lateral para registrar marcas desde selector de usuario.
 - Backend: `listAttendanceUsers`, `saveAttendanceMark`, `savePayrollWeek`, `listPayrollRecords`.
 - Endpoints: `GET /api/attendance/users`, `POST /api/attendance/mark`, `POST /api/payroll/week`, `GET /api/payroll/records`.
 - Dependencias: `dbo.usuario`, `dbo.PLANILLA`, tabla de asistencia usada por queries actuales.
-- Estado: implementado.
+- Estado: implementado. Desde el submenu de usuario se puede registrar entrada y salida del dia para el usuario seleccionado; planilla sigue consumiendo horas desde asistencia cuando existen ambas marcas.
 
 ## Clientes
 
@@ -65,10 +67,20 @@
 ## Reportes, dashboard y analitica
 
 - Responsabilidad: resumen de ventas, tendencias, rentabilidad, costos por categoria, alertas de caida de ventas, exportacion PDF/HTML.
-- Frontend: `dashboard`, `sales-profitability`, `costs`, partes de `history`.
+- Frontend: `dashboard`, `sales-profitability`, `costs`.
 - Backend: `getDashboardSalesSummary`, `getDashboardSalesTrend`, `getSalesDropAlert`, `getSalesProfitabilityAnalytics`, `getSalesTotalByPeriod`, `getSalesByCategoryForPeriod`, `listMonthlyCostIncreaseAlerts`.
 - Endpoints: `/api/dashboard/*`, `/api/analytics/sales-profitability`, `/api/costs/*`.
 - Estado: implementado; varias consultas son pesadas y no deben cargarse desde Facturacion.
+
+## Historico
+
+- Responsabilidad: historial/auditoria de movimientos operativos y consulta de cambios registrados.
+- Frontend: pagina `history` en `src/app/app.ts/html`.
+- Backend: `listAuditHistory`, `createAuditHistoryRecord`.
+- Endpoints: `GET /api/history/audit`, `POST /api/history/audit`.
+- IPC Electron: `history:audit`, `history:audit-create`.
+- Dependencias: `dbo.auditoria`, contexto de auditoria y registros generados por modulos como Inventario, Facturacion, Respaldos y Restauracion.
+- Estado: implementado. Debe tratarse como modulo propio cuando se diagnostiquen problemas de carga o rendimiento del historico.
 
 ## Usuarios y seguridad
 
@@ -88,12 +100,14 @@
 - Dependencias respaldo BD: SQL Server, `BACKUP DATABASE`, `RESTORE VERIFYONLY`, `RESTORE DATABASE`, `server/db.js`, auditoria.
 - Estado: implementado en UI monolitica. Restauracion exige usuario administrador, doble confirmacion en UI y respaldo `Pre-Restauración` antes de modificar la base.
 
-## Caja, cortes y caja chica
+## Finanzas
 
-- Responsabilidad: apertura/cierre de caja, cortes diarios, caja chica, movimientos financieros.
-- Frontend: paginas `financial-movements`, `petty-cash` y flujos de apertura/cierre.
-- Backend: `createOpeningCut`, `previewDailyCut`, `createDailyCut`, `listDailyCuts`, `updateDailyCutCashManagement`, `deleteDailyCutCashManagement`, `listPettyCashRecords`, `createPettyCashRecord`, `updatePettyCashRecord`, `deletePettyCashRecord`, `listFinancialMovements`, `createFinancialMovement`.
-- Endpoints: `/api/daily-cuts*`, `/api/petty-cash*`, `/api/financial-movements`.
+- Submodulos: Costos, Caja chica, Finanzas, Ventas y Rentabilidad.
+
+- Responsabilidad: apertura/cierre de caja, cortes diarios, caja chica, movimientos financieros, costos operativos y analisis de ventas/rentabilidad.
+- Frontend: paginas `costs`, `financial-movements`, `petty-cash`, `sales-profitability` y flujos de apertura/cierre.
+- Backend: `createOpeningCut`, `previewDailyCut`, `createDailyCut`, `listDailyCuts`, `updateDailyCutCashManagement`, `deleteDailyCutCashManagement`, `listPettyCashRecords`, `createPettyCashRecord`, `updatePettyCashRecord`, `deletePettyCashRecord`, `listFinancialMovements`, `createFinancialMovement`, `getSalesProfitabilityAnalytics`, `getSalesTotalByPeriod`, `getSalesByCategoryForPeriod`, `listMonthlyCostIncreaseAlerts`.
+- Endpoints: `/api/daily-cuts*`, `/api/petty-cash*`, `/api/financial-movements`, `/api/analytics/sales-profitability`, `/api/costs/*`.
 - Estado: implementado.
 
 ## Cotizaciones

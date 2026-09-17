@@ -18,6 +18,13 @@ Este archivo registra solo estructuras comprobadas en codigo o migraciones.
   - Campos usados: `id_inventario`, `id_pd`, `codigo`, `precio_costo`, `precio_venta`, `precio_mayoreo`, `unidad_medida`, `stock`, `stock_minimo`, `stock_maximo`, `categoria`, `proveedor`, `NUM_LOTE`, `permite_decimal`, `creado_por`, `creado_en`, `actualizado_por`, `actualizado_en`.
   - Listados principales hacen join `inventario.codigo = producto.codigo`.
   - La migracion FEFO inicial usa `i.id_inventario = p.id_producto` para migrar lotes iniciales.
+- `dbo.PRODUCTO_CODIGO_BARRA`
+  - Creada por `ensureProductBarcodeObjects` y respaldada en `database/migrations/023_create_product_barcodes.sql`.
+  - Campos: `ID_CODIGO_BARRA`, `ID_PRODUCTO`, `CODIGO_BARRA`, `ES_PRINCIPAL`, `ACTIVO`, `CREADO_POR`, `CREADO_EN`, `ACTUALIZADO_POR`, `ACTUALIZADO_EN`.
+  - FK: `ID_PRODUCTO` referencia `dbo.producto(id_producto)`.
+  - Indices: `UX_PRODUCTO_CODIGO_BARRA_CODIGO` exige que cada codigo sea unico en todo el sistema; `UX_PRODUCTO_CODIGO_BARRA_PRINCIPAL_ACTIVO` permite un solo codigo principal activo por producto; `IX_PRODUCTO_CODIGO_BARRA_PRODUCTO` acelera consulta por producto.
+  - Migra cada `dbo.producto.codigo` existente como codigo principal activo sin eliminar ni modificar columnas actuales.
+  - Cuando se marca un codigo como principal, se sincroniza `dbo.producto.codigo` y `dbo.inventario.codigo` para conservar compatibilidad con joins existentes.
 
 ## Stock y FEFO
 
@@ -29,6 +36,7 @@ Este archivo registra solo estructuras comprobadas en codigo o migraciones.
 - `dbo.VENTA_LOTE_DETALLE`
   - Campos: `ID_VENTA_LOTE`, `ID_FACT`, `TABLA_VENTA`, `ID_VENTA`, `ID_PRODUCTO`, `ID_LOTE`, `CANTIDAD`, `ACCION`, `FECHA_HORA`, `USUARIO`.
   - Se usa para rastrear descuento/restauracion por factura.
+- En `registerSale`, la cobertura faltante en `dbo.PRODUCTO_LOTE` se crea antes de descontar `dbo.inventario.stock`, para que el lote de ajuste refleje el stock maestro previo a la venta. El descuento permite `stock = cantidad` y deja `dbo.inventario.stock = 0`; bloquea solo stock inicial 0 o cantidad mayor al stock disponible.
 - `dbo.PRODUCTO_PROXIMO_VENCER`
   - Tabla auxiliar para alertas de vencimiento.
   - Recalculada por `dbo.sp_recalcular_productos_proximos_vencer`.
@@ -55,6 +63,7 @@ Este archivo registra solo estructuras comprobadas en codigo o migraciones.
 - Campos frecuentes en ventas: `ID_VENTA`, `ID_VTR`, `ID_FACT`, `ID_PD`, `CANT_PD`, `PRECIO_COSTO`, `PRECIO_VENTA`, `UTILIDAD`, `USUARIO`, `FECHA_HORA`, `ID_ESTADO_VENTA`, `ID_CLIENTE`, `ID_TP`.
 - `ID_ESTADO_VENTA = 3` representa linea/factura anulada en queries revisadas.
 - `registerSale` actualiza inventario, descuenta lotes FEFO y devuelve `updatedProducts`.
+- Facturacion localiza productos por `product_id`; los codigos principal y alternativos solo ayudan a encontrar el mismo producto en el catalogo, no crean lineas separadas ni cambian el descuento de stock.
 
 ## Codigos armados / ofertas
 
@@ -115,6 +124,8 @@ Este archivo registra solo estructuras comprobadas en codigo o migraciones.
 ## Planilla y caja
 
 - `dbo.PLANILLA` se crea o ajusta desde `ensurePayrollTableSupportsDecimals`.
+- `dbo.ASISTENCIA` almacena marcas diarias por usuario; `HORA_ENTRADA` y `HORA_SALIDA` pueden quedar nulas mientras la marca esta incompleta.
+- `dbo.VW_ASISTENCIA_HORAS` calcula horas solo cuando `HORA_ENTRADA` y `HORA_SALIDA` existen, por lo que una entrada sin salida todavia no alimenta calculos de pago.
 - `dbo.COSTO_OPERATIVO` se crea desde `ensureOperationalCostsTable`.
 - `dbo.MOVIMIENTO_FINANCIERO` se crea desde `ensureFinancialMovementsTable`.
 - `dbo.CAJA_CHICA_DIARIA` se crea desde `ensurePettyCashTable`.

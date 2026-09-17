@@ -65,3 +65,14 @@ Captura*.png
 # Local catalogs and reports
 /src/img/*.pdf
 /src/img/*.xlsx
+
+
+
+# Logs de desarrollo
+*.log
+
+# Archivos comprimidos
+*.rar
+
+# Backups de SQL Server
+*.bak

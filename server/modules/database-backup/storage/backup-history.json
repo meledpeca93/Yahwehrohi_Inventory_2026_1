@@ -1,5 +1,18 @@
 [
   {
+    "id": "1788048483045-809c6d0fff0e38",
+    "createdAt": "2026-08-30T00:08:00.442Z",
+    "type": "Manual",
+    "status": "Correcto",
+    "fileName": "backup_2026-08-29_1808.bak",
+    "filePath": "C:\\YahwehRohi_Inventory-20260508T000832Z-3-001\\YahwehRohi_Inventory\\YahwehRohi-Inventory\\database-backups\\backup_2026-08-29_1808.bak",
+    "size": 51474944,
+    "message": "Respaldo generado correctamente.",
+    "userId": 1,
+    "user": "Seydi Pena",
+    "protected": false
+  },
+  {
     "id": "1787927466440-053dd669bc0c",
     "createdAt": "2026-08-28T14:31:06.440Z",
     "type": "Restauración",
