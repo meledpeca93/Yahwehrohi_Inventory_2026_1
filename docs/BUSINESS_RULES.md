@@ -85,6 +85,11 @@
 
 ## Creditos
 
+- La ficha de clientes a crédito muestra saldos pendientes calculados por el servicio existente; excluye clientes sin saldo mayor a 0,005. Búsqueda visual no reduce el saldo total del cliente ni el de la cartera.
+- El filtro «Sin abonos > 2 meses» es por cliente: último abono positivo del historial completo; si no existen pagos, fecha de la primera factura pendiente. Se comparan dos meses calendario, ajustando el día al último válido del mes. Historial fallido, fecha inválida o importes abonados sin comprobante fechado se consideran desconocidos, nunca ausencia de abonos.
+- No se calcula mora sin vencimiento pactado. El contrato actual no ofrece vencimientos ni fechas de último abono por cada factura (el histórico puede agrupar varias); se muestra antigüedad por factura y actividad por cliente explícitamente.
+- Preparar abono abre el formulario existente; la asignación sigue siendo automática a las facturas más antiguas. No hay selección manual nueva ni guardado al abrir el formulario.
+
 - Ventas a credito impactan saldos consultados por `listCredits`.
 - Abonos se registran con `registerCreditPayment`.
 - Abonos pueden tener forma de pago normalizada.
@@ -116,3 +121,24 @@
 - Si falla el respaldo `Pre-Restauración`, la restauracion se cancela sin modificar la base actual.
 - Si la restauracion falla despues de iniciar, se conserva el respaldo `Pre-Restauración`, se registra el error y no se reintenta automaticamente.
 - La retencion limpia respaldos normales antiguos segun `maxBackups`; los respaldos `Pre-Restauración` tienen retencion especial y se conservan al menos los ultimos configurados por el backend.
+
+## Consulta analítica de Facturas (26/09/2026)
+
+- La fecha de referencia inicia en el día local de apertura de la aplicación. Día, semana (lunes a domingo), mes y Todo delimitan los resultados; fecha, búsqueda, pago y estado se aplican antes de paginar.
+- Indicadores, gráfica y distribución por pago usan todos los resultados filtrados. Monto activo y crédito facturado excluyen facturas anuladas según el estado existente. Crédito facturado no equivale a deuda pendiente.
+- La gráfica agrupa por hora en Día, por fecha en Semana/Mes y por mes en Todo. No ubica facturas sin fecha válida; estas sí pueden consultarse en Todo.
+- La exportación superior incluye todos los resultados filtrados, incluso anuladas si están visibles; su alcance se indica en el reporte. Exportación individual y por grupos conservan los flujos existentes.
+- La vista plana pagina facturas; la agrupada pagina días. El resumen mensual sigue siendo histórico e independiente de los filtros superiores. Ambas tablas ofrecen 10/25/50/100 registros por página; la mensual pagina meses de forma independiente, sin alterar los totales ni la variación contra el mes anterior.
+- Seleccionar una factura carga una vista previa de hasta cinco líneas; el detalle completo conserva todas las líneas. La anulación/activación mantiene sus validaciones y efectos existentes.
+
+- Facturas permite filtrar clientes por ID (o nombre si no existe ID). El filtro afecta los indicadores, la gráfica y la exportación de resultados. La ordenación ascendente/descendente se aplica antes de paginar; en grupos se mantiene la agrupación. Ordenar meses no cambia la comparación contra el mes cronológico anterior.
+
+## Borradores de compras (interfaz)
+
+- Recepción rápida es la vista inicial; los estados Por preparar/Por recibir/Por revisar son organización manual de borradores locales, no estados contables ni confirmación de envío al proveedor.
+- Guardar, cambiar de vista y retomar pendientes no escriben inventario. Confirmar ingreso utiliza el registro de compra existente; se bloquea el doble clic mientras guarda.
+- Borradores separados por usuario en localStorage de este navegador. Guardar conserva líneas, proveedor, factura, fecha, forma de pago, costos, lotes y vencimientos; no conserva el archivo/foto OCR. Se informa si el guardado falla y se mantiene el formulario.
+- No se implementa saldo de unidades pendientes contra un pedido ni recepciones parciales enlazadas: el formulario registra únicamente lo recibido. No hay sincronización de borradores entre equipos.
+
+- Programar un pedido exige proveedor, productos y fecha prevista; esta fecha es independiente de la fecha de compra. Sigue siendo un borrador local sin envío al proveedor ni ingreso de inventario.
+- La ficha de compra ingresada utiliza los documentos agrupados del historial real, no los valores del borrador. Los documentos anulados se distinguen como tales. El detalle expone los campos disponibles en el contrato de compras; no inventa adjuntos ni lotes ausentes del histórico.

@@ -1,6 +1,7 @@
-import { CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, signal } from '@angular/core';
+import { LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
 import {
   ArcElement,
   BarController,
@@ -18,7 +19,9 @@ import {
 } from 'chart.js';
 import { firstValueFrom } from 'rxjs';
 import * as Tesseract from 'tesseract.js';
+import { DatePickerComponent } from './features/shared/date-picker/date-picker.component';
 import { ProductImageComponent } from './features/shared/product-image/product-image.component';
+import { ModalTableState, ModalTableConfig } from './features/shared/modal-table/modal-table-state';
 import { FacturacionApiService } from './modules/facturacion/services/facturacion-api.service';
 
 Chart.register(
@@ -54,6 +57,9 @@ type Page =
   | 'attendance'
   | 'payroll'
   | 'payroll-generate';
+type InventoryTableKind = 'main' | 'inactive' | 'kardex' | 'offers' | 'barcodes' | 'components' | 'picker';
+interface InventoryColumnOption { key: string; label: string; visible: boolean; }
+
 type AuditHistorySortKey = 'date' | 'action' | 'table' | 'record' | 'user' | 'previousStock' | 'currentStock';
 type AuditHistorySortDirection = 'asc' | 'desc';
 type AuditHistoryAlignment = 'left' | 'center' | 'right';
@@ -221,7 +227,6 @@ interface ProductReactivationDraft {
 }
 
 type InventoryOperationalStatus = 'Todos' | 'Disponible' | 'Stock bajo' | 'Agotado';
-type InventoryLotFilter = 'Todos' | 'Con lote' | 'Sin lote';
 type InventoryExpiryFilter = 'Todos' | 'Vigente' | 'Vence pronto' | 'Vencido' | 'Sin fecha';
 
 interface ProductInventoryLot {
@@ -1729,6 +1734,20 @@ interface PurchaseDraftLine {
   expiryDate?: string | null;
 }
 
+interface PurchaseWorkspaceDraft {
+  expectedDate?: string;
+  id: string;
+  supplierId: number | null;
+  invoice: string;
+  date: string;
+  paymentTypeId: number;
+  transport: number;
+  other: number;
+  lines: PurchaseDraftLine[];
+  stage: 'prepare' | 'receive' | 'review';
+  updatedAt: string;
+}
+
 interface EstimatedPurchaseLine extends PurchaseDraftLine {
   reason: string;
 }
@@ -2122,12 +2141,16 @@ const availablePages: Page[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent],
+  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrls: ['./app.css', './yr-ui.css']
 })
 export class App implements OnDestroy {
   private customerDisplayWindow: Window | null = null;
+  private customerDisplayPreviousItems = new Map<number, number>();
+  private customerDisplaySession = '';
+  private customerDisplayHighlightId: number | null = null;
+  private customerDisplayHighlightUntil = 0;
   private billingSearchInput?: ElementRef<HTMLInputElement>;
   private billingSearchFocusTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private lastEditablePointerDownAt = 0;
@@ -2456,6 +2479,7 @@ export class App implements OnDestroy {
   protected readonly isAuthenticated = signal(false);
   protected readonly loginUser = signal('');
   protected readonly loginPassword = signal('');
+  protected readonly loginPasswordVisible = signal(false);
   protected readonly loginUsers = signal<LoginUserOption[]>([]);
   protected readonly loginError = signal('');
   protected readonly loginLoading = signal(false);
@@ -2537,6 +2561,76 @@ export class App implements OnDestroy {
   protected readonly creditError = signal('');
   protected readonly creditSearchTerm = signal('');
   protected readonly selectedCreditCustomerId = signal<number | null>(null);
+  protected readonly creditDossierId = signal<number | null>(null);
+  protected readonly creditPeopleSearch = signal('');
+  protected readonly creditSummaryCollapsed = signal(false);
+  protected readonly creditPeopleFilter = signal<'all' | 'inactive'>('all');
+  protected readonly creditPeopleSort = signal('balance');
+  protected readonly creditDossierTab = signal<'invoices' | 'payments'>('invoices');
+  protected readonly creditPeopleHistories = signal<Record<number, CreditPayment[] | null>>({});
+  protected readonly creditPeopleHistoryLoading = signal(false);
+  protected readonly creditPeopleAsOf = signal(new Date());
+  private creditPeopleRequest = 0;
+
+  protected creditDateDays(value: string | null): number | null {
+    if (!value) return null;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return null;
+    const now = this.creditPeopleAsOf();
+    return Math.max(0, Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) / 86400000));
+  }
+
+  protected creditCustomerActivity(group: CreditCustomerGroup): { date: string | null; days: number | null; inactive: boolean; label: string } {
+    const payments = this.creditPeopleHistories()[group.customerId];
+    if (!payments) return { date: null, days: null, inactive: false, label: 'Historial no disponible' };
+    const latest = payments.filter(p => p.amount > 0).map(p => p.createdAt).filter(d => Number.isFinite(new Date(d).getTime())).sort((a,b) => new Date(b).getTime() - new Date(a).getTime())[0];
+    // Paid balances without a dated receipt must never be classified as never paid.
+    if (!latest && group.invoices.some(i => i.paidAmount > 0)) return { date: null, days: null, inactive: false, label: 'Fecha de abono no disponible' };
+    const oldest = group.invoices.filter(i => i.pendingAmount > 0.005).map(i => i.createdAt).filter((d): d is string => !!d && Number.isFinite(new Date(d).getTime())).sort((a,b) => new Date(a).getTime() - new Date(b).getTime())[0];
+    const date = latest || oldest || null;
+    const days = this.creditDateDays(date);
+    const now = this.creditPeopleAsOf();
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    cutoff.setDate(Math.min(now.getDate(), new Date(cutoff.getFullYear(), cutoff.getMonth() + 1, 0).getDate()));
+    const activityDate = date ? new Date(date) : null;
+    if (activityDate) activityDate.setHours(0,0,0,0);
+    return { date, days, inactive: !!activityDate && activityDate < cutoff, label: latest ? 'Último abono' : 'Sin abonos · Desde emisión' };
+  }
+
+  protected readonly creditPeopleAll = computed(() => this.creditCustomerGroups().filter(g => g.total > 0.005));
+  protected readonly creditPeopleUnknown = computed(() => this.creditPeopleAll().filter(g => this.creditCustomerActivity(g).days === null).length);
+  protected readonly creditPeopleBalance = computed(() => this.creditPeopleAll().reduce((n,g) => n + g.total, 0));
+  protected readonly creditPeopleInactive = computed(() => this.creditPeopleAll().filter(g => this.creditCustomerActivity(g).inactive));
+  protected readonly creditPeople = computed(() => {
+    const query = this.creditPeopleSearch().trim().toLocaleLowerCase('es');
+    return this.creditPeopleAll().filter(g => (!query || `${g.customerName} ${g.customerPhone || ''} ${g.customerId}`.toLocaleLowerCase('es').includes(query)) && (this.creditPeopleFilter() === 'all' || this.creditCustomerActivity(g).inactive)).sort((a,b) => this.creditPeopleSort() === 'name' ? a.customerName.localeCompare(b.customerName, 'es') : this.creditPeopleSort() === 'inactive' ? (this.creditCustomerActivity(b).days ?? -1) - (this.creditCustomerActivity(a).days ?? -1) || b.total - a.total : b.total - a.total);
+  });
+  protected readonly creditDossier = computed<CreditCustomerGroup | null>(() => this.creditPeople().find(g => g.customerId === this.creditDossierId()) || this.creditPeople()[0] || null);
+  protected readonly creditDossierInvoices = computed(() => (this.creditDossier()?.invoices || []).filter(i => i.pendingAmount > 0.005).sort((a,b) => (a.createdAt || '').localeCompare(b.createdAt || '')));
+  protected readonly creditDossierPayments = computed(() => (this.creditPeopleHistories()[this.creditDossier()?.customerId || 0] || []).slice().sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  protected creditInitials(name: string): string { return name.trim().split(/\s+/).slice(0,2).map(n => n[0]).join('').toUpperCase(); }
+
+  private async loadCreditPeopleHistories(): Promise<void> {
+    const token = ++this.creditPeopleRequest;
+    this.creditPeopleAsOf.set(new Date());
+    this.creditPeopleHistories.set({});
+    this.creditPeopleHistoryLoading.set(true);
+    const ids = this.creditPeopleAll().map(g => g.customerId);
+    let cursor = 0;
+    await Promise.all(Array.from({length: Math.min(4, ids.length)}, async () => {
+      while (cursor < ids.length && token === this.creditPeopleRequest) {
+        const id = ids[cursor++];
+        try {
+          const response = this.desktopApi ? await this.desktopApi.getCreditPaymentHistory(id) : await firstValueFrom(this.http.get<CreditPaymentsResponse>(`/api/credit-payments/customer/${id}`));
+          if (token === this.creditPeopleRequest) this.creditPeopleHistories.update(v => ({...v, [id]: response.payments}));
+        } catch {
+          if (token === this.creditPeopleRequest) this.creditPeopleHistories.update(v => ({...v, [id]: null}));
+        }
+      }
+    }));
+    if (token === this.creditPeopleRequest) this.creditPeopleHistoryLoading.set(false);
+  }
+
   protected readonly creditViewMode = signal<CreditViewMode>('customer');
   protected readonly creditTrendPeriod = signal<CreditTrendPeriod>('month');
   protected readonly creditPaymentModalOpen = signal(false);
@@ -2571,11 +2665,123 @@ export class App implements OnDestroy {
   protected readonly todayInvoiceRows = signal<InvoiceRow[]>([]);
   protected readonly expandedInvoiceDayKeys = signal<string[]>([]);
   protected readonly expandedInvoicePaymentKeys = signal<string[]>([]);
-  protected readonly invoiceMonthlySalesExpanded = signal(true);
+  protected readonly invoiceMonthlySalesExpanded = signal(false);
   protected readonly invoiceMasterExpanded = signal(true);
+  protected readonly invoiceSummaryCollapsed = signal(false);
+  protected readonly invoiceTableDensity = signal<'compact' | 'normal' | 'spacious'>('normal');
+  protected readonly invoiceSearch = signal('');
+  protected readonly invoicePaymentFilter = signal('');
+  protected readonly invoiceStatusFilter = signal('');
+  protected readonly invoiceCustomerFilter = signal('');
+  protected readonly invoiceSort = signal({ key: 'createdAt', direction: 'desc' as 'asc' | 'desc' });
+  protected readonly invoiceMonthlySort = signal({ key: 'key', direction: 'desc' as 'asc' | 'desc' });
+  protected invoiceCustomerKey(invoice: InvoiceRow): string {
+    return invoice.customerId == null ? `name:${invoice.customerName}` : `id:${invoice.customerId}`;
+  }
+  protected readonly invoiceCustomerOptions = computed(() => [...new Map(this.invoiceRows().map(row =>
+    [this.invoiceCustomerKey(row), { id: this.invoiceCustomerKey(row), label: row.customerName }])).values()]
+    .sort((a, b) => a.label.localeCompare(b.label, 'es')));
+  protected sortInvoiceTable(table: 'invoices' | 'monthly', key: string): void {
+    const state = table === 'invoices' ? this.invoiceSort : this.invoiceMonthlySort;
+    state.update(current => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' }));
+    (table === 'invoices' ? this.invoicePage : this.invoiceMonthlyPage).set(1);
+  }
+  protected invoiceAriaSort(table: 'invoices' | 'monthly', key: string): 'none' | 'ascending' | 'descending' {
+    const state = (table === 'invoices' ? this.invoiceSort : this.invoiceMonthlySort)();
+    return state.key !== key ? 'none' : state.direction === 'asc' ? 'ascending' : 'descending';
+  }
+  protected invoiceSortLabel(table: 'invoices' | 'monthly', key: string): string {
+    const state = this.invoiceAriaSort(table, key);
+    return state === 'none' ? '↕' : state === 'ascending' ? '↑' : '↓';
+  }
+  private compareInvoiceValues(a: unknown, b: unknown, direction: 'asc' | 'desc'): number {
+    if (a == null || b == null) return a == null ? (b == null ? 0 : 1) : -1;
+    const comparison = typeof a === 'number' && typeof b === 'number' ? a - b
+      : String(a).localeCompare(String(b), 'es', { numeric: true, sensitivity: 'base' });
+    return direction === 'asc' ? comparison : -comparison;
+  }
+  protected updateInvoiceCustomerFilter(event: Event): void {
+    this.invoiceCustomerFilter.set((event.target as HTMLSelectElement).value);
+    this.invoicePage.set(1); this.closeInvoicePreview();
+  }
+
+  protected readonly invoicePeriod = signal<'day' | 'week' | 'month' | 'all'>('day');
+  protected readonly invoiceDate = signal(this.formatDateKey(new Date()));
+  protected readonly invoiceGrouping = signal<'none' | 'payment'>('none');
+  protected readonly invoicePreviewId = signal<number | null>(null);
+  protected readonly invoicePreviewLines = signal<InvoiceLine[]>([]);
+  protected readonly invoicePreviewLoading = signal(false);
+  protected readonly invoicePreviewError = signal('');
+  private invoicePreviewRequest = 0;
+  protected readonly invoicePreview = computed(() =>
+    this.filteredInvoiceRows().find(row => row.invoiceId === this.invoicePreviewId()) ?? null,
+  );
   protected readonly invoiceMonthlyMonthsToShow = signal(12);
+  protected readonly invoiceMonthlyPage = signal(1);
+  protected readonly invoiceMonthlyPageSize = signal(10);
+  protected readonly invoiceMonthlyDensity = signal<'compact' | 'normal' | 'spacious'>('normal');
+  protected readonly invoiceMonthlyPageCount = computed(() => Math.max(1,
+    Math.ceil(this.invoiceMonthlySalesRows().length / this.invoiceMonthlyPageSize())));
+  protected readonly paginatedInvoiceMonths = computed(() => {
+    const start = (Math.min(this.invoiceMonthlyPage(), this.invoiceMonthlyPageCount()) - 1) * this.invoiceMonthlyPageSize();
+    const sort = this.invoiceMonthlySort();
+    const value = (row: InvoiceMonthlySalesRow) => sort.key === 'variation' ? this.invoiceMonthlyVariation(row)
+      : row[sort.key as keyof InvoiceMonthlySalesRow];
+    return [...this.invoiceMonthlySalesRows()].sort((a, b) => this.compareInvoiceValues(value(a), value(b), sort.direction)
+      || b.key.localeCompare(a.key)).slice(start, start + this.invoiceMonthlyPageSize());
+  });
   protected readonly invoiceDetailModalOpen = signal(false);
   protected readonly invoiceDetailInvoice = signal<InvoiceRow | null>(null);
+  protected readonly detailSearch = signal('');
+  protected readonly detailStatus = signal('');
+  protected readonly detailPage = signal(1);
+  protected readonly detailSize = signal(10);
+  protected readonly detailNotice = signal(false);
+  private detailNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+  protected readonly detailSelected = signal<Set<number>>(new Set());
+  protected readonly detailSort = signal<{key: keyof InvoiceLine; direction: 1 | -1}>({key:'productName', direction:1});
+  protected readonly detailColumns: {key: keyof InvoiceLine; label:string}[] = [{key:'sku',label:'Código'}, {key:'productName',label:'Producto'}, {key:'quantity',label:'Cantidad'}, {key:'salePrice',label:'Precio'}, {key:'total',label:'Total'}, {key:'statusName',label:'Estado'}];
+  protected readonly detailStatuses = computed(() => [...new Set(this.invoiceDetailLines().map(l => l.statusName || this.invoiceDetailInvoice()?.statusName || ''))].filter(Boolean));
+  protected readonly detailFiltered = computed(() => {
+    const query = this.normalizeText(this.detailSearch().trim());
+    const {key,direction} = this.detailSort();
+    return this.invoiceDetailLines().filter(l => (!this.detailStatus() || (l.statusName || this.invoiceDetailInvoice()?.statusName) === this.detailStatus()) && (!query || this.normalizeText([l.sku,l.productId,l.productName,l.paymentTypeName].join(' ')).includes(query)))
+      .sort((a,b) => { const av=a[key], bv=b[key]; return (typeof av === 'number' && typeof bv === 'number' ? av-bv : String(av ?? '').localeCompare(String(bv ?? ''),'es',{numeric:true,sensitivity:'base'}))*direction || a.id-b.id; });
+  });
+  protected readonly detailPages = computed(() => Math.max(1,Math.ceil(this.detailFiltered().length / this.detailSize())));
+  protected readonly detailCurrentPage = computed(() => Math.min(this.detailPage(),this.detailPages()));
+  protected readonly detailRows = computed(() => this.detailFiltered().slice((this.detailCurrentPage()-1)*this.detailSize(),this.detailCurrentPage()*this.detailSize()));
+  protected readonly detailAllSelected = computed(() => this.detailRows().length > 0 && this.detailRows().every(l => this.detailSelected().has(l.id)));
+  protected readonly detailSomeSelected = computed(() => !this.detailAllSelected() && this.detailRows().some(l => this.detailSelected().has(l.id)));
+  protected setDetailFilter(kind:'search'|'status'|'size',event:Event):void {
+    const value=(event.target as HTMLInputElement).value;
+    if(kind==='search') this.detailSearch.set(value);
+    if(kind==='status') this.detailStatus.set(value);
+    if(kind==='size' && this.dailySalesSizeOptions.includes(Number(value))) this.detailSize.set(Number(value));
+    this.detailPage.set(1);
+    if(this.detailNoticeTimer) clearTimeout(this.detailNoticeTimer);
+    this.detailNotice.set(true);
+    this.detailNoticeTimer=setTimeout(()=>{this.detailNotice.set(false);this.detailNoticeTimer=null;},3500);
+  }
+  protected sortDetail(key:keyof InvoiceLine):void {
+    this.detailSort.update(s=>({key,direction:s.key===key && s.direction===1 ? -1 : 1}));
+    this.detailPage.set(1);
+  }
+  protected selectDetail(id:number):void { this.detailSelected.update(ids=>{const next=new Set(ids);next.has(id)?next.delete(id):next.add(id);return next;}); }
+  protected selectDetailPage():void {
+    const remove=this.detailAllSelected();
+    this.detailSelected.update(ids=>{const next=new Set(ids);for(const l of this.detailRows()) remove?next.delete(l.id):next.add(l.id);return next;});
+  }
+  protected exportDetailSelection(): void {
+    const rows = this.invoiceDetailLines().filter(line => this.detailSelected().has(line.id));
+    if (!rows.length) return;
+    const cell = (value: unknown) => { const text = String(value ?? ''); return '"' + (/^[=+@\-\t\r]/.test(text) ? "'" : '') + text.replace(/"/g, '""') + '"'; };
+    const csv = [this.detailColumns.map(c => cell(c.label)).join(','), ...rows.map(row => this.detailColumns.map(c => cell(row[c.key])).join(','))].join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'}));
+    const link = document.createElement('a'); link.href = url; link.download = 'detalle-factura-seleccion.csv'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  protected clearDetailSelection():void {this.detailSelected.set(new Set());}
   protected readonly invoiceDetailLines = signal<InvoiceLine[]>([]);
   protected readonly invoiceDetailLoading = signal(false);
   protected readonly invoiceDetailError = signal('');
@@ -2593,6 +2799,123 @@ export class App implements OnDestroy {
   protected readonly quoteError = signal('');
   protected readonly activeQuoteId = signal<number | null>(null);
   protected readonly activeQuoteNumber = signal('');
+  protected readonly dailySalesResultsVisible = signal(false);
+  private dailySalesResultsTimeout: ReturnType<typeof setTimeout> | null = null;
+  protected readonly dailySalesSearch = signal('');
+  protected readonly dailySalesPayment = signal('');
+  protected readonly dailySalesStatus = signal('');
+  protected readonly dailySalesPage = signal(1);
+  protected readonly dailySalesPageSize = signal(10);
+  protected readonly dailySalesSizeOptions = [10, 25, 50, 100];
+  protected readonly dailySalesSort = signal<{ key: keyof InvoiceRow; direction: 1 | -1 }>({ key: 'createdAt', direction: -1 });
+  protected readonly dailySalesColumns: { key: keyof InvoiceRow; label: string }[] = [
+    {key:'invoiceId',label:'Factura'}, {key:'customerName',label:'Cliente'}, {key:'createdAt',label:'Fecha'},
+    {key:'paymentTypeName',label:'Tipo de pago'}, {key:'itemCount',label:'Artículos'}, {key:'total',label:'Total'},
+    {key:'statusName',label:'Estado'}, {key:'userName',label:'Usuario'}
+  ];
+  protected readonly dailySalesSelected = signal<Set<number>>(new Set());
+  protected readonly dailySalesPayments = computed(() => [...new Set(this.todayInvoiceRows().map(r => r.paymentTypeName))].sort());
+  protected readonly dailySalesStatuses = computed(() => [...new Set(this.todayInvoiceRows().map(r => r.statusName))].sort());
+  protected readonly dailySalesFiltered = computed(() => {
+    const query = this.normalizeText(this.dailySalesSearch().trim());
+    const {key, direction} = this.dailySalesSort();
+    return this.todayInvoiceRows().filter(r =>
+      (!this.dailySalesPayment() || r.paymentTypeName === this.dailySalesPayment()) &&
+      (!this.dailySalesStatus() || r.statusName === this.dailySalesStatus()) &&
+      (!query || this.normalizeText([r.invoiceId, r.customerName, this.formatTableDateTime(r.createdAt), r.paymentTypeName, r.statusName, r.userName, r.total].join(' ')).includes(query))
+    ).sort((a,b) => {
+      const av = a[key], bv = b[key];
+      const value = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av ?? '').localeCompare(String(bv ?? ''), 'es', {numeric:true, sensitivity:'base'});
+      return value * direction || a.invoiceId - b.invoiceId;
+    });
+  });
+  protected readonly dailySalesPageCount = computed(() => Math.max(1, Math.ceil(this.dailySalesFiltered().length / this.dailySalesPageSize())));
+  protected readonly dailySalesVisiblePage = computed(() => Math.min(this.dailySalesPage(), this.dailySalesPageCount()));
+  protected readonly dailySalesPageRows = computed(() => {
+    const start = (this.dailySalesVisiblePage() - 1) * this.dailySalesPageSize();
+    return this.dailySalesFiltered().slice(start, start + this.dailySalesPageSize());
+  });
+  protected readonly dailySalesSelectedRows = computed(() => this.todayInvoiceRows().filter(r => this.dailySalesSelected().has(r.invoiceId)));
+  protected readonly dailySalesPageSelected = computed(() => this.dailySalesPageRows().length > 0 && this.dailySalesPageRows().every(r => this.dailySalesSelected().has(r.invoiceId)));
+  protected readonly dailySalesPagePartSelected = computed(() => !this.dailySalesPageSelected() && this.dailySalesPageRows().some(r => this.dailySalesSelected().has(r.invoiceId)));
+
+  protected setDailySalesFilter(kind: 'search' | 'payment' | 'status' | 'size', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (kind === 'search') this.dailySalesSearch.set(value);
+    if (kind === 'payment') this.dailySalesPayment.set(value);
+    if (kind === 'status') this.dailySalesStatus.set(value);
+    if (kind === 'size' && this.dailySalesSizeOptions.includes(Number(value))) this.dailySalesPageSize.set(Number(value));
+    this.dailySalesPage.set(1);
+    if (this.dailySalesResultsTimeout) clearTimeout(this.dailySalesResultsTimeout);
+    this.dailySalesResultsVisible.set(true);
+    this.dailySalesResultsTimeout = setTimeout(() => {
+      this.dailySalesResultsVisible.set(false);
+      this.dailySalesResultsTimeout = null;
+    }, 3500);
+  }
+
+  protected sortDailySales(key: keyof InvoiceRow): void {
+    this.dailySalesSort.update(sort => ({key, direction: sort.key === key && sort.direction === 1 ? -1 : 1}));
+    this.dailySalesPage.set(1);
+  }
+
+  protected clearDailySalesSelection(): void { this.dailySalesSelected.set(new Set()); }
+
+  protected toggleDailySalesSelection(id: number): void {
+    this.dailySalesSelected.update(ids => { const next = new Set(ids); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+
+  protected toggleDailySalesPageSelection(): void {
+    const remove = this.dailySalesPageSelected();
+    this.dailySalesSelected.update(ids => { const next = new Set(ids); for (const row of this.dailySalesPageRows()) remove ? next.delete(row.invoiceId) : next.add(row.invoiceId); return next; });
+  }
+
+  protected exportDailySalesSelection(): void {
+    const rows = this.dailySalesSelectedRows();
+    if (!rows.length) return;
+    const cell = (value: unknown) => { const text = String(value ?? ''); return '"' + (/^[=+@\-\t\r]/.test(text) ? "'" : '') + text.replace(/"/g, '""') + '"'; };
+    const csv = [this.dailySalesColumns.map(c => cell(c.label)).join(','), ...rows.map(row => this.dailySalesColumns.map(c => cell(row[c.key])).join(','))].join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'}));
+    const link = document.createElement('a'); link.href = url; link.download = 'ventas-seleccionadas.csv'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  protected readonly invoiceAnnulTarget = signal<InvoiceRow | null>(null);
+  protected readonly invoiceAnnulBusy = signal(false);
+  protected readonly invoiceAnnulError = signal('');
+
+  protected requestInvoiceAnnul(invoice: InvoiceRow): void {
+    if (this.invoiceAnnulBusy()) return;
+    this.invoiceAnnulTarget.set(invoice);
+    this.invoiceAnnulError.set('');
+    const dialog = document.querySelector<HTMLDialogElement>('#yr-invoice-annul-dialog');
+    dialog?.showModal();
+    requestAnimationFrame(() => dialog?.querySelector<HTMLButtonElement>('.yr-annul-cancel')?.focus());
+  }
+
+  protected closeInvoiceAnnul(): void {
+    if (this.invoiceAnnulBusy()) return;
+    document.querySelector<HTMLDialogElement>('#yr-invoice-annul-dialog')?.close();
+    this.invoiceAnnulTarget.set(null);
+    this.invoiceAnnulError.set('');
+  }
+
+  protected async confirmInvoiceAnnul(): Promise<void> {
+    const invoice = this.invoiceAnnulTarget();
+    if (!invoice || this.invoiceAnnulBusy()) return;
+    this.invoiceAnnulBusy.set(true);
+    this.invoiceAnnulError.set('');
+    try {
+      await this.annulInvoice(invoice);
+      if (!this.invoiceAnnulError()) {
+        this.invoiceAnnulBusy.set(false);
+        this.closeInvoiceAnnul();
+      }
+    } finally {
+      this.invoiceAnnulBusy.set(false);
+    }
+  }
+
   protected readonly dailySalesModalOpen = signal(false);
   protected readonly productCatalogModalOpen = signal(false);
   protected readonly cutModalOpen = signal(false);
@@ -2647,7 +2970,7 @@ export class App implements OnDestroy {
   protected readonly openingCutSaving = signal(false);
   protected readonly openingCutError = signal('');
   protected readonly invoicePage = signal(1);
-  protected readonly invoicePageSize = 10;
+  protected readonly invoicePageSize = signal(10);
   protected readonly purchasePage = signal(1);
   protected readonly purchasePageSize = 10;
   protected readonly selectedCostYear = signal(new Date().getFullYear());
@@ -2689,6 +3012,107 @@ export class App implements OnDestroy {
   protected readonly operationalCostPurchaseInvoiceKey = signal('');
   protected readonly operationalCostAppliesTo = signal('MES');
   protected readonly operationalCostReference = signal('');
+  protected readonly purchaseWorkspaceView = signal<'receipt' | 'board' | 'history'>('receipt');
+  protected readonly purchaseWorkspaceDrafts = signal<PurchaseWorkspaceDraft[]>([]);
+  protected readonly purchaseWorkspaceId = signal<string | null>(null);
+  protected readonly purchaseWorkspaceStage = signal<'prepare' | 'receive' | 'review'>('prepare');
+  protected readonly purchaseWorkspaceSearch = signal('');
+  protected readonly purchaseWorkspaceNotice = signal('');
+  protected readonly purchaseReviewOpen = signal(false);
+  protected readonly purchaseSummaryCollapsed = signal(false);
+  protected readonly purchaseExpectedDate = signal('');
+  protected readonly purchaseDetailKey = signal<string | null>(null);
+  protected readonly purchaseDetail = computed(() => this.purchaseInvoiceGroups().find(i => i.key === this.purchaseDetailKey()) || null);
+  protected readonly purchaseRegisteredSearch = signal('');
+  protected readonly purchaseRegisteredState = signal('all');
+  protected readonly purchaseRegistered = computed(() => {
+    const q = this.purchaseRegisteredSearch().trim().toLocaleLowerCase('es');
+    return this.purchaseInvoiceGroups().filter(i => (!q || `${i.supplierName} ${i.invoiceNumber} ${i.userName}`.toLocaleLowerCase('es').includes(q)) && (this.purchaseRegisteredState() === 'all' || this.purchaseRegisteredState() === this.purchaseRecordStatus(i)));
+  });
+  protected purchaseRecordStatus(i: PurchaseInvoiceGroup): string { return i.statusId === 3 || /anulad/i.test(i.statusName || '') ? 'Anulada' : 'Ingresada'; }
+  protected purchasePaymentLabel(id: number): string { return id === 2 ? 'Crédito' : id === 3 ? 'Transferencia' : 'Efectivo'; }
+  protected purchaseStageLabel(stage: string): string { return stage === 'receive' ? 'Programado · Por recibir' : stage === 'review' ? 'Recibido · Por validar' : 'Borrador · Por preparar'; }
+  protected selectPurchaseExpectedDate(event: Event): void {
+    this.purchaseExpectedDate.set((event.target as HTMLInputElement).value);
+    if (this.purchaseExpectedDate() && this.purchaseSupplierId() && this.purchaseDraftLines().length) this.schedulePurchaseWorkspace();
+  }
+  protected schedulePurchaseWorkspace(): void {
+    if (!this.purchaseSupplierId() || !this.purchaseDraftLines().length || !this.purchaseExpectedDate()) { this.purchaseModalError.set('Selecciona proveedor, productos y fecha prevista para programar.'); return; }
+    this.purchaseModalError.set('');
+    this.purchaseWorkspaceStage.set('receive');
+    if (this.savePurchaseWorkspace()) this.purchaseWorkspaceNotice.set('Pedido programado localmente. No ha ingresado al inventario.');
+  }
+
+  protected readonly purchaseReceiptSummary = computed(() => {
+    const invoices = this.purchaseInvoiceGroups().filter(i => i.statusId !== 3 && !/anulad/i.test(i.statusName || ''));
+    const today = this.dateKey(new Date().toISOString());
+    const sorted = invoices.filter(i => i.createdAt && Number.isFinite(new Date(i.createdAt).getTime())).slice().sort((a,b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    return {today: sorted.filter(i => this.dateKey(i.createdAt) === today).length, latest: (sorted[0] || null) as PurchaseInvoiceGroup | null, recent: sorted.slice(0,3)};
+  });
+  protected async refreshPurchaseReceipt(): Promise<void> { await Promise.all([this.loadPurchases(), this.loadSuppliers(), this.fetchProducts()]); }
+
+  private purchaseWorkspaceOwner: number | null = null;
+  protected readonly purchaseStages = [ {id: 'prepare', name: 'Por preparar'}, {id: 'receive', name: 'Por recibir'}, {id: 'review', name: 'Por revisar'} ] as const;
+  protected purchaseDraftSupplier(id: number | null): string { return this.supplierOptions().find(s => s.id === id)?.nombre || 'Proveedor por seleccionar'; }
+  protected purchaseWorkspaceTotal(d: PurchaseWorkspaceDraft): number { return d.lines.reduce((sum,l) => sum + l.quantity * l.unitCost, 0) + d.transport + d.other; }
+  protected purchaseWorkspaceItems(stage?: string): PurchaseWorkspaceDraft[] {
+    const query = this.purchaseWorkspaceSearch().trim().toLocaleLowerCase('es');
+    return this.purchaseWorkspaceDrafts().filter(d => (!stage || d.stage === stage) && (!query || `${this.purchaseDraftSupplier(d.supplierId)} ${d.invoice}`.toLocaleLowerCase('es').includes(query)));
+  }
+  private purchaseWorkspaceKey(): string { return `yr-purchase-drafts-v1-${this.currentUser()?.id || 0}`; }
+  private loadPurchaseWorkspace(): void {
+    const owner = this.currentUser()?.id || 0;
+    if (this.purchaseWorkspaceOwner !== owner) { this.resetPurchaseDraft(); this.purchaseSupplierId.set(null); this.purchaseWorkspaceId.set(null); this.purchaseExpectedDate.set(''); this.purchaseWorkspaceStage.set('prepare'); this.purchaseReviewOpen.set(false); this.purchaseWorkspaceOwner = owner; this.purchaseDate.set(this.dateKey(new Date().toISOString())); }
+    this.purchaseWorkspaceView.set('receipt');
+    this.purchaseWorkspaceNotice.set('');
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.purchaseWorkspaceKey()) || '[]');
+      if (!Array.isArray(raw) || raw.some(d => !d || typeof d.id !== 'string' || !Array.isArray(d.lines) || !['prepare','receive','review'].includes(d.stage) || d.lines.some((l: PurchaseDraftLine) => !Number.isFinite(l.productId) || !Number.isFinite(l.quantity) || !Number.isFinite(l.unitCost)))) throw new Error('Invalid drafts');
+      this.purchaseWorkspaceDrafts.set(raw);
+    } catch { this.purchaseWorkspaceDrafts.set([]); this.purchaseWorkspaceNotice.set('No se pudieron leer los borradores locales. No se sobrescribirán hasta que recargues la página.'); }
+  }
+  protected savePurchaseWorkspace(): boolean {
+    if (this.purchaseModalSaving()) return false;
+    if (this.purchaseWorkspaceNotice().startsWith('No se pudieron leer')) return false;
+    const id = this.purchaseWorkspaceId() || crypto.randomUUID();
+    const draft: PurchaseWorkspaceDraft = {id, expectedDate: this.purchaseExpectedDate(), supplierId: this.purchaseSupplierId(), invoice: this.purchaseInvoiceNumber(), date: this.purchaseDate(), paymentTypeId: this.purchasePaymentTypeId(), transport: this.purchaseTransportCost(), other: this.purchaseOtherDirectCost(), lines: this.purchaseDraftLines().map(l => ({...l})), stage: this.purchaseWorkspaceStage(), updatedAt: new Date().toISOString()};
+    const drafts = [draft, ...this.purchaseWorkspaceDrafts().filter(d => d.id !== id)];
+    try { localStorage.setItem(this.purchaseWorkspaceKey(), JSON.stringify(drafts)); }
+    catch { this.purchaseWorkspaceNotice.set('No se pudo guardar el borrador. Mantén esta ventana abierta e intenta de nuevo.'); return false; }
+    this.purchaseWorkspaceDrafts.set(drafts); this.purchaseWorkspaceId.set(id);
+    this.purchaseWorkspaceNotice.set('Borrador guardado en este navegador. La foto OCR no se conserva; sus productos sí.');
+    return true;
+  }
+  protected resumePurchaseWorkspace(draft: PurchaseWorkspaceDraft): void {
+    if (this.purchaseModalSaving()) return;
+    if ((this.purchaseDraftLines().length || this.purchaseInvoiceNumber()) && !this.savePurchaseWorkspace()) return;
+    this.resetPurchaseDraft();
+    this.purchaseWorkspaceId.set(draft.id); this.purchaseWorkspaceStage.set(draft.stage); this.purchaseExpectedDate.set(draft.expectedDate || '');
+    this.purchaseSupplierId.set(draft.supplierId); this.purchaseInvoiceNumber.set(draft.invoice); this.purchaseDate.set(draft.date); this.purchasePaymentTypeId.set(draft.paymentTypeId);
+    this.purchaseTransportCost.set(draft.transport); this.purchaseOtherDirectCost.set(draft.other); this.purchaseDraftLines.set(draft.lines.map(l => ({...l})));
+    this.purchaseWorkspaceView.set('receipt'); this.purchaseReviewOpen.set(false);
+  }
+  protected newPurchaseWorkspace(): void {
+    if (this.purchaseModalSaving()) return;
+    if ((this.purchaseDraftLines().length || this.purchaseInvoiceNumber()) && !this.savePurchaseWorkspace()) return;
+    this.resetPurchaseDraft(); this.purchaseSupplierId.set(null); this.purchasePaymentTypeId.set(1); this.purchaseWorkspaceId.set(null); this.purchaseExpectedDate.set(''); this.purchaseWorkspaceStage.set('prepare'); this.purchaseWorkspaceView.set('receipt'); this.purchaseReviewOpen.set(false);
+    this.purchaseDate.set(this.dateKey(new Date().toISOString()));
+  }
+  protected changePurchaseWorkspace(view: 'receipt' | 'board' | 'history'): void {
+    if (this.purchaseModalSaving()) return;
+    if ((this.purchaseDraftLines().length || this.purchaseInvoiceNumber()) && !this.savePurchaseWorkspace()) return;
+    this.purchaseWorkspaceView.set(view);
+    this.purchaseMainModalOpen.set(false);
+  }
+  protected reviewPurchaseWorkspace(): void {
+    this.purchaseModalError.set('');
+    if (!this.purchaseSupplierId() || !this.purchaseInvoiceNumber().trim() || !this.purchaseDate() || !this.purchaseDraftLines().length || this.purchaseDraftLines().some(l => !Number.isFinite(l.quantity) || l.quantity <= 0 || !Number.isFinite(l.unitCost) || l.unitCost < 0)) {
+      this.purchaseModalError.set('Completa proveedor, factura, fecha y productos con cantidades y costos válidos.'); return;
+    }
+    this.purchaseWorkspaceStage.set('review');
+    if (this.savePurchaseWorkspace()) this.purchaseReviewOpen.set(true);
+  }
+
   protected readonly purchaseMainModalOpen = signal(false);
   protected readonly purchaseModalOpen = signal(false);
   protected readonly purchaseProductPickerOpen = signal(false);
@@ -2790,7 +3214,6 @@ export class App implements OnDestroy {
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('Todas');
   protected readonly inventoryStatusFilter = signal<InventoryOperationalStatus>('Todos');
-  protected readonly inventoryLotFilter = signal<InventoryLotFilter>('Todos');
   protected readonly inventoryExpiryFilter = signal<InventoryExpiryFilter>('Todos');
   protected readonly quickInventoryReductionReasons = [
     'Producto vencido',
@@ -2826,9 +3249,6 @@ export class App implements OnDestroy {
   protected readonly assembledOfferMessage = signal('');
   protected readonly assembledOffers = signal<AssembledOffer[]>([]);
   protected readonly assembledOfferSearch = signal('');
-  protected readonly assembledOfferProductCodeSearch = signal('');
-  protected readonly assembledOfferProductNameSearch = signal('');
-  protected readonly assembledOfferProductPickerPage = signal(1);
   protected readonly assembledOfferEditingId = signal<number | null>(null);
   protected readonly selectedAssembledOffer = signal<AssembledOffer | null>(null);
   protected readonly assembledOfferDraft = signal<AssembledOfferDraft>(this.createEmptyAssembledOfferDraft());
@@ -2863,16 +3283,200 @@ export class App implements OnDestroy {
   protected readonly databaseBackupRestoring = signal(false);
   protected readonly databaseBackupMessage = signal('');
   protected readonly databaseBackupError = signal('');
+  protected readonly modalTables = new ModalTableState();
+  protected readonly catalogExporting = signal(false);
+  protected readonly modalSummaries = signal<Record<string, boolean>>({});
+  protected toggleModalSummary(key: string): void { this.modalSummaries.update(all => ({ ...all, [key]: !all[key] })); }
+  protected readonly billingTableConfigs: Record<string, ModalTableConfig> = {"customers": {"columns": [{"key": "id", "label": "ID"}, {"key": "nombre", "label": "Nombre"}, {"key": "apellido", "label": "Apellido"}, {"key": "telefono", "label": "Teléfono"}, {"key": "direccion", "label": "Dirección"}, {"key": "creditosAbiertos", "label": "Créditos"}, {"key": "saldo", "label": "Saldo"}, {"key": "fechaHora", "label": "Fecha"}]}, "suppliers": {"columns": [{"key": "id", "label": "ID"}, {"key": "nombre", "label": "Nombre"}, {"key": "telefono", "label": "Teléfono"}, {"key": "direccion", "label": "Dirección"}, {"key": "creditoAbierto", "label": "Crédito abierto"}, {"key": "comprasRealizadas", "label": "Compras realizadas"}, {"key": "fechaHora", "label": "Fecha"}]}, "cuts": {"columns": [{"key": "id", "label": "N.º"}, {"key": "date", "label": "Fecha"}, {"key": "totalSales", "label": "Total"}, {"key": "userName", "label": "Usuario"}, {"key": "statusName", "label": "Estado"}], "filterKey": "statusName", "filterLabel": "Estado"}, "expiry": {"columns": [{"key": "sku", "label": "Código"}, {"key": "productName", "label": "Producto"}, {"key": "category", "label": "Categoría"}, {"key": "entryDate", "label": "Ingreso"}, {"key": "lotNumber", "label": "Lote"}, {"key": "stock", "label": "Stock"}, {"key": "expiryDate", "label": "Vence"}, {"key": "daysRemaining", "label": "Días"}], "filterKey": "category", "filterLabel": "Categoría"}, "lowstock": {"columns": [{"key": "sku", "label": "Código"}, {"key": "name", "label": "Producto"}, {"key": "stock", "label": "Stock"}, {"key": "minStock", "label": "Mínimo"}, {"key": "unitCost", "label": "Costo"}, {"key": "salePrice", "label": "Precio"}]}, "quoteLines": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "quantity", "label": "Cantidad"}, {"key": "salePrice", "label": "Precio"}, {"key": "total", "label": "Total"}]}, "catalog": {"columns": [{"key": "sku", "label": "Código"}, {"key": "name", "label": "Producto"}, {"key": "category", "label": "Categoría"}, {"key": "salePrice", "label": "Precio"}], "filterKey": "category", "filterLabel": "Categoría"}, "quotes": {"columns": [{"key": "number", "label": "Cotización"}, {"key": "customerName", "label": "Cliente"}, {"key": "createdAt", "label": "Fecha"}, {"key": "subtotal", "label": "Total"}]}};
+  protected readonly summaryCollapsed = signal(false);
+  protected readonly inventorySummaryCollapsed = signal(false);
+  protected readonly kardexSummaryCollapsed = signal(false);
+  protected readonly componentSummaryCollapsed = signal(false);
+  protected readonly kardexRowDensity = signal<'compact' | 'normal' | 'spacious'>('normal');
+  protected readonly inventoryRowDensity = signal<'compact' | 'normal' | 'spacious'>('normal');
+  protected readonly inventoryColumnOptions = signal<Record<string, InventoryColumnOption[]>>({
+    main: [
+      { key: 'sku', label: 'Código', visible: true }, { key: 'name', label: 'Producto', visible: true },
+      { key: 'category', label: 'Categoría', visible: true }, { key: 'stock', label: 'Cantidad', visible: true },
+      { key: 'minStock', label: 'Mínimo', visible: true }, { key: 'unitCost', label: 'Costo', visible: true },
+      { key: 'salePrice', label: 'Precio final', visible: true }, { key: 'expiry', label: 'Vencimiento', visible: true },
+      { key: 'status', label: 'Estado', visible: true }, { key: 'actions', label: 'Acción', visible: true },
+    ],
+    barcodes: [{ key: 'code', label: 'Código', visible: true }, { key: 'status', label: 'Estado', visible: true }, { key: 'primary', label: 'Principal', visible: true }, { key: 'actions', label: 'Acción', visible: true }],
+    offers: [{ key: 'sku', label: 'Código', visible: true }, { key: 'image', label: 'Imagen', visible: true }, { key: 'name', label: 'Nombre', visible: true }, { key: 'price', label: 'Precio oferta', visible: true }, { key: 'start', label: 'Inicio', visible: true }, { key: 'end', label: 'Fin', visible: true }, { key: 'status', label: 'Estado', visible: true }, { key: 'products', label: 'Productos incluidos', visible: true }, { key: 'stock', label: 'Stock disponible', visible: true }, { key: 'reason', label: 'Motivo', visible: true }, { key: 'actions', label: 'Acciones', visible: true }],
+    components: [{ key: 'sku', label: 'Código', visible: true }, { key: 'name', label: 'Producto', visible: true }, { key: 'quantity', label: 'Cantidad', visible: true }, { key: 'gift', label: 'Regalía', visible: true }, { key: 'stock', label: 'Stock producto', visible: true }, { key: 'max', label: 'Máximo por componente', visible: true }],
+    picker: [{ key: 'sku', label: 'Código', visible: true }, { key: 'name', label: 'Nombre', visible: true }, { key: 'stock', label: 'Stock disponible', visible: true }, { key: 'price', label: 'Precio', visible: true }, { key: 'select', label: 'Selección', visible: true }],
+    inactive: [{ key: 'sku', label: 'Código', visible: true }, { key: 'name', label: 'Producto', visible: true }, { key: 'category', label: 'Categoría', visible: true }, { key: 'cost', label: 'Último costo', visible: true }, { key: 'price', label: 'Último precio', visible: true }, { key: 'stock', label: 'Stock', visible: true }, { key: 'status', label: 'Estado', visible: true }, { key: 'date', label: 'Fecha de inactivación', visible: true }, { key: 'actions', label: 'Acciones', visible: true }],
+    kardex: [{ key: 'sku', label: 'Código', visible: true }, { key: 'name', label: 'Producto', visible: true }, { key: 'category', label: 'Categoría', visible: true }, { key: 'stock', label: 'Stock', visible: true }, { key: 'minStock', label: 'Mínimo', visible: true }, { key: 'cost', label: 'Costo', visible: true }, { key: 'price', label: 'Precio final', visible: true }, { key: 'supplier', label: 'Proveedor', visible: true }, { key: 'actions', label: 'Acciones', visible: true }],
+  });
+  protected inventoryColumns(kind: string): InventoryColumnOption[] { return this.inventoryColumnOptions()[kind] ?? []; }
+  protected inventoryColumnVisible(kind: string, column: string): boolean { return this.inventoryColumns(kind).find(item => item.key === column)?.visible ?? true; }
+  protected toggleInventoryColumn(kind: string, column: string): void {
+    const items = this.inventoryColumns(kind);
+    const current = items.find(item => item.key === column);
+    if (!current || (current.visible && items.filter(item => item.visible).length === 1)) return;
+    this.inventoryColumnOptions.update(all => ({ ...all, [kind]: items.map(item => item.key === column ? { ...item, visible: !item.visible } : item) }));
+    this.saveInventoryColumns();
+    this.applyInventoryColumnOrder(kind);
+  }
+  protected moveInventoryColumn(kind: string, column: string, direction: -1 | 1): void {
+    const items = [...this.inventoryColumns(kind)], index = items.findIndex(item => item.key === column), target = index + direction;
+    if (index < 0 || target < 0 || target >= items.length) return;
+    [items[index], items[target]] = [items[target], items[index]];
+    this.inventoryColumnOptions.update(all => ({ ...all, [kind]: items }));
+    this.saveInventoryColumns();
+    this.applyInventoryColumnOrder(kind);
+  }
+  protected resetInventoryColumns(kind: string): void {
+    const defaults = this.inventoryColumnOptions()[kind]?.map(item => ({ ...item, visible: true })) ?? [];
+    this.inventoryColumnOptions.update(all => ({ ...all, [kind]: defaults.sort((a, b) => ['sku','name','category','stock','minStock','unitCost','salePrice','expiry','status','actions'].indexOf(a.key) - ['sku','name','category','stock','minStock','unitCost','salePrice','expiry','status','actions'].indexOf(b.key)) }));
+    this.saveInventoryColumns();
+    this.applyInventoryColumnOrder(kind);
+  }
+  protected applyInventoryColumnOrder(kind: string): void {
+    queueMicrotask(() => {
+      const table = document.querySelector<HTMLTableElement>(`table[data-inventory-columns="${kind}"]`);
+      if (!table) return;
+      const order = this.inventoryColumns(kind).map(item => item.key);
+      table.querySelectorAll<HTMLTableRowElement>('tr').forEach(row => {
+        const direct = Array.from(row.children) as HTMLElement[];
+        direct.slice(1).forEach((cell, index) => { if (!cell.dataset['inventoryColumn'] && order[index]) cell.dataset['inventoryColumn'] = order[index]; });
+        const cells = new Map(Array.from(row.querySelectorAll<HTMLElement>(':scope > [data-inventory-column]')).map(cell => [cell.dataset['inventoryColumn'], cell]));
+        order.forEach(key => { const cell = cells.get(key); if (cell) { cell.hidden = !this.inventoryColumnVisible(kind, key); row.appendChild(cell); } });
+      });
+    });
+  }
+  private saveInventoryColumns(): void { localStorage.setItem('yr.inventory.columns', JSON.stringify(this.inventoryColumnOptions())); }
+  private restoreInventoryColumns(): void {
+    try {
+      const saved = JSON.parse(localStorage.getItem('yr.inventory.columns') ?? '{}') as Record<string, InventoryColumnOption[]>;
+      const current = this.inventoryColumnOptions();
+      if (Array.isArray(saved['main']) && saved['main'].length === current['main'].length && saved['main'].every(item => current['main'].some(column => column.key === item.key))) {
+        this.inventoryColumnOptions.set({ ...current, main: saved['main'].map(item => ({ key: item.key, label: current['main'].find(column => column.key === item.key)?.label ?? item.label, visible: item.visible !== false })) });
+        this.applyInventoryColumnOrder('main');
+      }
+    } catch { /* Invalid local preference falls back to the default layout. */ }
+  }
+  protected readonly checkoutCollapsed = signal(false);
+  protected readonly categoryListPage = signal(1);
+  protected readonly categoryListPageCount = computed(() => Math.max(1, Math.ceil(this.categories().length / 10)));
+  protected readonly visibleCategoryListPage = computed(() => Math.min(this.categoryListPage(), this.categoryListPageCount()));
+  protected readonly paginatedCategories = computed(() => this.categories().slice((this.visibleCategoryListPage() - 1) * 10, this.visibleCategoryListPage() * 10));
+
+  protected selectBillingCategory(category: string): void {
+    this.selectedCategory.set(category);
+    this.billingPage.set(1);
+    this.inventoryPage.set(1);
+  }
+
+
+  protected closeBillingActionsOutside(event: Event, menu: HTMLDetailsElement): void {
+    if (menu.open && event.target instanceof Node && !menu.contains(event.target)) {
+      menu.open = false;
+    }
+  }
+
   protected readonly billingPage = signal(1);
-  protected readonly billingPageSize = 15;
-  protected readonly assembledOfferProductPickerPageSize = 8;
+  protected readonly billingPageSize = signal(15);
+  protected readonly billingPageSizeOptions = [15, 30, 45, 60, 100];
   protected readonly costsPage = signal(1);
   protected readonly costsPageSize = 12;
   protected readonly inventoryPage = signal(1);
-  protected readonly inventoryPageSize = 12;
-  protected readonly inactiveProductsPageSize = 7;
+  protected readonly inventoryTableDensities = signal<Record<string, 'compact' | 'normal' | 'spacious'>>({});
+  protected inventoryTableDensity(kind: InventoryTableKind): 'compact' | 'normal' | 'spacious' { return this.inventoryTableDensities()[kind] ?? 'normal'; }
+  protected setInventoryTableDensity(kind: InventoryTableKind, density: 'compact' | 'normal' | 'spacious'): void { this.inventoryTableDensities.update(all => ({ ...all, [kind]: density })); }
+  protected readonly inventoryAuxSearch = signal<Record<string, string>>({});
+  private readonly inventoryAuxPages = signal<Record<string, number>>({});
+  private readonly inventoryAuxSizes = signal<Record<string, number>>({});
+  private isInventoryAuxTable(kind: InventoryTableKind): boolean { return kind === 'barcodes' || kind === 'components' || kind === 'picker'; }
+  protected updateInventoryAuxSearch(kind: InventoryTableKind, event: Event): void {
+    this.inventoryAuxSearch.update(all => ({ ...all, [kind]: (event.target as HTMLInputElement).value }));
+    this.setInventoryUiPage(kind, 1);
+    this.showInventoryUiResults(kind);
+  }
+  private filterInventoryAuxRows<T extends object>(rows: T[], kind: InventoryTableKind): T[] {
+    const query = this.normalizeText((this.inventoryAuxSearch()[kind] ?? '').trim());
+    return rows.filter(row => !query || this.normalizeText(Object.values(row).filter(value => typeof value === 'string' || typeof value === 'number').join(' ')).includes(query));
+  }
+  protected inventoryAuxPageRows<T extends object>(rows: T[], kind: InventoryTableKind): T[] {
+    const sorted = this.sortInventoryUiRows(this.filterInventoryAuxRows(rows, kind), kind);
+    const start = (this.inventoryUiPage(kind) - 1) * this.inventoryUiSize(kind);
+    return sorted.slice(start, start + this.inventoryUiSize(kind));
+  }
+  private resetInventoryAuxTable(kind: InventoryTableKind): void {
+    this.inventoryAuxSearch.update(all => ({ ...all, [kind]: '' }));
+    this.inventoryAuxPages.update(all => ({ ...all, [kind]: 1 }));
+    this.clearInventoryUiSelection(kind);
+  }
+  protected readonly inventoryUiSelection = signal<Record<string,Set<number>>>({});
+  protected inventoryUiSelected(kind:InventoryTableKind,id:number):boolean {return this.inventoryUiSelection()[kind]?.has(id) ?? false;}
+  protected toggleInventoryUiSelected(kind:InventoryTableKind,id:number):void {this.inventoryUiSelection.update(all=>{const ids=new Set(all[kind]);ids.has(id)?ids.delete(id):ids.add(id);return {...all,[kind]:ids};});}
+  protected inventoryUiSelectionCount(kind:InventoryTableKind):number {return this.inventoryUiSelection()[kind]?.size ?? 0;}
+  protected clearInventoryUiSelection(kind:InventoryTableKind):void {this.inventoryUiSelection.update(all=>({...all,[kind]:new Set()}));}
+  protected exportInventoryUiSelection(kind:InventoryTableKind):void {
+    let headers = ['Código', 'Producto', 'Stock', 'Precio'];
+    let values: unknown[][];
+    if (kind === 'barcodes') {
+      headers = ['Código', 'Estado', 'Principal'];
+      values = (this.productBarcodeTarget()?.barcodes ?? []).filter(row => this.inventoryUiSelected(kind, row.id)).map(row => [row.code, row.active ? 'Activo' : 'Inactivo', row.isPrimary ? 'Sí' : 'No']);
+    } else if (kind === 'components') {
+      headers = ['Código', 'Producto', 'Cantidad', 'Regalía', 'Stock'];
+      values = (this.selectedAssembledOffer()?.components ?? []).filter(row => this.inventoryUiSelected(kind, row.productId)).map(row => [row.sku, row.name, row.quantity, row.isGift ? 'Sí' : 'No', row.stock]);
+    } else {
+      const rows = kind === 'main' ? this.products() : kind === 'inactive' ? this.inactiveProducts() : kind === 'kardex' ? this.outOfStockProducts() : kind === 'picker' ? this.assembledOfferPickerProducts() : this.assembledOffers();
+      values = rows.filter(row => this.inventoryUiSelected(kind, row.id)).map(row => [row.sku, row.name, row.stock, row.salePrice]);
+    }
+    if (!values.length) return;
+    const cell = (value: unknown) => { const text = String(value ?? ''); return '"' + (/^[=+@\-\t\r]/.test(text) ? "'" : '') + text.replace(/"/g, '""') + '"'; };
+    const csv = [headers, ...values].map(row => row.map(cell).join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));const link=document.createElement('a');link.href=url;link.download='inventario-'+kind+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  protected readonly inventoryConfirmText = signal('');
+  private inventoryConfirmResolve: ((value:boolean)=>void) | null = null;
+  private confirmInventoryUi(text:string):Promise<boolean> {
+    if(this.inventoryConfirmResolve)return Promise.resolve(false);
+    this.inventoryConfirmText.set(text);
+    return new Promise(resolve=>{this.inventoryConfirmResolve=resolve;document.querySelector<HTMLDialogElement>('#yr-inventory-confirm')?.showModal();requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('#yr-inventory-confirm .yr-annul-cancel')?.focus());});
+  }
+  protected resolveInventoryUiConfirm(confirmed:boolean):void {document.querySelector<HTMLDialogElement>('#yr-inventory-confirm')?.close();this.inventoryConfirmResolve?.(confirmed);this.inventoryConfirmResolve=null;}
+  protected readonly inventoryUiSizes = [10,25,50,100];
+  protected readonly inventoryUiSort = signal<Record<string,{key:string;direction:1|-1}>>({});
+  protected readonly inventoryUiNotice = signal<InventoryTableKind | null>(null);
+  private inventoryUiNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+  protected readonly kardexSearch = signal('');
+  protected readonly offersUiPage = signal(1);
+  protected readonly offersUiSize = signal(10);
+  protected readonly filteredKardexProducts = computed(() => {
+    const query=this.normalizeText(this.kardexSearch().trim());
+    return this.outOfStockProducts().filter(p=>!query || this.normalizeText([p.sku,p.name,p.category].join(' ')).includes(query));
+  });
+  protected readonly offersUiPages = computed(()=>Math.max(1,Math.ceil(this.filteredAssembledOffers().length/this.offersUiSize())));
+  protected readonly paginatedUiOffers = computed(()=>this.sortInventoryUiRows(this.filteredAssembledOffers(),'offers').slice((this.inventoryUiPage('offers')-1)*this.offersUiSize(),this.inventoryUiPage('offers')*this.offersUiSize()));
+  private sortInventoryUiRows<T>(rows:T[],kind:InventoryTableKind):T[] {
+    const sort=this.inventoryUiSort()[kind]; if(!sort) return rows;
+    return [...rows].sort((a,b)=>{const av=(a as Record<string,unknown>)[sort.key],bv=(b as Record<string,unknown>)[sort.key];return (typeof av==='number' && typeof bv==='number' ? av-bv : String(av??'').localeCompare(String(bv??''),'es',{numeric:true,sensitivity:'base'}))*sort.direction;});
+  }
+  protected sortInventoryUi(kind:InventoryTableKind,key:string):void {
+    this.inventoryUiSort.update(all=>({...all,[kind]:{key,direction:all[kind]?.key===key && all[kind].direction===1 ? -1 : 1}}));this.setInventoryUiPage(kind,1);
+  }
+  protected inventoryUiSortLabel(kind:InventoryTableKind,key:string):string { const s=this.inventoryUiSort()[kind];return s?.key===key ? (s.direction===1?'↑':'↓'):'↕'; }
+  protected inventoryUiAriaSort(kind:InventoryTableKind,key:string):string {const s=this.inventoryUiSort()[kind];return s?.key===key ? (s.direction===1?'ascending':'descending'):'none';}
+  protected inventoryUiCount(kind:InventoryTableKind):number {
+    if (kind === 'barcodes') return this.filterInventoryAuxRows(this.productBarcodeTarget()?.barcodes ?? [], kind).length;
+    if (kind === 'components') return this.filterInventoryAuxRows(this.selectedAssembledOffer()?.components ?? [], kind).length;
+    if (kind === 'picker') return this.filterInventoryAuxRows(this.assembledOfferPickerProducts(), kind).length;
+    return kind==='main'?this.filteredProducts().length:kind==='inactive'?this.filteredInactiveProducts().length:kind==='kardex'?this.filteredKardexProducts().length:this.filteredAssembledOffers().length;}
+  protected inventoryUiSize(kind:InventoryTableKind):number {if(this.isInventoryAuxTable(kind)) return this.inventoryAuxSizes()[kind] ?? 10; return kind==='main'?this.inventoryPageSize():kind==='inactive'?this.inactiveProductsPageSize():kind==='kardex'?this.kardexPageSize():this.offersUiSize();}
+  protected inventoryUiPages(kind:InventoryTableKind):number {return Math.max(1,Math.ceil(this.inventoryUiCount(kind)/this.inventoryUiSize(kind)));}
+  protected inventoryUiPage(kind:InventoryTableKind):number {if(this.isInventoryAuxTable(kind)) return Math.min(this.inventoryAuxPages()[kind] ?? 1, this.inventoryUiPages(kind)); return Math.min(kind==='main'?this.inventoryPage():kind==='inactive'?this.inactiveProductsPage():kind==='kardex'?this.kardexPage():this.offersUiPage(),this.inventoryUiPages(kind));}
+  protected setInventoryUiPage(kind:InventoryTableKind,page:number):void {const value=Math.max(1,Math.min(page,this.inventoryUiPages(kind)));if(this.isInventoryAuxTable(kind)){this.inventoryAuxPages.update(all=>({...all,[kind]:value}));return;}(kind==='main'?this.inventoryPage:kind==='inactive'?this.inactiveProductsPage:kind==='kardex'?this.kardexPage:this.offersUiPage).set(value);}
+  protected setInventoryUiSize(kind:InventoryTableKind,event:Event):void {const size=Number((event.target as HTMLSelectElement).value);if(!this.inventoryUiSizes.includes(size))return;if(this.isInventoryAuxTable(kind)){this.inventoryAuxSizes.update(all=>({...all,[kind]:size}));this.setInventoryUiPage(kind,1);this.showInventoryUiResults(kind);return;}(kind==='main'?this.inventoryPageSize:kind==='inactive'?this.inactiveProductsPageSize:kind==='kardex'?this.kardexPageSize:this.offersUiSize).set(size);this.setInventoryUiPage(kind,1);this.showInventoryUiResults(kind);}
+  protected showInventoryUiResults(kind:InventoryTableKind):void {if(this.inventoryUiNoticeTimer)clearTimeout(this.inventoryUiNoticeTimer);this.inventoryUiNotice.set(kind);this.inventoryUiNoticeTimer=setTimeout(()=>this.inventoryUiNotice.set(null),3500);}
+  protected updateKardexSearch(event:Event):void {this.kardexSearch.set((event.target as HTMLInputElement).value);this.kardexPage.set(1);this.showInventoryUiResults('kardex');}
+  protected readonly inventoryPageSize = signal(10);
+  protected readonly inactiveProductsPageSize = signal(10);
   protected readonly kardexPage = signal(1);
-  protected readonly kardexPageSize = 8;
+  protected readonly kardexPageSize = signal(10);
   protected readonly themes: ThemeOption[] = [
     { id: 'black-green', name: 'Black green', tone: 'Oscuro' },
     { id: 'forest-light', name: 'Bosque claro', tone: 'Claro' },
@@ -2918,7 +3522,6 @@ export class App implements OnDestroy {
   ];
 
   protected readonly inventoryStatusOptions: InventoryOperationalStatus[] = ['Todos', 'Disponible', 'Stock bajo', 'Agotado'];
-  protected readonly inventoryLotOptions: InventoryLotFilter[] = ['Todos', 'Con lote', 'Sin lote'];
   protected readonly inventoryExpiryOptions: InventoryExpiryFilter[] = ['Todos', 'Vigente', 'Vence pronto', 'Vencido', 'Sin fecha'];
 
   // PROCEDIMIENTO UBICADO EN src/app/app.ts
@@ -3902,20 +4505,14 @@ export class App implements OnDestroy {
     const search = this.searchTerm().trim().toLowerCase();
     const category = this.selectedCategory();
     const statusFilter = this.inventoryStatusFilter();
-    const lotFilter = this.inventoryLotFilter();
     const expiryFilter = this.inventoryExpiryFilter();
     const favoriteIds = new Set(this.favoriteProductIds());
 
     return this.products().filter((product) => {
       const matchesCategory = category === 'Todas' || product.category === category;
       const productStatus = this.stockStatus(product);
-      const hasActiveLot = Number(product.activeLotCount || 0) > 0;
       const productExpiryStatus = this.productExpiryStatus(product);
       const matchesStatus = statusFilter === 'Todos' || productStatus === statusFilter;
-      const matchesLot =
-        lotFilter === 'Todos' ||
-        (lotFilter === 'Con lote' && hasActiveLot) ||
-        (lotFilter === 'Sin lote' && !hasActiveLot);
       const matchesExpiry = expiryFilter === 'Todos' || productExpiryStatus === expiryFilter;
       const matchesSearch =
         this.productMatchesSearch(product, search) ||
@@ -3924,7 +4521,7 @@ export class App implements OnDestroy {
         ) ||
         (product.primaryLotNumber || '').toLowerCase().includes(search);
 
-      return matchesCategory && matchesStatus && matchesLot && matchesExpiry && matchesSearch;
+      return matchesCategory && matchesStatus && matchesExpiry && matchesSearch;
     }).sort((productA, productB) => {
       const favoriteScoreA = favoriteIds.has(productA.id) ? 1 : 0;
       const favoriteScoreB = favoriteIds.has(productB.id) ? 1 : 0;
@@ -3974,8 +4571,6 @@ export class App implements OnDestroy {
   );
 
   protected readonly assembledOfferPickerProducts = computed(() => {
-    const codeSearch = this.assembledOfferProductCodeSearch().trim().toLowerCase();
-    const nameSearch = this.assembledOfferProductNameSearch().trim().toLowerCase();
     const selectedIds = new Set(
       this.assembledOfferDraft().components
         .map((component) => Number(component.productId || 0))
@@ -3985,19 +4580,7 @@ export class App implements OnDestroy {
     return this.products()
       .filter((product) => !product.isAssembledOffer)
       .filter((product) => !selectedIds.has(product.id))
-      .filter((product) => !codeSearch || product.sku.toLowerCase().includes(codeSearch))
-      .filter((product) => !nameSearch || product.name.toLowerCase().includes(nameSearch))
       .sort((productA, productB) => productA.name.localeCompare(productB.name));
-  });
-
-  protected readonly assembledOfferProductPickerPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.assembledOfferPickerProducts().length / this.assembledOfferProductPickerPageSize)),
-  );
-
-  protected readonly paginatedAssembledOfferPickerProducts = computed(() => {
-    const page = Math.min(this.assembledOfferProductPickerPage(), this.assembledOfferProductPickerPageCount());
-    const start = (page - 1) * this.assembledOfferProductPickerPageSize;
-    return this.assembledOfferPickerProducts().slice(start, start + this.assembledOfferProductPickerPageSize);
   });
 
   protected readonly cartDetails = computed(() =>
@@ -4021,6 +4604,26 @@ export class App implements OnDestroy {
       })
       .filter((line): line is NonNullable<typeof line> => Boolean(line)),
   );
+
+  protected readonly cartPageSize = signal(5);
+  protected readonly cartPageSizeOptions = [5, 10, 15, 30, 45, 60, 100];
+  private readonly cartPages = signal<Record<string, number>>({});
+  private readonly cartPageKey = computed(() => this.activeMode() + ':' + this.activeBillingInvoiceId());
+  protected readonly cartPageCount = computed(() => Math.max(1, Math.ceil(this.cartDetails().length / this.cartPageSize())));
+  protected readonly cartVisiblePage = computed(() => Math.min(this.cartPages()[this.cartPageKey()] ?? 1, this.cartPageCount()));
+  protected readonly cartPageOffset = computed(() => (this.cartVisiblePage() - 1) * this.cartPageSize());
+  protected readonly paginatedCartDetails = computed(() => this.cartDetails().slice(this.cartPageOffset(), this.cartPageOffset() + this.cartPageSize()));
+
+  protected setCartPage(page: number): void {
+    this.cartPages.update(pages => ({ ...pages, [this.cartPageKey()]: Math.max(1, Math.min(page, this.cartPageCount())) }));
+  }
+
+  protected updateCartPageSize(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    if (!this.cartPageSizeOptions.includes(size)) return;
+    this.cartPageSize.set(size);
+    this.cartPages.set({});
+  }
 
   protected readonly cartTotal = computed(() =>
     this.cartDetails().reduce((total, line) => total + line.subtotal, 0),
@@ -4142,19 +4745,19 @@ export class App implements OnDestroy {
   );
 
   protected readonly inventoryPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.filteredProducts().length / this.inventoryPageSize)),
+    Math.max(1, Math.ceil(this.filteredProducts().length / this.inventoryPageSize())),
   );
 
   protected readonly inactiveProductsPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.filteredInactiveProducts().length / this.inactiveProductsPageSize)),
+    Math.max(1, Math.ceil(this.filteredInactiveProducts().length / this.inactiveProductsPageSize())),
   );
 
   protected readonly kardexPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.outOfStockProducts().length / this.kardexPageSize)),
+    Math.max(1, Math.ceil(this.filteredKardexProducts().length / this.kardexPageSize())),
   );
 
   protected readonly billingPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.filteredProducts().length / this.billingPageSize)),
+    Math.max(1, Math.ceil(this.filteredProducts().length / this.billingPageSize())),
   );
 
   protected readonly filteredCostProducts = computed(() => {
@@ -4330,8 +4933,8 @@ export class App implements OnDestroy {
 
   protected readonly paginatedBillingProducts = computed(() => {
     const page = Math.min(this.billingPage(), this.billingPageCount());
-    const start = (page - 1) * this.billingPageSize;
-    return this.filteredProducts().slice(start, start + this.billingPageSize);
+    const start = (page - 1) * this.billingPageSize();
+    return this.filteredProducts().slice(start, start + this.billingPageSize());
   });
 
   protected readonly catalogProducts = computed(() =>
@@ -4358,7 +4961,7 @@ export class App implements OnDestroy {
   });
 
   protected readonly billingPageStart = computed(() =>
-    this.filteredProducts().length === 0 ? 0 : (Math.min(this.billingPage(), this.billingPageCount()) - 1) * this.billingPageSize + 1,
+    this.filteredProducts().length === 0 ? 0 : (Math.min(this.billingPage(), this.billingPageCount()) - 1) * this.billingPageSize() + 1,
   );
 
   protected readonly billingPageEnd = computed(() =>
@@ -4375,24 +4978,24 @@ export class App implements OnDestroy {
 
   protected readonly paginatedInventoryProducts = computed(() => {
     const page = Math.min(this.inventoryPage(), this.inventoryPageCount());
-    const start = (page - 1) * this.inventoryPageSize;
-    return this.filteredProducts().slice(start, start + this.inventoryPageSize);
+    const start = (page - 1) * this.inventoryPageSize();
+    return this.sortInventoryUiRows(this.filteredProducts(),'main').slice(start, start + this.inventoryPageSize());
   });
 
   protected readonly paginatedInactiveProducts = computed(() => {
     const page = Math.min(this.inactiveProductsPage(), this.inactiveProductsPageCount());
-    const start = (page - 1) * this.inactiveProductsPageSize;
-    return this.filteredInactiveProducts().slice(start, start + this.inactiveProductsPageSize);
+    const start = (page - 1) * this.inactiveProductsPageSize();
+    return this.sortInventoryUiRows(this.filteredInactiveProducts(),'inactive').slice(start, start + this.inactiveProductsPageSize());
   });
 
   protected readonly paginatedOutOfStockProducts = computed(() => {
     const page = Math.min(this.kardexPage(), this.kardexPageCount());
-    const start = (page - 1) * this.kardexPageSize;
-    return this.outOfStockProducts().slice(start, start + this.kardexPageSize);
+    const start = (page - 1) * this.kardexPageSize();
+    return this.sortInventoryUiRows(this.filteredKardexProducts(),'kardex').slice(start, start + this.kardexPageSize());
   });
 
   protected readonly inventoryPageStart = computed(() =>
-    this.filteredProducts().length === 0 ? 0 : (Math.min(this.inventoryPage(), this.inventoryPageCount()) - 1) * this.inventoryPageSize + 1,
+    this.filteredProducts().length === 0 ? 0 : (Math.min(this.inventoryPage(), this.inventoryPageCount()) - 1) * this.inventoryPageSize() + 1,
   );
 
   protected readonly inventoryPageEnd = computed(() =>
@@ -4400,7 +5003,7 @@ export class App implements OnDestroy {
   );
 
   protected readonly inactiveProductsPageStart = computed(() =>
-    this.filteredInactiveProducts().length === 0 ? 0 : (Math.min(this.inactiveProductsPage(), this.inactiveProductsPageCount()) - 1) * this.inactiveProductsPageSize + 1,
+    this.filteredInactiveProducts().length === 0 ? 0 : (Math.min(this.inactiveProductsPage(), this.inactiveProductsPageCount()) - 1) * this.inactiveProductsPageSize() + 1,
   );
 
   protected readonly inactiveProductsPageEnd = computed(() =>
@@ -4417,16 +5020,99 @@ export class App implements OnDestroy {
     return role.includes('admin') || role.includes('administrador');
   });
 
+  protected readonly invoicePaymentOptions = computed(() =>
+    [...new Map(this.invoiceRows().map((invoice) => [String(invoice.paymentTypeId), invoice.paymentTypeName || 'Sin forma de pago'])).entries()]
+      .map(([id, label]) => ({ id, label }))
+      .sort((left, right) => left.label.localeCompare(right.label, 'es')),
+  );
+
+  protected readonly invoiceStatusOptions = computed(() =>
+    [...new Set(this.invoiceRows().map((invoice) => invoice.statusName).filter(Boolean))].sort((left, right) => left.localeCompare(right, 'es')),
+  );
+
+  protected readonly filteredInvoiceRows = computed(() => {
+    const query = this.normalizeText(this.invoiceSearch().trim());
+    const payment = this.invoicePaymentFilter();
+    const status = this.invoiceStatusFilter();
+    const period = this.invoicePeriod();
+    const [year, month, day] = this.invoiceDate().split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const end = new Date(start);
+    if (period === 'week') {
+      start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+      end.setTime(start.getTime()); end.setDate(end.getDate() + 7);
+    } else if (period === 'month') {
+      start.setDate(1); end.setMonth(end.getMonth() + 1, 1);
+    } else { end.setDate(end.getDate() + 1); }
+
+    return this.invoiceRows().filter((invoice) => {
+      if (period !== 'all') {
+        const date = new Date(invoice.createdAt || '');
+        if (Number.isNaN(date.getTime()) || date < start || date >= end) return false;
+      }
+      if (payment && String(invoice.paymentTypeId) !== payment) return false;
+      if (status && invoice.statusName !== status) return false;
+      if (this.invoiceCustomerFilter() && this.invoiceCustomerKey(invoice) !== this.invoiceCustomerFilter()) return false;
+      return !query || this.normalizeText([
+        invoice.invoiceId,
+        invoice.customerName,
+        invoice.customerPhone,
+        invoice.userName,
+        invoice.paymentTypeName,
+        invoice.statusName,
+      ].join(' ')).includes(query);
+    }).sort((a, b) => {
+      const sort = this.invoiceSort();
+      const value = (row: InvoiceRow) => sort.key === 'createdAt'
+        ? (row.createdAt ? new Date(row.createdAt).getTime() : null) : row[sort.key as keyof InvoiceRow];
+      return this.compareInvoiceValues(value(a), value(b), sort.direction) || b.invoiceId - a.invoiceId;
+    });
+  });
+
+  protected readonly invoiceAnalysis = computed(() => {
+    const rows = this.filteredInvoiceRows();
+    const active = rows.filter(row => !this.isInvoiceAnnulled(row));
+    return {
+      invoiceCount: rows.length,
+      activeTotal: active.reduce((sum, row) => sum + row.total, 0),
+      annulledCount: rows.length - active.length,
+      creditTotal: active.filter(row => row.paymentTypeId === 2).reduce((sum, row) => sum + row.total, 0),
+    };
+  });
+  protected readonly invoicePaymentBreakdown = computed(() => {
+    const groups = new Map<number, { id: number; label: string; total: number }>();
+    for (const row of this.filteredInvoiceRows()) {
+      if (this.isInvoiceAnnulled(row)) continue;
+      const group = groups.get(row.paymentTypeId) || { id: row.paymentTypeId, label: row.paymentTypeName, total: 0 };
+      group.total += row.total; groups.set(group.id, group);
+    }
+    const total = this.invoiceAnalysis().activeTotal;
+    return [...groups.values()].sort((a, b) => b.total - a.total)
+      .map(group => ({ ...group, percent: total > 0 ? group.total / total * 100 : 0 }));
+  });
+  protected readonly invoiceTrendPoints = computed(() => {
+    const groups = new Map<string, number>();
+    for (const row of this.filteredInvoiceRows()) {
+      if (this.isInvoiceAnnulled(row)) continue;
+      const date = new Date(row.createdAt || '');
+      if (Number.isNaN(date.getTime())) continue;
+      const key = this.invoicePeriod() === 'day' ? `${String(date.getHours()).padStart(2, '0')}:00`
+        : this.invoicePeriod() === 'all' ? this.formatDateKey(date).slice(0, 7) : this.formatDateKey(date);
+      groups.set(key, (groups.get(key) || 0) + row.total);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  });
+
   protected readonly invoiceDayGroups = computed<InvoiceDayGroup[]>(() => {
     const dayMap = new Map<string, InvoiceRow[]>();
 
-    for (const invoice of this.invoiceRows()) {
+    for (const invoice of this.filteredInvoiceRows()) {
       const key = this.dateKey(invoice.createdAt);
       dayMap.set(key, [...(dayMap.get(key) || []), invoice]);
     }
 
     return [...dayMap.entries()]
-      .sort(([left], [right]) => right.localeCompare(left))
+      .sort(([left], [right]) => this.invoiceSort().key === 'createdAt' && this.invoiceSort().direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left))
       .map(([key, invoices]) => {
         const paymentMap = new Map<string, InvoiceRow[]>();
 
@@ -4521,26 +5207,23 @@ export class App implements OnDestroy {
     return [...months.values()].sort((left, right) => right.key.localeCompare(left.key));
   });
 
+  protected readonly invoicePaginationTotal = computed(() => this.invoiceGrouping() === 'none'
+    ? this.filteredInvoiceRows().length : this.invoiceDayGroups().length);
   protected readonly invoicePageCount = computed(() =>
-    Math.max(1, Math.ceil(this.invoiceDayGroups().length / this.invoicePageSize)),
+    Math.max(1, Math.ceil(this.invoicePaginationTotal() / this.invoicePageSize())),
   );
-
-  protected readonly paginatedInvoices = computed(() =>
-    this.paginatedInvoiceGroups().flatMap((group) => group.invoices),
-  );
-
-  protected readonly paginatedInvoiceGroups = computed<InvoiceDayGroup[]>(() => {
-    const page = Math.min(this.invoicePage(), this.invoicePageCount());
-    const start = (page - 1) * this.invoicePageSize;
-    return this.invoiceDayGroups().slice(start, start + this.invoicePageSize);
+  protected readonly paginatedInvoices = computed(() => {
+    const start = (Math.min(this.invoicePage(), this.invoicePageCount()) - 1) * this.invoicePageSize();
+    return this.filteredInvoiceRows().slice(start, start + this.invoicePageSize());
   });
-
-  protected readonly invoicePageStart = computed(() =>
-    this.invoiceDayGroups().length === 0 ? 0 : (Math.min(this.invoicePage(), this.invoicePageCount()) - 1) * this.invoicePageSize + 1,
-  );
-
+  protected readonly paginatedInvoiceGroups = computed<InvoiceDayGroup[]>(() => {
+    const start = (Math.min(this.invoicePage(), this.invoicePageCount()) - 1) * this.invoicePageSize();
+    return this.invoiceDayGroups().slice(start, start + this.invoicePageSize());
+  });
+  protected readonly invoicePageStart = computed(() => this.invoicePaginationTotal() === 0 ? 0
+    : (Math.min(this.invoicePage(), this.invoicePageCount()) - 1) * this.invoicePageSize() + 1);
   protected readonly invoicePageEnd = computed(() =>
-    Math.min(this.invoicePageStart() + this.paginatedInvoiceGroups().length - 1, this.invoiceDayGroups().length),
+    Math.min(this.invoicePageStart() + this.invoicePageSize() - 1, this.invoicePaginationTotal()),
   );
 
   protected readonly todayInvoiceTotal = computed(() =>
@@ -5488,7 +6171,7 @@ export class App implements OnDestroy {
   );
 
   protected readonly kardexPageStart = computed(() =>
-    this.outOfStockProducts().length === 0 ? 0 : (Math.min(this.kardexPage(), this.kardexPageCount()) - 1) * this.kardexPageSize + 1,
+    this.outOfStockProducts().length === 0 ? 0 : (Math.min(this.kardexPage(), this.kardexPageCount()) - 1) * this.kardexPageSize() + 1,
   );
 
   protected readonly kardexPageEnd = computed(() =>
@@ -6597,7 +7280,14 @@ export class App implements OnDestroy {
     private readonly facturacionApi: FacturacionApiService,
   ) {
     this.ensureBillingInvoiceSession();
+    this.restoreInventoryColumns();
     document.addEventListener('pointerdown', this.trackEditablePointerDown, true);
+
+    effect(() => {
+      this.invoiceTrendPoints();
+      this.activeThemeId();
+      this.updateInvoicesSalesTrendChart();
+    });
 
     effect(() => {
       this.salesTrendData();
@@ -6617,7 +7307,6 @@ export class App implements OnDestroy {
       this.monthlyOperatingMargin();
       this.updateSalesTrendChart();
       this.updateProfitabilitySalesTrendChart();
-      this.updateInvoicesSalesTrendChart();
       this.updatePayrollTrendChart();
       this.updatePurchasesTrendChart();
       this.updateCostsDistributionChart();
@@ -6754,6 +7443,10 @@ export class App implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.inventoryConfirmResolve?.(false);
+    if(this.inventoryUiNoticeTimer)clearTimeout(this.inventoryUiNoticeTimer);
+    if (this.detailNoticeTimer) clearTimeout(this.detailNoticeTimer);
+    if (this.dailySalesResultsTimeout) clearTimeout(this.dailySalesResultsTimeout);
     if (this.billingSearchFocusTimeoutId) {
       clearTimeout(this.billingSearchFocusTimeoutId);
       this.billingSearchFocusTimeoutId = null;
@@ -7651,8 +8344,20 @@ export class App implements OnDestroy {
   }
 
   protected updateInvoiceMonthlyMonthsToShow(event: Event): void {
+    this.invoiceMonthlyPage.set(1);
     const value = Number((event.target as HTMLSelectElement).value);
     this.invoiceMonthlyMonthsToShow.set(Number.isFinite(value) && value > 0 ? Math.min(value, 12) : 12);
+  }
+
+  protected setInvoiceMonthlyPage(page: number): void {
+    this.invoiceMonthlyPage.set(Math.max(1, Math.min(page, this.invoiceMonthlyPageCount())));
+  }
+
+  protected updateInvoiceMonthlyPageSize(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    if (![10, 25, 50, 100].includes(size)) return;
+    this.invoiceMonthlyPageSize.set(size);
+    this.invoiceMonthlyPage.set(1);
   }
 
   protected isInvoiceDayExpanded(key: string): boolean {
@@ -7663,7 +8368,59 @@ export class App implements OnDestroy {
     return this.expandedInvoicePaymentKeys().includes(key);
   }
 
+  protected setInvoicePeriod(period: 'day' | 'week' | 'month' | 'all'): void {
+    this.invoicePeriod.set(period); this.invoicePage.set(1); this.closeInvoicePreview();
+    if (this.invoiceError()) void this.loadInvoicesPageData();
+  }
+  protected updateInvoiceDate(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(new Date(`${value}T00:00:00`).getTime())) return;
+    this.invoiceDate.set(value);
+    if (this.invoicePeriod() === 'all') this.invoicePeriod.set('day');
+    this.invoicePage.set(1); this.closeInvoicePreview();
+    if (this.invoiceError()) void this.loadInvoicesPageData();
+  }
+  protected updateInvoiceGrouping(event: Event): void {
+    this.invoiceGrouping.set((event.target as HTMLSelectElement).value === 'payment' ? 'payment' : 'none');
+    this.invoicePage.set(1);
+  }
+  protected updateInvoicePageSize(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    if ([10, 25, 50, 100].includes(size)) this.invoicePageSize.set(size);
+    this.invoicePage.set(1);
+  }
+  protected async openInvoicePreview(invoice: InvoiceRow): Promise<void> {
+    const request = ++this.invoicePreviewRequest;
+    this.invoicePreviewId.set(invoice.invoiceId);
+    this.invoicePreviewLines.set([]); this.invoicePreviewError.set(''); this.invoicePreviewLoading.set(true);
+    try {
+      const response = await this.getInvoiceDetails(invoice.invoiceId);
+      if (request === this.invoicePreviewRequest) this.invoicePreviewLines.set(response.lines);
+    } catch (error) {
+      if (request === this.invoicePreviewRequest) this.invoicePreviewError.set(this.extractErrorMessage(error, 'No se pudo cargar el detalle.'));
+    } finally {
+      if (request === this.invoicePreviewRequest) this.invoicePreviewLoading.set(false);
+    }
+  }
+  protected closeInvoicePreview(): void {
+    ++this.invoicePreviewRequest;
+    this.invoicePreviewId.set(null); this.invoicePreviewLines.set([]);
+    this.invoicePreviewLoading.set(false); this.invoicePreviewError.set('');
+  }
+  protected async exportFilteredInvoicesPdf(): Promise<void> {
+    const invoices = this.filteredInvoiceRows();
+    if (!invoices.length) return;
+    await this.exportInvoiceGroupPdf({ title: 'Facturas filtradas',
+      subtitle: `${invoices.length} facturas · Incluye los estados seleccionados`, invoices,
+      total: invoices.reduce((sum, row) => sum + row.total, 0),
+      itemCount: invoices.reduce((sum, row) => sum + row.itemCount, 0),
+      scopeLabel: 'Alcance', scopeValue: 'Resultados de los filtros, incluidas anuladas si están visibles',
+    });
+  }
+
   protected async openInvoiceDetailModal(invoice: InvoiceRow): Promise<void> {
+    this.detailSearch.set(''); this.detailStatus.set(''); this.detailPage.set(1); this.clearDetailSelection(); this.detailNotice.set(false);
+    if (this.detailNoticeTimer) clearTimeout(this.detailNoticeTimer);
     this.invoiceDetailInvoice.set(invoice);
     this.invoiceDetailLines.set([]);
     this.invoiceDetailError.set('');
@@ -7673,15 +8430,17 @@ export class App implements OnDestroy {
     try {
       const response = await this.getInvoiceDetails(invoice.invoiceId);
 
-      this.invoiceDetailLines.set(response.lines);
+      if (this.invoiceDetailInvoice()?.invoiceId === invoice.invoiceId) this.invoiceDetailLines.set(response.lines);
     } catch (error) {
-      this.invoiceDetailError.set(this.extractErrorMessage(error, 'No se pudo cargar el detalle de la factura.'));
+      if (this.invoiceDetailInvoice()?.invoiceId === invoice.invoiceId) this.invoiceDetailError.set(this.extractErrorMessage(error, 'No se pudo cargar el detalle de la factura.'));
     } finally {
-      this.invoiceDetailLoading.set(false);
+      if (this.invoiceDetailInvoice()?.invoiceId === invoice.invoiceId) this.invoiceDetailLoading.set(false);
     }
   }
 
   protected closeInvoiceDetailModal(): void {
+    if (this.detailNoticeTimer) clearTimeout(this.detailNoticeTimer);
+    this.detailNotice.set(false);
     this.invoiceDetailModalOpen.set(false);
     this.invoiceDetailInvoice.set(null);
     this.invoiceDetailLines.set([]);
@@ -7696,17 +8455,11 @@ export class App implements OnDestroy {
     if (this.isInvoiceAnnulled(invoice)) {
       await this.activateInvoice(invoice);
     } else {
-      await this.annulInvoice(invoice);
+      this.requestInvoiceAnnul(invoice);
     }
   }
 
   private async annulInvoice(invoice: InvoiceRow): Promise<void> {
-    const confirmed = window.confirm(`Anular factura #${invoice.invoiceId} y devolver el inventario al stock?`);
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       const currentUserId = this.currentUser()?.id ?? null;
 
@@ -7728,7 +8481,9 @@ export class App implements OnDestroy {
       }
       this.showInventorySuccess(`Factura #${invoice.invoiceId} anulada correctamente.`);
     } catch (error) {
-      this.invoiceError.set(this.extractErrorMessage(error, 'No se pudo anular la factura.'));
+      const message = this.extractErrorMessage(error, 'No se pudo anular la factura.');
+      this.invoiceError.set(message);
+      this.invoiceAnnulError.set(message);
     }
   }
 
@@ -7778,16 +8533,23 @@ export class App implements OnDestroy {
   // RECARGA loadTodayInvoices(), QUE CONSULTA /api/invoices/today O electronAPI.getTodayInvoices().
   // EL BACKEND TERMINA EJECUTANDO listTodayInvoices() EN server/data-access.js.
   protected openDailySalesModal(): void {
+    this.dailySalesSelected.set(new Set());
+    this.dailySalesPage.set(1);
     this.dailySalesModalOpen.set(true);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.daily-sales-modal .ghost-button')?.focus());
     void this.loadTodayInvoices();
   }
 
   protected closeDailySalesModal(): void {
+    if (this.dailySalesResultsTimeout) clearTimeout(this.dailySalesResultsTimeout);
+    this.dailySalesResultsTimeout = null;
+    this.dailySalesResultsVisible.set(false);
     this.dailySalesModalOpen.set(false);
     this.scheduleBillingSearchFocus();
   }
 
   protected openProductCatalogModal(): void {
+    this.modalTables.reset('catalog');
     this.productCatalogModalOpen.set(true);
   }
 
@@ -7809,6 +8571,7 @@ export class App implements OnDestroy {
   // ESTE PROCEDIMIENTO ABRE EL MODAL DE ALERTAS DE VENCIMIENTO EN FACTURACION.
   // RECARGA dbo.PRODUCTO_PROXIMO_VENCER POR MEDIO DE loadExpiringProducts().
   protected openExpiringProductsModal(): void {
+    this.modalTables.reset('expiry');
     this.expiringProductsModalOpen.set(true);
     void this.loadExpiringProducts();
   }
@@ -7819,6 +8582,7 @@ export class App implements OnDestroy {
   }
 
   protected openLowStockAlertModal(): void {
+    this.modalTables.reset('lowstock');
     this.lowStockAlertModalOpen.set(true);
   }
 
@@ -7894,6 +8658,7 @@ export class App implements OnDestroy {
   // ESTE PROCEDIMIENTO ABRE EL MODAL DE CORTE EN FACTURACION.
   // LLAMA loadDailyCuts(), QUE CONSULTA dbo.CORTE_DIARIO Y dbo.PAGOS_CREDITO.
   protected openCutModal(): void {
+    this.modalTables.reset('cuts');
     const today = this.todayDateKey();
     this.cutFilterFromDate.set(today);
     this.cutFilterToDate.set(today);
@@ -8335,46 +9100,52 @@ export class App implements OnDestroy {
   }
 
   protected async exportProductCatalogPdf(): Promise<void> {
-    const products = this.catalogProducts();
+    if (this.catalogExporting()) return;
+    this.catalogExporting.set(true);
+    try {
+      const products = this.catalogProducts();
 
-    if (products.length === 0) {
-      this.showSaleSuccess('No hay productos con precio de venta para exportar.', 'error');
-      return;
-    }
-
-    const catalogHtml = this.buildProductCatalogHtml(products, {
-      autoPrint: !this.desktopApi?.exportHtmlPdf,
-      includePrintButton: !this.desktopApi?.exportHtmlPdf,
-    });
-
-    if (this.desktopApi?.exportHtmlPdf) {
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const result = await this.desktopApi.exportHtmlPdf({
-          html: catalogHtml,
-          defaultFileName: `Catalogo-productos-${today}.pdf`,
-        });
-
-        if (!result.canceled) {
-          const sizeKb = Math.max(1, Math.round(Number(result.size || 0) / 1024));
-          this.showSaleSuccess(`Catalogo exportado correctamente (${sizeKb} KB).`);
-        }
-      } catch (error) {
-        this.showSaleSuccess(this.extractErrorMessage(error, 'No se pudo exportar el catalogo en PDF.'), 'error');
+      if (products.length === 0) {
+        this.showSaleSuccess('No hay productos con precio de venta para exportar.', 'error');
+        return;
       }
-      return;
+
+      const catalogHtml = this.buildProductCatalogHtml(products, {
+        autoPrint: !this.desktopApi?.exportHtmlPdf,
+        includePrintButton: !this.desktopApi?.exportHtmlPdf,
+      });
+
+      if (this.desktopApi?.exportHtmlPdf) {
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const result = await this.desktopApi.exportHtmlPdf({
+            html: catalogHtml,
+            defaultFileName: `Catalogo-productos-${today}.pdf`,
+          });
+
+          if (!result.canceled) {
+            const sizeKb = Math.max(1, Math.round(Number(result.size || 0) / 1024));
+            this.showSaleSuccess(`Catalogo exportado correctamente (${sizeKb} KB).`);
+          }
+        } catch (error) {
+          this.showSaleSuccess(this.extractErrorMessage(error, 'No se pudo exportar el catalogo en PDF.'), 'error');
+        }
+        return;
+      }
+
+      const printWindow = this.openPrintableReportWindow();
+
+      if (!printWindow) {
+        this.showSaleSuccess('No se pudo abrir la ventana de impresion. Revisa el bloqueo de ventanas emergentes.', 'error');
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(catalogHtml);
+      printWindow.document.close();
+    } finally {
+      this.catalogExporting.set(false);
     }
-
-    const printWindow = this.openPrintableReportWindow();
-
-    if (!printWindow) {
-      this.showSaleSuccess('No se pudo abrir la ventana de impresion. Revisa el bloqueo de ventanas emergentes.', 'error');
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(catalogHtml);
-    printWindow.document.close();
   }
 
   private buildProductCatalogHtml(products: Product[], options: {
@@ -8572,6 +9343,8 @@ export class App implements OnDestroy {
   }
 
   protected openPurchaseModal(): void {
+    this.newPurchaseWorkspace();
+    if (this.purchaseWorkspaceNotice().startsWith('No se pudo') || this.purchaseWorkspaceNotice().startsWith('No se pudieron')) return;
     this.resetPurchaseDraft();
     this.purchaseDate.set(new Date().toISOString().slice(0, 10));
     this.purchaseModalOpen.set(true);
@@ -9072,12 +9845,14 @@ export class App implements OnDestroy {
       return result;
     }, {});
 
-    this.resetPurchaseDraft();
+    this.newPurchaseWorkspace();
+    if (this.purchaseDraftLines().length) return;
     this.purchaseDate.set(new Date().toISOString().slice(0, 10));
     this.purchaseInvoiceNumber.set(`AUTO-${this.purchaseDate().replace(/-/g, '')}`);
     this.purchasePaymentTypeId.set(1);
     this.purchaseDraftLines.set(lines.map(({ reason: _reason, ...line }) => this.withDefaultPurchaseLot(line)));
     this.estimatedPurchaseReasons.set(reasons);
+    this.purchaseMainModalOpen.set(false);
     this.estimatedPurchaseModalOpen.set(false);
     this.purchaseModalOpen.set(true);
     this.purchaseAutoNotice.set('');
@@ -9157,6 +9932,7 @@ export class App implements OnDestroy {
   }
 
   protected async savePurchaseHistory(): Promise<void> {
+    if (this.purchaseModalSaving()) return;
     const currentUser = this.currentUser();
 
     if (!currentUser) {
@@ -9207,6 +9983,14 @@ export class App implements OnDestroy {
         await firstValueFrom(this.http.post<PurchaseResponse>('/api/purchases', payload));
       }
 
+      const remainingDrafts = this.purchaseWorkspaceDrafts().filter(d => d.id !== this.purchaseWorkspaceId());
+      this.purchaseWorkspaceDrafts.set(remainingDrafts);
+      try { localStorage.setItem(this.purchaseWorkspaceKey(), JSON.stringify(remainingDrafts)); this.purchaseWorkspaceNotice.set('Compra registrada. Inventario actualizado.'); }
+      catch { this.purchaseWorkspaceNotice.set('Compra registrada, pero no se pudo quitar el borrador local. No vuelvas a registrar esta factura.'); }
+      this.purchaseWorkspaceId.set(null);
+      this.purchaseWorkspaceStage.set('prepare');
+      this.purchaseExpectedDate.set('');
+      this.purchaseReviewOpen.set(false);
       this.resetPurchaseDraft();
       this.purchaseDate.set(new Date().toISOString().slice(0, 10));
       this.purchaseModalOpen.set(false);
@@ -10859,7 +11643,10 @@ export class App implements OnDestroy {
         ? await this.desktopApi.getCredits()
         : await firstValueFrom(this.http.get<CreditsResponse>('/api/credits'));
 
+      this.creditSearchTerm.set('');
+      this.selectedCreditCustomerId.set(null);
       this.creditLines.set(response.credits);
+      if (this.activePage() === 'credits') void this.loadCreditPeopleHistories();
       this.scheduleVisibleChartsRefresh();
     } catch {
       this.creditLines.set([]);
@@ -11434,25 +12221,25 @@ export class App implements OnDestroy {
   // ESTE PROCEDIMIENTO CARGA LA PAGINA FACTURAS DESDE SQL SERVER.
   // LLAMA /api/invoices Y /api/invoices/summary O LOS HANDLERS DE ELECTRON.
   protected async loadInvoicesPageData(): Promise<void> {
+    if (this.invoiceLoading()) return;
     this.invoiceLoading.set(true);
     this.invoiceError.set('');
 
     try {
-      const [invoicesResponse, summaryResponse] = await Promise.all([
-        this.desktopApi
-          ? this.desktopApi.getInvoices()
-          : firstValueFrom(this.http.get<InvoicesResponse>('/api/invoices')),
-        this.desktopApi
-          ? this.desktopApi.getInvoicesSummary()
-          : firstValueFrom(this.http.get<InvoicesSummaryResponse>('/api/invoices/summary')),
-        this.loadInvoiceMonthlySalesTrend(),
-      ]);
-
-      this.invoiceRows.set(invoicesResponse.invoices);
-      this.invoicesSummary.set(summaryResponse);
+      // El listado es la fuente de los indicadores filtrados; no depende del resumen global.
+      const response = this.desktopApi
+        ? await this.desktopApi.getInvoices()
+        : await firstValueFrom(this.http.get<InvoicesResponse>('/api/invoices'));
+      this.invoiceRows.set(response.invoices);
       this.invoicePage.set(1);
+      const preview = this.invoicePreview();
+      if (preview) void this.openInvoicePreview(preview);
+      else this.closeInvoicePreview();
+      // Una consulta histórica lenta o fallida no debe impedir filtrar las facturas.
+      void this.loadInvoiceMonthlySalesTrend();
     } catch (error) {
       this.invoiceRows.set([]);
+      this.closeInvoicePreview();
       this.invoiceError.set(this.extractErrorMessage(error, 'No se pudieron cargar las facturas.'));
     } finally {
       this.invoiceLoading.set(false);
@@ -11483,6 +12270,7 @@ export class App implements OnDestroy {
   }
 
   protected openQuotesModal(): void {
+    this.modalTables.reset('quotes');
     this.quoteModalOpen.set(true);
     void this.loadQuotes();
   }
@@ -12565,32 +13353,12 @@ export class App implements OnDestroy {
   }
 
   protected openAssembledOfferProductPicker(): void {
-    this.assembledOfferProductCodeSearch.set('');
-    this.assembledOfferProductNameSearch.set('');
-    this.assembledOfferProductPickerPage.set(1);
+    this.resetInventoryAuxTable('picker');
     this.assembledOfferProductPickerOpen.set(true);
   }
 
   protected closeAssembledOfferProductPicker(): void {
     this.assembledOfferProductPickerOpen.set(false);
-  }
-
-  protected updateAssembledOfferProductCodeSearch(event: Event): void {
-    this.assembledOfferProductCodeSearch.set((event.target as HTMLInputElement).value);
-    this.assembledOfferProductPickerPage.set(1);
-  }
-
-  protected updateAssembledOfferProductNameSearch(event: Event): void {
-    this.assembledOfferProductNameSearch.set((event.target as HTMLInputElement).value);
-    this.assembledOfferProductPickerPage.set(1);
-  }
-
-  protected previousAssembledOfferProductPickerPage(): void {
-    this.assembledOfferProductPickerPage.update((page) => Math.max(page - 1, 1));
-  }
-
-  protected nextAssembledOfferProductPickerPage(): void {
-    this.assembledOfferProductPickerPage.update((page) => Math.min(page + 1, this.assembledOfferProductPickerPageCount()));
   }
 
   protected selectAssembledOfferProduct(product: Product): void {
@@ -12622,6 +13390,7 @@ export class App implements OnDestroy {
   }
 
   protected openAssembledOfferDetail(offer: AssembledOffer): void {
+    this.resetInventoryAuxTable('components');
     this.selectedAssembledOffer.set(offer);
     this.assembledOfferDetailModalOpen.set(true);
   }
@@ -12931,6 +13700,8 @@ export class App implements OnDestroy {
     }
 
     if (page === 'purchases') {
+      this.loadPurchaseWorkspace();
+      void this.fetchProducts();
       this.purchasePage.set(1);
       void this.loadSuppliers();
       void this.loadPurchases();
@@ -15882,14 +16653,16 @@ export class App implements OnDestroy {
     this.inventoryPage.set(1);
   }
 
-  protected updateInventoryLotFilter(event: Event): void {
-    this.inventoryLotFilter.set((event.target as HTMLSelectElement).value as InventoryLotFilter);
-    this.inventoryPage.set(1);
-  }
-
   protected updateInventoryExpiryFilter(event: Event): void {
     this.inventoryExpiryFilter.set((event.target as HTMLSelectElement).value as InventoryExpiryFilter);
     this.inventoryPage.set(1);
+  }
+
+  protected updateBillingPageSize(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    if (!this.billingPageSizeOptions.includes(size)) return;
+    this.billingPageSize.set(size);
+    this.billingPage.set(1);
   }
 
   protected previousBillingPage(): void {
@@ -15944,6 +16717,45 @@ export class App implements OnDestroy {
 
   protected previousInvoicePage(): void {
     this.invoicePage.update((page) => Math.max(page - 1, 1));
+  }
+
+  protected setInvoiceTableDensity(density: 'compact' | 'normal' | 'spacious'): void {
+    this.invoiceTableDensity.set(density);
+  }
+
+  protected updateInvoiceSearch(event: Event): void {
+    this.invoiceSearch.set((event.target as HTMLInputElement).value);
+    this.invoicePage.set(1);
+    this.closeInvoicePreview();
+  }
+
+  protected updateInvoicePaymentFilter(event: Event): void {
+    this.invoicePaymentFilter.set((event.target as HTMLSelectElement).value);
+    this.invoicePage.set(1);
+    this.closeInvoicePreview();
+  }
+
+  protected updateInvoiceStatusFilter(event: Event): void {
+    this.invoiceStatusFilter.set((event.target as HTMLSelectElement).value);
+    this.invoicePage.set(1);
+    this.closeInvoicePreview();
+  }
+
+  protected clearInvoiceFilters(): void {
+    this.invoiceSearch.set('');
+    this.invoiceCustomerFilter.set('');
+    this.invoicePaymentFilter.set('');
+    this.invoiceStatusFilter.set('');
+    this.invoicePage.set(1);
+    this.closeInvoicePreview();
+  }
+
+  protected invoiceMonthlyVariation(month: InvoiceMonthlySalesRow): number | null {
+    const rows = this.invoiceMonthlySalesRows();
+    const index = rows.findIndex((item) => item.key === month.key);
+    const previous = rows[index + 1];
+    if (!previous || previous.total <= 0) return null;
+    return (month.total - previous.total) / previous.total;
   }
 
   protected nextInvoicePage(): void {
@@ -16907,6 +17719,7 @@ export class App implements OnDestroy {
   }
 
   protected async openProductBarcodeModal(product: Product): Promise<void> {
+    this.resetInventoryAuxTable('barcodes');
     this.productBarcodeTarget.set(product);
     this.productBarcodeDraft.set('');
     this.productBarcodeError.set('');
@@ -17245,7 +18058,7 @@ export class App implements OnDestroy {
   }
 
   protected async deactivateInventoryProduct(product: Product): Promise<void> {
-    const confirmed = window.confirm(`Inactivar ${product.name}? Ya no se mostrara en facturacion ni en inventario activo.`);
+    const confirmed = await this.confirmInventoryUi(`Inactivar ${product.name}. Ya no se mostrará en facturación ni en inventario activo.`);
 
     if (!confirmed) {
       return;
@@ -17441,7 +18254,7 @@ export class App implements OnDestroy {
     this.inactiveProductsError.set('');
 
     try {
-      const response = await this.requestInactiveProducts(this.inactiveProductSearch());
+      const response = await this.requestInactiveProducts('');
       this.inactiveProducts.set(
         response.products.map((product) => ({
           ...product,
@@ -17571,246 +18384,141 @@ export class App implements OnDestroy {
 
   private customerDisplayHtml(): string {
     const lines = [...this.cartDetails()].reverse();
+    const session = this.activeMode() + ':' + this.activeBillingInvoiceId();
+    if (session !== this.customerDisplaySession) {
+      this.customerDisplayPreviousItems.clear();
+      this.customerDisplayHighlightId = null;
+      this.customerDisplaySession = session;
+    }
+    const addedLine = lines.find(line => line.quantity > (this.customerDisplayPreviousItems.get(line.productId) ?? 0));
+    if (addedLine) {
+      this.customerDisplayHighlightId = addedLine.productId;
+      this.customerDisplayHighlightUntil = Date.now() + 1600;
+    }
+    this.customerDisplayPreviousItems = new Map(lines.map(line => [line.productId, line.quantity]));
+    const highlightRemaining = Math.max(0, this.customerDisplayHighlightUntil - Date.now());
     const customerDisplayLogoUrl = this.escapeHtml(
       new URL('assets/img/yahweh-rohi-customer-display-logo.png', window.location.href).href,
     );
     const rowsHtml = lines.length
       ? lines.map((line) => {
           const imageHtml = line.product.imageUrl
-            ? `<img src="${this.escapeHtml(this.printableImageUrl(line.product.imageUrl))}" alt="${this.escapeHtml(line.product.name)}" />`
+            ? `<span aria-hidden="true">${this.escapeHtml(line.product.name.slice(0, 2).toUpperCase())}</span><img src="${this.escapeHtml(this.printableImageUrl(line.product.imageUrl))}" alt="" onerror="this.remove()" />`
             : `<span>${this.escapeHtml(line.product.name.slice(0, 2).toUpperCase())}</span>`;
           return `
-            <article class="line">
+            <article class="line${line.productId === this.customerDisplayHighlightId && highlightRemaining > 0 ? ' recently-added' : ''}" style="--highlight-duration: ${highlightRemaining}ms">
               <div class="thumb">${imageHtml}</div>
               <div class="product">
                 <strong>${this.escapeHtml(line.product.name)}</strong>
-                <span>${this.escapeHtml(line.product.sku || 'Sin codigo')}</span>
               </div>
               <div class="qty">x ${this.escapeHtml(this.formatCartQuantity(line.quantity))}</div>
               <div class="amount">${this.escapeHtml(this.formatCurrency(line.subtotal))}</div>
             </article>
           `;
         }).join('')
-      : '<p class="empty">Los productos apareceran aqui conforme se agreguen a la factura.</p>';
+      : '<div class="empty"><span class="welcome-mark" aria-hidden="true">✓</span><h2>Bienvenido a Yahweh Rohi</h2><p>Estamos listos para atenderte.</p><small>Aquí podrás revisar los productos de tu compra.</small></div>';
 
     return `
       <!doctype html>
-      <html>
+      <html lang="es">
         <head>
           <meta charset="utf-8" />
           <title>Pantalla del cliente</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
           <style>
+            :root { color-scheme: light; --yr-bg: #f2f5f7; --yr-surface: #fff; --yr-soft: #f5f8fa; --yr-border: #cbd8df; --yr-text: #20343f; --yr-muted: #536a76; --yr-primary: #087568; --yr-primary-soft: #e1f3ed; --yr-shadow: 0 6px 18px rgb(32 52 63 / 5%); }
             * { box-sizing: border-box; }
-            body {
-              margin: 0;
-              min-height: 100vh;
-              background: #f8fafc;
-              color: #10212f;
-              font-family: Arial, Helvetica, sans-serif;
+            body { margin: 0; background: var(--yr-bg); color: var(--yr-text); font-family: Arial, Helvetica, sans-serif; }
+            main { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; min-height: 440px; gap: 16px; padding: 24px; }
+            header { display: grid; grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) minmax(140px, 190px); align-items: center; gap: 16px; padding: 12px 18px; border: 1px solid var(--yr-border); border-radius: 24px; background: var(--yr-surface); box-shadow: var(--yr-shadow); }
+            .brand-logo { width: 100%; max-height: 64px; object-fit: contain; }
+            .brand { min-width: 0; text-align: center; }
+            h1 { margin: 0; color: var(--yr-primary); font-size: clamp(1.3rem, 2.4vw, 2rem); line-height: 1.1; letter-spacing: -.03em; }
+            .customer { margin: 5px 0 0; color: var(--yr-text); font-size: clamp(1rem, 1.8vw, 1.3rem); font-weight: 600; overflow-wrap: anywhere; }
+            .invoice { padding: 12px 16px; text-align: center; border: 1px solid var(--yr-border); border-radius: 16px; background: var(--yr-soft); }
+            .invoice span, .total-card span, .change-card span { display: block; font-size: .85rem; font-weight: 600; color: var(--yr-muted); }
+            .invoice strong { display: block; margin-top: 5px; color: var(--yr-primary); font-size: clamp(1rem, 1.7vw, 1.5rem); overflow-wrap: anywhere; }
+            .list { display: grid; align-content: start; gap: 10px; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--yr-border) transparent; padding: 2px; }
+            .line { display: grid; grid-template-columns: 74px minmax(0, 1fr) minmax(64px, auto) minmax(110px, auto); align-items: center; gap: 18px; padding: 12px 16px; border: 1px solid var(--yr-border); border-radius: 16px; background: var(--yr-surface); box-shadow: var(--yr-shadow); transition: border-color 180ms ease, background-color 180ms ease; }
+            .line.recently-added { animation: customer-item-highlight var(--highlight-duration, 1600ms) ease-out both; }
+            @keyframes customer-item-highlight { from { background: var(--yr-primary-soft); border-color: var(--yr-primary); } to { background: var(--yr-surface); border-color: var(--yr-border); } }
+            .line:hover { border-color: var(--yr-primary); background: var(--yr-soft); }
+            .thumb { display: grid; place-items: center; width: 74px; height: 74px; overflow: hidden; border: 1px solid var(--yr-border); border-radius: 12px; background: var(--yr-soft); color: var(--yr-muted); font-weight: 700; }
+            .thumb img { width: 100%; height: 100%; object-fit: contain; }
+            .product { display: grid; gap: 6px; min-width: 0; }
+            .product strong { font-size: clamp(1.1rem, 2.2vw, 1.8rem); line-height: 1.25; overflow-wrap: anywhere; }
+            .product span { color: var(--yr-muted); font-size: .85rem; }
+            .qty, .amount { font-size: clamp(1.1rem, 2.2vw, 1.8rem); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+            .qty { color: var(--yr-muted); }
+            footer { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+            .total-card, .change-card { display: grid; align-content: center; gap: 12px; padding: 20px 24px; border: 1px solid var(--yr-border); border-radius: 24px; box-shadow: var(--yr-shadow); }
+            .total-card { background: var(--yr-primary-soft); border-color: #0875684d; color: var(--yr-primary); }
+            .total-card span { color: var(--yr-primary); }
+            .change-card { background: var(--yr-surface); color: var(--yr-text); }
+            .total-card strong { font-size: clamp(2.2rem, 6vw, 5rem); line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+            .change-card strong { font-size: clamp(1.6rem, 3.2vw, 2.8rem); line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+            .empty { display: grid; place-items: center; min-height: 180px; padding: 24px; margin: 0; border: 1px dashed var(--yr-border); border-radius: 16px; background: var(--yr-surface); color: var(--yr-muted); font-size: 1.1rem; text-align: center; }
+            @media (max-width: 680px) {
+              main { padding: 12px; gap: 12px; }
+              header { grid-template-columns: 64px minmax(0, 1fr); padding: 14px; gap: 12px; }
+              .invoice { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; }
+              .invoice strong { margin: 0; }
+              .line { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 10px; }
+              .thumb { width: 44px; height: 44px; }
+              .amount { grid-column: 2 / -1; }
+              .total-card, .change-card { padding: 14px; border-radius: 16px; }
+              footer { gap: 8px; }
             }
-            main {
-              display: grid;
-              grid-template-rows: auto minmax(0, 1fr) auto;
-              min-height: 100vh;
-              gap: 18px;
-              padding: 26px;
+            /* Customer-facing hierarchy: stable columns and quiet payment details. */
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+            main { max-width: 1800px; margin: auto; }
+            header { border-radius: 18px; }
+            .brand { text-align: left; }
+            h1 { font-size: clamp(1.25rem, 2vw, 1.8rem); }
+            .customer { font-weight: 500; color: var(--yr-muted); font-size: 1rem; }
+            .purchase-detail { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; overflow: hidden; padding: 18px; border: 1px solid var(--yr-border); border-radius: 20px; background: var(--yr-surface); }
+            .purchase-detail:has(.empty) { grid-template-rows: auto minmax(0, 1fr); }
+            .detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+            .detail-heading h2 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+            .detail-heading > span { background: var(--yr-soft); color: var(--yr-muted); padding: 5px 10px; border-radius: 20px; font-size: .8rem; }
+            .columns, .line { grid-template-columns: 60px minmax(0, 1fr) 110px 170px; gap: 20px; }
+            .columns { display: grid; padding: 0 14px 10px; color: var(--yr-muted); font-size: .75rem; font-weight: 600; }
+            .columns span:first-child { grid-column: 1 / 3; }
+            .columns span:not(:first-child) { text-align: right; }
+            .list { gap: 8px; padding: 0; }
+            .line { padding: 12px 14px; border-color: transparent; border-bottom-color: var(--yr-border); border-radius: 12px; box-shadow: none; }
+            .thumb { position: relative; width: 60px; height: 60px; background: var(--yr-soft); }
+            .thumb img { position: absolute; inset: 0; background: #fff; }
+            .product strong { font-size: clamp(1rem, 1.8vw, 1.5rem); font-weight: 600; }
+            .qty, .amount { font-size: clamp(1rem, 1.8vw, 1.5rem); }
+            .qty { font-weight: 500; }
+            .total-card { border-radius: 20px; box-shadow: none; }
+            .total-card strong { font-weight: 700; letter-spacing: -.04em; }
+            .payment-details { display: grid; align-content: center; gap: 14px; padding: 18px 22px; border: 1px solid var(--yr-border); border-radius: 20px; background: #fff; }
+            .received-card, .change-card { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+            .received-card { padding-bottom: 14px; border-bottom: 1px solid var(--yr-border); }
+            .received-card span, .change-card span { color: var(--yr-muted); font-size: .9rem; font-weight: 500; }
+            .received-card strong { font-size: clamp(1rem, 2vw, 1.6rem); font-variant-numeric: tabular-nums; }
+            .change-card strong { font-size: clamp(1.2rem, 2.5vw, 2rem); }
+            .empty { display: flex; flex-direction: column; justify-content: center; gap: 12px; border: 0; min-height: 240px; }
+            .empty h2 { margin: 0; color: var(--yr-text); font-size: 1.5rem; }
+            .empty p { margin: 0; }
+            .empty small { font-size: .9rem; }
+            .welcome-mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--yr-primary-soft); color: var(--yr-primary); font-size: 1.6rem; margin-bottom: 8px; }
+            @media (max-width: 680px) {
+              .purchase-detail { padding: 12px; }
+              .columns { display: none; }
+              .purchase-detail { grid-template-rows: auto minmax(0, 1fr); }
+              .line { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 10px 0; }
+              .thumb { width: 44px; height: 44px; }
+              .amount { grid-column: 2 / -1; }
+              footer { grid-template-columns: 1fr; }
+              .total-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+              .total-card strong { font-size: 2rem; }
+              .payment-details { padding: 12px 14px; gap: 8px; }
+              .received-card { padding-bottom: 8px; }
             }
-            header {
-              position: relative;
-              display: grid;
-              grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) minmax(210px, 260px);
-              align-items: center;
-              gap: 18px;
-              min-height: 118px;
-              border-bottom: 4px solid #0f766e;
-              padding: 0 8px 12px;
-              text-align: center;
-            }
-            .brand {
-              display: grid;
-              place-items: center;
-              gap: 4px;
-              width: 100%;
-              min-width: 0;
-            }
-            .brand-logo {
-              justify-self: start;
-              width: clamp(170px, 16vw, 250px);
-              max-width: 100%;
-              max-height: 98px;
-              object-fit: contain;
-            }
-            h1 {
-              margin: 0;
-              color: #0f766e;
-              font-size: clamp(1.85rem, 3.8vw, 3.55rem);
-              line-height: 0.95;
-              letter-spacing: 0;
-              text-align: center;
-            }
-            .customer {
-              margin: 4px 0 0;
-              color: #475569;
-              font-size: clamp(1rem, 2vw, 1.35rem);
-              font-weight: 800;
-              text-align: center;
-            }
-            .invoice {
-              justify-self: end;
-              width: min(100%, 250px);
-              min-width: 210px;
-              border: 2px solid #cbd5e1;
-              border-radius: 8px;
-              background: #ffffff;
-              padding: 12px 16px;
-              text-align: center;
-              box-shadow: 0 12px 26px rgb(15 23 42 / 8%);
-            }
-            .invoice span,
-            .total-card span,
-            .change-card span {
-              display: block;
-              color: #64748b;
-              font-size: 0.82rem;
-              font-weight: 900;
-              text-transform: uppercase;
-            }
-            .invoice strong {
-              color: #0f172a;
-              display: block;
-              font-size: clamp(1.05rem, 1.55vw, 1.45rem);
-              white-space: nowrap;
-            }
-            .list {
-              display: grid;
-              align-content: start;
-              gap: 12px;
-              overflow-y: auto;
-              padding-right: 6px;
-            }
-            .line {
-              display: grid;
-              grid-template-columns: 86px minmax(0, 1fr) 110px 180px;
-              align-items: center;
-              gap: 16px;
-              min-height: 94px;
-              border: 1px solid #dbe3ed;
-              border-radius: 8px;
-              background: #ffffff;
-              padding: 12px 16px;
-              box-shadow: 0 12px 30px rgb(15 23 42 / 8%);
-            }
-            .thumb {
-              display: grid;
-              width: 74px;
-              height: 74px;
-              place-items: center;
-              overflow: hidden;
-              border: 1px solid #dbe3ed;
-              border-radius: 8px;
-              background: #eef2f7;
-              color: #64748b;
-              font-weight: 1000;
-            }
-            .thumb img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-            }
-            .product {
-              display: grid;
-              gap: 5px;
-              min-width: 0;
-            }
-            .product strong {
-              color: #0f172a;
-              font-size: clamp(1.2rem, 2.4vw, 2rem);
-              line-height: 1.1;
-            }
-            .product span {
-              color: #64748b;
-              font-size: 0.95rem;
-              font-weight: 800;
-            }
-            .qty {
-              color: #0f172a;
-              font-size: clamp(1.25rem, 2.4vw, 1.9rem);
-              font-weight: 1000;
-              text-align: right;
-            }
-            .amount {
-              color: #0f172a;
-              font-size: clamp(1.25rem, 2.6vw, 2.1rem);
-              font-weight: 1000;
-              text-align: right;
-            }
-            footer {
-              display: grid;
-              grid-template-columns: minmax(0, 1fr) minmax(190px, 0.34fr);
-              gap: 14px;
-              align-items: stretch;
-            }
-            .total-card,
-            .change-card {
-              display: grid;
-              gap: 6px;
-              border-radius: 8px;
-              padding: 16px 18px;
-            }
-            .total-card {
-              background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-              color: #ffffff;
-              box-shadow: 0 18px 40px rgb(249 115 22 / 28%);
-            }
-            .total-card span {
-              color: rgb(255 247 237 / 86%);
-            }
-            .total-card strong {
-              font-size: clamp(3rem, 7vw, 5.8rem);
-              line-height: 0.95;
-            }
-            .change-card {
-              background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
-              color: #ffffff;
-              box-shadow: 0 14px 32px rgb(22 163 74 / 22%);
-            }
-            .change-card span {
-              color: rgb(240 253 244 / 84%);
-            }
-            .change-card strong {
-              font-size: clamp(1.6rem, 3.2vw, 2.5rem);
-            }
-            .empty {
-              display: grid;
-              min-height: 260px;
-              place-items: center;
-              border: 2px dashed #cbd5e1;
-              border-radius: 8px;
-              color: #64748b;
-              font-size: 1.3rem;
-              font-weight: 900;
-              text-align: center;
-            }
-            @media (max-width: 860px) {
-              header {
-                grid-template-columns: 150px minmax(0, 1fr) 190px;
-                gap: 10px;
-              }
-              .brand-logo {
-                width: 150px;
-                max-height: 86px;
-              }
-              h1 {
-                font-size: 2rem;
-              }
-              .invoice {
-                min-width: 190px;
-                padding: 10px 12px;
-              }
-              .invoice strong {
-                font-size: 1.05rem;
-              }
-            }
+            @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
           </style>
         </head>
         <body>
@@ -17826,15 +18534,19 @@ export class App implements OnDestroy {
                 <strong>#${this.escapeHtml(String(this.nextInvoiceNumber() || '...'))}</strong>
               </div>
             </header>
-            <section class="list">${rowsHtml}</section>
+            <section class="purchase-detail" aria-label="Detalle de tu compra">
+              <div class="detail-heading"><h2>Tu compra</h2><span>${lines.length} ${lines.length === 1 ? 'producto' : 'productos'}</span></div>
+              ${lines.length ? '<div class="columns" aria-hidden="true"><span>Producto</span><span>Cantidad</span><span>Importe</span></div>' : ''}
+              <div class="list">${rowsHtml}</div>
+            </section>
             <footer>
               <div class="total-card">
-                <span>Monto a pagar</span>
+                <span>Total a pagar</span>
                 <strong>${this.escapeHtml(this.formatCurrency(this.cartTotal()))}</strong>
               </div>
-              <div class="change-card">
-                <span>Vuelto</span>
-                <strong>${this.escapeHtml(this.formatCurrency(this.saleChangeDue()))}</strong>
+              <div class="payment-details">
+                <div class="received-card"><span>Recibido</span><strong>${this.escapeHtml(this.formatCurrency(Number(this.saleReceivedAmount()) || 0))}</strong></div>
+                <div class="change-card"><span>Vuelto</span><strong>${this.escapeHtml(this.formatCurrency(this.saleChangeDue()))}</strong></div>
               </div>
             </footer>
           </main>
@@ -18524,6 +19236,7 @@ export class App implements OnDestroy {
   }
 
   protected openCustomerModal(): void {
+    this.modalTables.reset('customers');
     this.customerModalOpen.set(true);
     void this.loadCustomers();
   }
@@ -18539,6 +19252,7 @@ export class App implements OnDestroy {
   }
 
   protected openSupplierModal(): void {
+    this.modalTables.reset('suppliers');
     this.supplierModalOpen.set(true);
     void this.loadSuppliers();
   }
@@ -19286,7 +20000,24 @@ export class App implements OnDestroy {
       return;
     }
 
-    this.updateTrendChartData(this.invoicesSalesTrendChart);
+    // La gráfica puede existir antes de que el tema claro se aplique por HMR.
+    // Reafirmamos sus colores para que ejes y leyenda nunca hereden el contraste oscuro.
+    const options = this.invoicesSalesTrendChart.options;
+    options.plugins!.legend!.labels!.color = '#536a76';
+    options.scales!['x']!.ticks!.color = '#536a76';
+    options.scales!['y']!.ticks!.color = '#536a76';
+    options.scales!['x']!.grid!.color = 'rgb(83 106 118 / 16%)';
+    options.scales!['y']!.grid!.color = 'rgb(83 106 118 / 16%)';
+
+    const points = this.invoiceTrendPoints();
+    this.invoicesSalesTrendChart.data.labels = points.map(([label]) => label);
+    this.invoicesSalesTrendChart.data.datasets = [{
+      label: 'Monto activo', data: points.map(([, total]) => total),
+      borderColor: '#089a9f', backgroundColor: 'rgba(8,154,159,.10)',
+      pointBackgroundColor: '#089a9f', pointBorderColor: '#ffffff',
+      borderWidth: 2, pointRadius: 3, tension: .2, fill: true,
+    }];
+    this.invoicesSalesTrendChart.update();
   }
 
   private updateCreditHistoryTrendChart(): void {
@@ -19869,6 +20600,10 @@ export class App implements OnDestroy {
   }
 
   private createSalesTrendChart(canvas: HTMLCanvasElement, shaded = false): Chart<'line', number[], string> {
+    const lightInvoiceChart = this.activePage() === 'invoices';
+    const chartText = lightInvoiceChart ? '#536a76' : 'rgb(203 213 225 / 70%)';
+    const chartGrid = lightInvoiceChart ? 'rgb(83 106 118 / 16%)' : 'rgb(148 163 184 / 12%)';
+    const chartBorder = lightInvoiceChart ? 'rgb(83 106 118 / 26%)' : 'rgb(148 163 184 / 24%)';
     return new Chart(canvas, {
       type: 'line',
       data: {
@@ -19933,7 +20668,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: 'rgb(203 213 225 / 70%)',
+              color: chartText,
               font: {
                 size: 11,
                 weight: 800,
@@ -19973,13 +20708,13 @@ export class App implements OnDestroy {
         scales: {
           x: {
             border: {
-              color: 'rgb(148 163 184 / 24%)',
+              color: chartBorder,
             },
             grid: {
-              color: 'rgb(148 163 184 / 12%)',
+              color: chartGrid,
             },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: chartText,
               font: {
                 size: 10,
                 weight: 800,
@@ -19989,13 +20724,13 @@ export class App implements OnDestroy {
           y: {
             beginAtZero: true,
             border: {
-              color: 'rgb(148 163 184 / 24%)',
+              color: chartBorder,
             },
             grid: {
-              color: 'rgb(148 163 184 / 18%)',
+              color: chartGrid,
             },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: chartText,
               callback: (value) => this.formatNumber(Number(value)),
               font: {
                 size: 10,

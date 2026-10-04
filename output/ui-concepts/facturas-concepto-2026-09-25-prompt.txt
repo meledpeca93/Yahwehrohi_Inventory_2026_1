@@ -1,0 +1,20 @@
+Modo: herramienta integrada image_gen. Propuesta visual con datos ficticios; no implementada.
+
+Use case: ui-mockup
+Create one high-fidelity professional desktop UI concept image for the existing Spanish-language Yahweh Rohi Inventory 2.0 module "Facturas". Wide landscape, ideally 2560x1600 or higher for legible downloadable detailed inspection. Flat front-facing screenshot, no device frame, no perspective, no decorative background. All text Spanish, sentence case. Beautiful restrained light interface, off-white canvas, white panels, navy typography, teal primary accents, thin gray borders, subtle shadows, precise modern sans-serif type, generous but efficient spacing. Use realistic crisp text.
+Layout: narrow 170px white left sidebar with small YR emblem, "Inventory 2.0", menu Dashboard, Facturación, Facturas (teal selected), Inventario, Compras, Clientes, Finanzas. Main content fills rest.
+Header "Facturas", subtitle "Consulta y analiza tus ventas", right outlined "Exportar PDF", date selector "25 sep 2026", small "Hoy · Semana · Mes" with Hoy selected. Small visible badge "Concepto · Datos de ejemplo".
+Four compact KPI cards: "Monto activo" "L 48,250.00" "Excluye anuladas"; "Facturas emitidas" "86" "84 activas"; "Crédito facturado" "L 7,250.00" "No equivale a saldo pendiente"; "Anuladas" "2" "Fuera del monto activo".
+Compact analytics strip only 180px tall: left 2/3 simple teal line chart "Ventas del día" labels 08:00 10:00 12:00 14:00 16:00; right 1/3 "Por forma de pago" horizontal bars "Efectivo L 32,000.00" and "Crédito L 7,250.00" and "Otros L 9,000.00". Small text control "Ocultar resumen". No giant graphs.
+Main lower area dominates height, 72% width invoice list and 28% width detail panel, aligned at top. List title "Facturas emitidas" with secondary "86 resultados". One filter row with search "Buscar factura, cliente o usuario", "Pago: Todos", "Estado: Todos". Second slim toolbar "Agrupar: Sin agrupar" "Altura de fila" icon toggle. Clean easy-to-scan table columns "Factura", "Cliente", "Hora", "Pago", "Total", "Estado", "Usuario", compact eye icon action. Row data:
+#1086 | María López | 14:32 | Efectivo | L 1,250.00 | Activa | Ana
+#1085 | Carlos Reyes | 14:18 | Crédito | L 2,480.00 | Activa | Ana
+#1084 | Consumidor final | 14:05 | Efectivo | L 385.00 | Activa | Luis
+#1083 | Rosa Mejía | 13:51 | Efectivo | L 760.00 | Anulada | Ana
+#1082 | José Hernández | 13:40 | Crédito | L 1,120.00 | Activa | Luis
+#1081 | Consumidor final | 13:28 | Efectivo | L 245.00 | Activa | Ana
+#1080 | Marta Díaz | 13:16 | Efectivo | L 890.00 | Activa | Luis
+Highlight first row pale teal with slim teal left border. Totals right aligned using tabular numerals, compact green Activa badges, soft red Anulada badge plus muted annulled row, blue Crédito badges. Footer "1–7 de 86" "Filas: 7" page navigation. Tiny note "Totales del período; la tabla muestra una página".
+Right white detail panel title "Factura #1086" and close X; green "Activa"; customer "María López"; date "25 sep 2026 · 14:32"; payment "Efectivo"; user "Ana". Divider, "Artículos" mini table: "Arroz 5 lb" "2 × L 150.00" "L 300.00"; "Aceite vegetal" "3 × L 200.00" "L 600.00"; "Café molido" "2 × L 175.00" "L 350.00". Big total "L 1,250.00". Primary button "Descargar PDF", subtle secondary "Ver detalle completo", separated low emphasis red text "Anular factura".
+Bottom slim collapsed row across content "Resumen mensual" chevron.
+Design should feel production-ready, excellent hierarchy, analytical clarity, professional retail invoice management, no marketing flourishes, no invented outstanding debt metrics, no uppercase headings, no overlapping text.

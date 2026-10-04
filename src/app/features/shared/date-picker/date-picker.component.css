@@ -1,0 +1,30 @@
+:host { display: block; min-width: 0; font: inherit; color: #20343f; }
+.date-field { display: flex; align-items: center; height: 40px; border: 1px solid #cbd8df; border-radius: 10px; background: #fff; box-sizing: border-box; }
+.date-field:focus-within { outline: 2px solid #087568; outline-offset: 2px; }
+.date-field input { border: 0; background: transparent; outline: none; color: #20343f; font: inherit; font-size: .9rem; padding: 8px 10px; width: 100%; min-width: 0; color-scheme: light; }
+.date-field input::-webkit-calendar-picker-indicator { display: none; }
+button, select, input { font-family: inherit; box-sizing: border-box; }
+button { cursor: pointer; }
+.calendar-trigger { flex: 0 0 38px; display: grid; place-items: center; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #087568; margin-right: 2px; }
+.calendar-trigger:hover { background: #e1f3ed; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.calendar { position: fixed; inset: auto; margin: 0; width: min(320px,calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px; border: 1px solid #cbd8df; border-radius: 18px; background: #fff; color: #20343f; box-shadow: 0 12px 40px #20343f26; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; box-sizing: border-box; }
+.calendar header { display: flex; align-items: center; justify-content: space-between; font-size: .8rem; font-weight: 600; color: #536a76; margin-bottom: 8px; }
+.calendar button { border: 0; background: transparent; border-radius: 9px; color: #20343f; transition: background 120ms ease; }
+.calendar header button { width: 28px; height: 28px; font-size: 1.3rem; }
+.navigation { display: grid; grid-template-columns: 28px minmax(0,1fr) 70px 28px; align-items: center; gap: 4px; margin-bottom: 16px; }
+.navigation button { height: 34px; font-size: 1.5rem; }
+.navigation select,.navigation input { width: 100%; min-width: 0; height: 34px; padding: 4px; background: #f5f8fa; color: #20343f; border: 1px solid #cbd8df; border-radius: 7px; font-size: .85rem; font-weight: 600; color-scheme: light; }
+.weekdays,.days { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); text-align: center; gap: 3px; }
+.weekdays { font-size: .7rem; color: #536a76; font-weight: 600; margin-bottom: 8px; }
+.days button { height: 35px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.days button.outside { color: #73858e; }
+.calendar button:hover { background: #e1f3ed; color: #087568; }
+.days button.today { box-shadow: inset 0 0 0 1px #087568; color: #087568; }
+.days button.selected { background: #087568; color: #fff; font-weight: 700; }
+.calendar :is(button,input,select):focus-visible,.calendar-trigger:focus-visible { outline: 2px solid #087568; outline-offset: 2px; }
+.calendar footer { display: flex; justify-content: space-between; border-top: 1px solid #e4eaee; margin-top: 12px; padding-top: 10px; }
+.calendar footer button { padding: 8px 12px; font-size: .8rem; font-weight: 600; color: #536a76; }
+.calendar footer .today-button { background: #e1f3ed; color: #087568; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (prefers-reduced-motion: reduce) { .calendar button { transition: none; } }

@@ -1,5 +1,70 @@
 # Changelog Codex
 
+## 2026-09-22
+
+- Detalle de factura: tema claro y tabla con búsqueda, estado, ordenamiento, selección y paginación 10/25/50; conserva PDF, anulación y totales. Cambio 005.
+
+- Ventas del día: filtros con etiquetas internas, sin Actualizar ni fila permanente de resultados; leyenda temporal inferior de 3,5 s y selección contextual.
+
+- Confirmación de anulación con diálogo nativo estilizado, datos de factura, Cancelar/Anular, carga y errores; se conserva la operación de backend.
+
+- Ventas del día: tabla clara con búsqueda, filtros, ordenamiento, selección/CSV y paginación 10/25/50. Datos y operaciones existentes conservados; edición en línea pendiente de precisar campos. Cambio 004.
+
+## 2026-09-21
+
+- Pantalla cliente: columnas alineadas, resumen con Recibido, bienvenida e iniciales ante imágenes fallidas. Mejora visual del cambio 003.
+
+- Pantalla cliente: encabezado compacto, líneas sin SKU y resaltado temporal del producto agregado; actualizado cambio 003.
+
+- Pantalla cliente: tema claro coherente con Facturación, tarjetas y totales renovados, responsive y movimiento reducido; datos y actualización intactos. Cambio 003.
+
+- Facturación: columna Ítem consecutiva y detalle paginado, cinco filas iniciales y selector 5/10/15/30/45/60/100; navegación centrada y sin scroll vertical interno. Totales calculados sobre toda la factura, páginas limitadas al eliminar y posición independiente por factura.
+
+- Categorías: desplegable blanco con texto gris oscuro, diez opciones por página, navegación y selección que conserva el filtro; cierre al seleccionar, clic fuera o Escape.
+
+- Facturacion: selector de tamaño de página 15/30/45/60/100 y navegación centrada con primera/última, reinicio de página al cambiar tamaño.
+
+- Facturacion: control de contracción en Más acciones; catálogo expandido con ocho columnas en escritorio y adaptación conservada en tablet/móvil.
+
+- Facturacion: formulario contraíble desde el catálogo para ampliar productos al ancho disponible; estado de factura conservado, botón accesible para restaurarlo.
+
+- Facturacion: montos rapidos en cuadrícula lateral y resumen compacto a la derecha; colores y tipografia de Recibido/Vuelto unificados con Subtotal, incluido vuelto positivo.
+
+- Facturacion: resumen de cobro vertical sin utilidad estimada visible; montos rapidos debajo de Vuelto, alineados a la derecha. Sin cambios de calculo.
+
+- Facturacion: corregido contraste de iconos en pestañas inactivas y centrado del encabezado Cantidad. Actualizado cambio 002.
+
+- Facturacion: numero visible antes del icono en cada pestaña de factura abierta; sin cambios funcionales.
+
+- Facturacion: pestañas de facturas abiertas con icono y numero en tooltip/nombre accesible, conservando seleccion y cierre. Registro 002 actualizado.
+
+- Facturacion: encabezados comunes para el detalle, campo de precio ampliado y mayor separacion de columnas/eliminar; sin etiquetas repetidas ni cambios de logica. Actualizado cambio 002.
+
+- Facturacion: restauradas dimensiones de los iconos de acción y redistribuido el espacio de la barra a favor del nombre del cliente, con acciones agrupadas a la derecha.
+
+- Facturacion: líneas del carrito en una sola fila compacta, con nombre completo en tooltip y controles funcionales conservados; actualizado cambio 002.
+
+- Facturacion: Cliente/Proveedor y número de factura integrados en la barra de acciones; eliminada la fila superior, conservando cotización activa y manejadores existentes. Actualizado cambio 002.
+- Facturacion: selector con texto «Categoría: [selección actual]», manteniendo valores y lógica del filtro.
+
+- Facturacion: barra de filtros sin etiquetas visibles, controles centrados verticalmente y nombres accesibles conservados; sin cambios funcionales.
+
+- Facturacion: tres ajustes UX limitados al encabezado/catalogo: resumen colapsable con transicion de 220 ms, buscador mas prominente y acciones secundarias en desplegable nativo accesible. Metodos operativos, tarjetas y panel de factura intactos; actualizado cambio 002 en `cambios.md`.
+- Facturacion: estrella de favorito activo en color `#E02D09`, sin cambiar su comportamiento. Documentado en el cambio 002.
+- Facturacion: stock de las tarjetas presentado sin fondo verde, como texto neutro; indicador de margen y datos sin cambios. Actualizado el registro 002 de `cambios.md`.
+- Facturacion: retirado SKU visible de tarjetas; cuadrícula de cuatro columnas en escritorio y dos en pantallas pequeñas, conservando búsqueda por código y escáner. Documentado como actualización del cambio 002 en `cambios.md`.
+
+- Base clara para Inventory 2.0 en Login y Facturacion: paleta semantica y sombras suaves, navegacion del POS clara, colores legibles de alertas/cintas y modales. El tema guardado sigue aplicandose a los otros modulos.
+- Auditoria visual: corregida prioridad CSS del metodo de pago seleccionado; indicador de guardado para el boton de cotizacion; etiquetas Precio L/Cant./Subtotal; asociacion explicita del label de contrasena; icono de busqueda visible al enfocar. Se conservan la fila de ocho iconos, tooltips, eventos, IDs, bindings y metodos TS.
+- Compilacion y pruebas con datos simulados de carrito, cantidades, facturas, escaner Enter, modal, responsive y movimiento reducido; sin ventas reales, cambios de BD ni dependencias nuevas.
+
+## 2026-09-20
+
+- Facturacion: nueva factura, formas de pago, CSV, cotizaciones, guardar y limpiar comparten una sola fila compacta de iconos SVG con tooltip y nombre accesible; se conservan eventos y disabled/loading. Compilacion correcta.
+- Primera etapa visual YahwehRohi Inventory 2.0: Login con composicion propia, campos con SVG y visibilidad de contrasena; Facturacion con paneles oscuros, buscador pill, productos, controles de cantidades, facturas abiertas, total destacado y modales renovados. Base CSS opt-in reutilizable, responsive, foco visible y movimiento reducido.
+- Se conservan eventos, referencias, IDs y bindings de formularios anteriores; no se modificaron autenticacion, calculos, endpoints, stock, BD ni documentos. Sin paquetes nuevos ni operaciones Git de escritura.
+- `npm run build` correcto; continúan advertencias anteriores de presupuesto de `app.css` y CommonJS de Tesseract. Pruebas de navegador aisladas con datos simulados; alcance en `docs/UI_MODERNIZATION_2_0.md`.
+
 ## 2026-09-10
 
 - Se ajusto el modal `Agregar marca` para hacerlo mas compacto/cuadrado, aumentar el texto del selector de usuarios, convertir los botones de entrada/salida en controles mas altos y mostrar una notificacion temporal tipo Facturacion al guardar o rechazar una marca.
@@ -149,3 +214,178 @@
   - `docs/PERFORMANCE.md`
   - `docs/CURRENT_STATE.md`
   - `docs/CHANGELOG_CODEX.md`
+
+### 22/09/2026 — Inventario UI 2.0
+
+Inventario, Kardex agotados y modales relacionados usan el tema claro de facturación mediante estilos acotados en `yr-ui.css`. Tablas principales con búsqueda reactiva, ordenamiento, páginas 10/25/50/100, selección y CSV; resultados temporales. Inactivación con diálogo nativo estilizado. Formularios y servicios de negocio conservados. Ver registro 006 de `cambios.md`. Build correcto con advertencias de presupuesto y Tesseract.
+
+### 22/09/2026 — Formulario de producto
+
+Alta/edición reorganizada según propuesta visual aprobada: miniatura compacta, tres grupos de campos, fila de precios y pie Cancelar/Guardar. Estilos acotados a `.yr-product-editor`, sin cambios TS/backend ni eventos de negocio. Registro 007 en `cambios.md`.
+
+### 22/09/2026 — Limpieza visual de tabla de inventario
+
+Código, Lote, Categoría, Vencimiento y Estado sin cápsulas ni fondos; conservados recuadros de Cantidad, Mínimo, Costo y Precio final. CSS acotado a la tabla principal. Registro 006 actualizado en `cambios.md`. Build no confirmado: dos intentos finalizaron con código 134 sin diagnóstico. Pendiente revisión visual del usuario.
+
+### 22/09/2026 — Colores del texto de vencimiento
+
+Restaurados los colores previos de Vencimiento en la tabla principal: neutro, ámbar y rojo según su estado; fondo transparente y sin borde. Solo CSS, sin cambios de reglas. Registro 006 actualizado. Validación de clases y precedencia; revisión visual pendiente.
+
+### 22/09/2026 — Columnas y alineación de inventario
+
+Retirada columna Lote de la tabla principal, códigos alineados a la derecha y encabezados centrados. Colspan ajustado a diez. Parser de Angular sin errores y estructura de diez columnas verificada; pendiente revisión visual. Actualizado registro 006 de `cambios.md`.
+
+### 22/09/2026 — Código a la izquierda y acciones al final
+
+Tabla principal de inventario: Código alineado a la izquierda y Acción como última columna, con encabezados centrados. Controles y eventos conservados. Plantilla Angular y orden de diez columnas verificados; pendiente revisión visual. Registro 006 actualizado.
+
+### 22/09/2026 — Tarjetas contraíbles y columna de selección
+
+Inventario incorpora resumen contraíble con control accesible, columna inicial estrecha para seleccionar y Acción al final. Retirado subtítulo de la tabla. Parser Angular, once columnas y TypeScript verificados; pendiente revisión visual. Registro 006 actualizado.
+
+### 22/09/2026 — Encabezado de inventario compacto
+
+Eliminados antetítulo y descripción del módulo. Separación vertical reducida a 12 px y grid alineado al inicio para evitar espacio sobrante, incluyendo resumen contraído. Plantilla Angular validada; revisión visual pendiente. Registro 006 actualizado.
+
+### 22/09/2026 — Buscador ampliado y tabla sin título redundante
+
+Eliminado título Gestión principal y espacio superior de filtros; duplicada base flexible del buscador (150 a 300 px). Plantilla Angular validada; revisión visual pendiente. Registro 006 actualizado.
+
+### 22/09/2026 — Filtros acotados y tres alturas de fila
+
+Corregido crecimiento de Vencimiento y aprovechado ancho de la barra. Agregados iconos Compacta/Normal/Amplia con estado accesible y estilos limitados a la tabla principal. Parser Angular y TypeScript correctos; revisión visual pendiente. Registro 006 actualizado.
+
+### 22/09/2026 — Buscador de inventario 35% más ancho
+
+Base flexible del buscador ampliada de 320 a 432 px. Proporción y alcance CSS revisados; pendiente revisión visual. Registro 006 actualizado.
+
+### 22/09/2026 — Título de inventario
+
+Título del módulo actualizado a «Control de Inventario». Texto verificado y registro 006 actualizado.
+
+### 22/09/2026 — Retirada del filtro Lotes
+
+Eliminados selector Lotes y lógica asociada de la tabla de inventario. Plantilla Angular y TypeScript validados. Registro 006 actualizado.
+
+### 22/09/2026 — Productos agotados alineado con Inventario
+
+Aplicados a Productos agotados los ajustes visuales de Inventario: encabezado compacto, resumen contraíble, buscador ampliado, tres alturas y tabla limpia con selección separada. Conservados controles existentes. Parser Angular, diez columnas y TypeScript validados; revisión visual pendiente. Registro 006 actualizado.
+
+### 22/09/2026 — Iconos de acciones y título de agotados
+
+Título actualizado a «Producto Agotados»; Reponer e Inventario usan iconos con etiquetas accesibles y tooltip. Eventos conservados y plantilla Angular validada. Registro 006 actualizado.
+
+### 22/09/2026 — Unificación de tablas de Inventario
+
+Siete tablas comparten presentación y controles de búsqueda, densidad, selección/CSV y paginación. Códigos de barra, componentes y selector reciben controles locales; acciones conservan permisos y manejadores, ahora con iconos. Compilador Angular correcto; estructura, búsqueda, ordenamiento, paginación, selección y CSV probados con datos simulados. Sin operaciones reales. Pendiente revisión visual. Registro 006 actualizado.
+
+### 22/09/2026 — Modales de tablas sin scroll interno
+
+Ampliado ancho de cinco modales de Inventario, eliminados mínimos rígidos de tablas y habilitado texto multilínea. Vista de registros con etiquetas en pantallas pequeñas; scroll vertical reservado al modal cuando es necesario. Angular y comprobaciones de estructura/CSS correctos; pendiente revisión visual. Registro 006 actualizado.
+
+### 22/09/2026 — Acciones horizontales en Códigos armados
+
+Botones Ver detalle y Editar uno al lado del otro, con separación de 6 px. Ajuste CSS acotado a esa tabla; registro 006 actualizado.
+
+### 22/09/2026 — Capitalización uniforme de títulos
+
+Títulos de módulos y tablas en estilo oración, conservando siglas y nombres propios; anulada transformación automática a mayúsculas. Criterio incorporado a AGENTS.md y registro 008. Pendiente revisión visual.
+
+### 23/09/2026 — Modales de Facturación y barras en una línea
+
+Unificados estilos y controles de ocho tablas y ventanas relacionadas. Reorganizados Movimientos, Catálogo PDF y Corte del día; preservadas operaciones existentes. Corregidas cuadrículas heredadas que separaban los botones de altura de los filtros. Nueva utilidad de presentación con siete pruebas; compilación de desarrollo y Angular correctos. Pendiente revisión visual integrada por bloqueo automático de navegador (límite de uso). Registro 009 actualizado; alineación pendiente de Códigos armados completada en registro 006.
+### 25/09/2026 — Facturas con estándar visual 2.0
+
+Facturas usa ahora el tema claro y compacto de Facturación e Inventario. Se conservaron agrupaciones, exportación y anulación; las tablas no tienen scroll interno y añaden tres alturas de filas. Validado con compilación Angular y revisión de formato; pendiente revisión visual integrada.
+
+### 25/09/2026 — Correcciones de lectura en Facturas
+
+El resumen superior se puede contraer. Controles, identidad del usuario y gráfico se ajustaron para evitar solapamientos y mostrar leyendas y ejes con contraste suficiente en tema claro. Compilación Angular y revisión de formato correctas; pendiente revisión visual integrada.
+
+### 25/09/2026 — Validación reforzada de Facturas
+
+El resumen usa un control textual y se oculta completamente al contraerse. La gráfica actualiza sus colores claros aun después de una recarga en caliente, y Facturación mensual incorpora un resumen del período más reciente.
+
+### 25/09/2026 — Análisis de Facturas
+
+Se añadieron filtros por texto, pago y estado al listado de facturas. Facturación mensual muestra indicadores del período reciente y variación frente al mes anterior, sin modificar registros ni cálculos de ventas.
+
+### 25/09/2026 — Iconos Lucide en Facturas
+
+Las acciones principales del módulo usan iconografía Lucide con etiquetas accesibles: búsqueda, limpiar, exportar, detalle, PDF y anular/reactivar. Los flujos existentes se mantienen.
+
+### 26/09/2026 — Concepto analítico de Facturas implementado
+
+Se aplicó el concepto aprobado: resumen y gráfica compactos, filtros sincronizados por fecha/período, lista plana paginada, agrupación opcional y detalle lateral con protección frente a respuestas tardías. El histórico mensual pasa al final y empieza contraído. Se preservan PDF, detalle completo y anulación/activación. Ver registro 028 de `cambios.md` y evidencias en `output/ui-concepts/`.
+
+### 26/09/2026 — Carga de Facturas y recuperación de conexión
+
+Diagnosticado Docker/SQL Server local detenido; conexión y listado recuperados sin reiniciar Electron. Añadidos Actualizar/Reintentar, reintento al cambiar fecha tras un error y mensaje de datos no disponibles en lugar de indicadores en cero. Carga principal independiente del histórico y del resumen global; siete pruebas de Facturas correctas.
+
+### 26/09/2026 — Controles de las tablas de Facturas
+
+Iconos para contraer, filtros alineados en una fila y paginación como Inventario en listado y tabla mensual. Se incorpora altura/paginación mensual independiente y se compacta el gráfico por pago con barras en línea. Registro 030.
+
+### 26/09/2026 — Buscador y selector de meses de Facturas
+
+Buscador reducido un 20% y etiqueta Meses a la izquierda del selector numérico, como Mostrar. Ajustes de presentación, sin cambios de filtros ni datos. Registro 031.
+
+### 26/09/2026 — Tipografía de Facturas
+
+Se retira la segunda línea bajo el cliente en Facturas emitidas y se normaliza el peso del texto mensual para mantener la jerarquía del listado principal. Registro 032.
+
+### 26/09/2026 — Cliente y ordenamiento en Facturas
+
+Filtro Cliente integrado con resultados e indicadores; buscador otro 25% más corto. Orden ascendente/descendente por encabezados en listado y tabla mensual, aplicado antes de paginar y preservando las variaciones históricas. Registro 033.
+
+### 26/09/2026 — Ancho del detalle de Facturas
+
+Panel lateral ampliado a 420 px; Cliente ocupa 140 px y permite nombres en varias líneas. Conserva adaptación a pantallas pequeñas. Registro 034.
+
+### 26/09/2026 — Panel de factura de 540 px
+
+Panel lateral ampliado a 540 px y contenido de Cliente reducido a 110 px, con salto de línea y adaptación móvil conservados. Registro 035.
+
+### 26/09/2026 — Créditos centrados en clientes
+
+Lista priorizada y ficha con facturas, artículos, abonos, PDF y preparación de pago existente. Filtro por cliente sin abonos durante más de dos meses calendario; historial fallido diferenciado y sin inventar mora donde no hay vencimientos. Registro 036.
+
+### 26/09/2026 — Presentación de Cartera de crédito
+
+Título simplificado, resumen contraíble con iconos, tarjetas sin «A quién atender», fecha de último abono en línea y saldo a la derecha un 15% mayor. Registro 037.
+
+### 26/09/2026 — Alineación de tarjetas de clientes
+
+Iniciales y saldo centrados verticalmente en la tarjeta completa, con los datos del cliente en la columna central. Registro 038.
+
+### 26/09/2026 — Dos vistas operativas de Compras
+
+Recepción rápida predeterminada y tablero por proveedor, con historial conservado. Borradores locales por usuario, etapas manuales, recuperación y revisión antes de confirmar. OCR de imágenes y registro de inventario existentes reutilizados. Registro 039.
+
+### 26/09/2026 — Resumen y paneles de Recepción rápida
+
+Indicadores reales contraíbles, compras recientes, inicio por foto/manual, pasos e iconos SVG. Carga y fallos de compras, proveedores y productos visibles. Registro 040.
+
+### 26/09/2026 — Resumen de Compras en conjunto
+
+Las tres tarjetas se contraen mediante un único botón junto al título, sin controles individuales. Registro 041.
+
+### 26/09/2026 — Iconos de vistas de Compras
+
+Selector de vistas con iconos accesibles en la misma fila que Registrar compra. Registro 042.
+
+### 27/09/2026 — Compras: planificación y consulta integradas
+
+Fecha prevista y estados en borradores; compras ingresadas visibles en seguimiento e historial con detalle por documento y PDF. Pago compacto mediante iconos. Registro 043.
+
+### 27/09/2026 — Formulario compacto de Compras
+
+Pago junto a Etapa, logística y costos en una fila, OCR junto a Buscar productos y eliminación de textos superiores. Registro 044.
+
+### 27/09/2026 — Tarjetas de Compras compactas
+
+Altura ajustada al texto, con menor espacio vertical en las tres tarjetas principales. Registro 045.
+
+### 27/09/2026 — Fecha de entrega integrada
+
+Programar pedido usa un calendario directo y muestra la fecha elegida dentro del control. Registro 046.

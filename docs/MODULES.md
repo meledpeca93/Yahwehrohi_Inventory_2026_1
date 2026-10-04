@@ -2,6 +2,8 @@
 
 ## Facturacion
 
+- Controles de presentación de tablas modales: `src/app/features/shared/modal-table/modal-table-state.ts` (búsqueda, ordenamiento, selección/CSV, paginación y densidad); no modifica registros ni servicios de negocio.
+
 - Responsabilidad: catalogo de productos vendibles, carrito, cotizaciones a venta, registro de ventas, actualizacion visual de stock, facturas y anulaciones/activaciones.
 - Frontend: secciones `billing` e `invoices` en `src/app/app.ts/html`; servicio `src/app/modules/facturacion/services/facturacion-api.service.ts`.
 - Backend modular: `server/modules/facturacion/*`.

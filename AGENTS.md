@@ -12,6 +12,8 @@ Guia corta para futuros agentes Codex en este proyecto.
 
 ## Reglas de trabajo
 
+- Títulos de módulos, ventanas y tablas: usar mayúscula inicial y el resto en minúsculas, respetando nombres propios y siglas (ID, PDF, CSV). No forzar uppercase/capitalize por CSS en encabezados.
+
 - No analizar todo el repositorio automaticamente al comenzar.
 - Inspeccionar primero solo el modulo y archivos directamente relacionados.
 - Ampliar busqueda solo si hay una dependencia real o si `/docs` no coincide con el codigo.
@@ -19,6 +21,7 @@ Guia corta para futuros agentes Codex en este proyecto.
 - No revertir cambios existentes sin solicitud explicita.
 - Despues de cambios importantes actualizar `docs/CURRENT_STATE.md`.
 - Al completar una funcionalidad agregar una entrada breve a `docs/CHANGELOG_CODEX.md`.
+- Mantener `cambios.md` como registro numerado de cambios de Inventory 2.0: agregar nuevos cambios con numeracion consecutiva y actualizar los existentes con fecha, alcance, validaciones y pendientes; no marcar aprobacion del usuario sin confirmacion explicita.
 - Si cambia arquitectura, actualizar `docs/ARCHITECTURE.md`.
 - Si cambia una regla funcional, actualizar `docs/BUSINESS_RULES.md`.
 - Si cambia base de datos, actualizar `docs/DATABASE.md`.
