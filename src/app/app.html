@@ -59,12 +59,12 @@
 <main
   class="app-shell"
   [class.yr-pos]="activePage() === 'billing' || activePage() === 'inventory-sheet' || activePage() === 'inventory-out-of-stock' || activePage() === 'invoices'"
-  [attr.data-theme]="(activePage() === 'billing' || activePage() === 'inventory-sheet' || activePage() === 'inventory-out-of-stock' || activePage() === 'invoices' || activePage() === 'credits' || activePage() === 'purchases' || activePage() === 'payroll' || activePage() === 'payroll-generate' || activePage() === 'attendance') ? 'yr-light' : activeThemeId()"
+  [attr.data-theme]="(activePage() === 'billing' || activePage() === 'inventory-sheet' || activePage() === 'inventory-out-of-stock' || activePage() === 'invoices' || activePage() === 'credits' || activePage() === 'purchases' || activePage() === 'payroll' || activePage() === 'payroll-generate' || activePage() === 'attendance' || activePage() === 'costs' || activePage() === 'petty-cash' || activePage() === 'financial-movements' || activePage() === 'sales-profitability') ? 'yr-light' : activeThemeId()"
   [attr.data-density]="interfaceDensity()"
   [class.sidebar-collapsed]="sidebarCollapsed()"
 >
   <aside
-    class="sidebar"
+    class="sidebar modern-sidebar"
     aria-label="Navegacion principal"
     (mouseover)="showSidebarTooltipFromEvent($event)"
     (focusin)="showSidebarTooltipFromEvent($event)"
@@ -74,7 +74,7 @@
     <div class="sidebar-header">
       <div class="brand">
         <span class="brand-mark">YR</span>
-        <span>{{ title() }}</span>
+        <span class="brand-name" [title]="title()">{{ title() }}<small>Inventory 2.0</small></span>
       </div>
       <button
         class="sidebar-collapse-button"
@@ -83,165 +83,130 @@
         [title]="sidebarCollapsed() ? 'Mostrar menu' : 'Ocultar menu'"
         (click)="toggleSidebar()"
       >
-        {{ sidebarCollapsed() ? '›' : '‹' }}
+        <svg lucideChevronLeft class="sidebar-toggle-icon" [class.rotated]="sidebarCollapsed()" aria-hidden="true"></svg>
       </button>
     </div>
 
-    <nav class="nav-list">
-      <button
+    <nav class="nav-list" aria-label="Módulos">
+      <button [hidden]="!canAccessModule('dashboard')"
         class="nav-item"
-        data-icon="⌂"
+
         type="button"
         [class.active]="activePage() === 'dashboard'"
         (click)="setPage('dashboard')"
-      >
-        Dashboard
-      </button>
-      <button
+       aria-label="Dashboard" [attr.aria-current]="activePage() === 'dashboard' ? 'page' : null"><span class="nav-icon"><svg lucideLayoutDashboard aria-hidden="true"></svg></span><span class="nav-label">Dashboard</span></button>
+      <button [hidden]="!canAccessModule('billing')"
         class="nav-item"
-        data-icon="$"
+
         type="button"
         [class.active]="activePage() === 'billing'"
         (click)="setPage('billing')"
-      >
-        Facturacion
-      </button>
-      <button
+       aria-label="Facturación" [attr.aria-current]="activePage() === 'billing' ? 'page' : null"><span class="nav-icon"><svg lucideShoppingCart aria-hidden="true"></svg></span><span class="nav-label">Facturación</span></button>
+      <button [hidden]="!canAccessModule('invoices')"
         class="nav-item"
-        data-icon="▤"
+
         type="button"
         [class.active]="activePage() === 'invoices'"
         (click)="setPage('invoices')"
-      >
-        Facturas
-      </button>
-      <button
+       aria-label="Facturas" [attr.aria-current]="activePage() === 'invoices' ? 'page' : null"><span class="nav-icon"><svg lucideFileText aria-hidden="true"></svg></span><span class="nav-label">Facturas</span></button>
+      <button [hidden]="!canAccessModule('credits')"
         class="nav-item"
-        data-icon="◷"
+
         type="button"
         [class.active]="activePage() === 'credits'"
         (click)="openCreditsPage()"
-      >
-        Creditos
-      </button>
-      <section class="nav-module" [class.active]="activePage() === 'attendance' || activePage() === 'payroll' || activePage() === 'payroll-generate'" [class.collapsed]="payrollNavCollapsed()">
-        <button class="nav-module-title" data-icon="P" type="button" (click)="togglePayrollNav()" [attr.aria-expanded]="!payrollNavCollapsed()">
-          <span>Planillas</span>
-          <span class="nav-module-chevron" aria-hidden="true">{{ payrollNavCollapsed() ? '+' : '-' }}</span>
-        </button>
-        @if (!payrollNavCollapsed()) {
-        <button
+       aria-label="Créditos" [attr.aria-current]="activePage() === 'credits' ? 'page' : null"><span class="nav-icon"><svg lucideCreditCard aria-hidden="true"></svg></span><span class="nav-label">Créditos</span></button>
+      <section class="nav-module" [hidden]="!canAccessModule('attendance') && !canAccessModule('payroll')" [class.active]="activePage() === 'attendance' || activePage() === 'payroll' || activePage() === 'payroll-generate'" [class.collapsed]="payrollNavCollapsed()">
+        <button class="nav-module-title" type="button" (click)="togglePayrollNav()" [attr.aria-expanded]="!payrollNavCollapsed() && !sidebarCollapsed()" aria-label="Planillas" aria-controls="payroll-nav-content"><span class="nav-icon"><svg lucideUsers aria-hidden="true"></svg></span><span class="nav-label">Planillas</span><svg lucideChevronDown class="nav-group-chevron" [class.expanded]="!payrollNavCollapsed() && !sidebarCollapsed()" aria-hidden="true"></svg></button>
+<div class="nav-module-content" id="payroll-nav-content" [class.open]="!payrollNavCollapsed() && !sidebarCollapsed()" [attr.inert]="payrollNavCollapsed() || sidebarCollapsed() ? '' : null"><div class="nav-module-inner">
+        <button [hidden]="!canAccessModule('attendance')"
           class="nav-item nav-subitem"
-          data-icon="A"
+
           type="button"
           [class.active]="activePage() === 'attendance'"
           (click)="setPage('attendance')"
-        >
-          Asistencia
-        </button>
-        <button
+         aria-label="Asistencia" [attr.aria-current]="activePage() === 'attendance' ? 'page' : null"><span class="nav-icon"><svg lucideCalendarDays aria-hidden="true"></svg></span><span class="nav-label">Asistencia</span></button>
+        <button [hidden]="!canAccessModule('payroll')"
           class="nav-item nav-subitem"
-          data-icon="P"
+
           type="button"
           [class.active]="activePage() === 'payroll'"
           (click)="setPage('payroll')"
-        >
-          Planillas
-        </button>
-        }
+         aria-label="Planillas" [attr.aria-current]="activePage() === 'payroll' ? 'page' : null"><span class="nav-icon"><svg lucideUsers aria-hidden="true"></svg></span><span class="nav-label">Planillas</span></button>
+</div></div>
       </section>
-      <button
+      <button [hidden]="!canAccessModule('inventory-sheet')"
         class="nav-item"
-        data-icon="▦"
+
         type="button"
         [class.active]="activePage() === 'inventory-sheet'"
         (click)="setPage('inventory-sheet')"
-      >
-        Inventario
-      </button>
-      <button
+       aria-label="Inventario" [attr.aria-current]="activePage() === 'inventory-sheet' ? 'page' : null"><span class="nav-icon"><svg lucidePackage aria-hidden="true"></svg></span><span class="nav-label">Inventario</span></button>
+      <button [hidden]="!canAccessModule('purchases')"
         class="nav-item"
-        data-icon="+"
+
         type="button"
         [class.active]="activePage() === 'purchases'"
         (click)="setPage('purchases')"
-      >
-        Compras
-      </button>
-      <section class="nav-module" [class.active]="activePage() === 'costs' || activePage() === 'petty-cash' || activePage() === 'financial-movements' || activePage() === 'sales-profitability'" [class.collapsed]="financeNavCollapsed()">
-        <button class="nav-module-title" data-icon="$" type="button" (click)="toggleFinanceNav()" [attr.aria-expanded]="!financeNavCollapsed()">
-          <span>Finanzas</span>
-          <span class="nav-module-chevron" aria-hidden="true">{{ financeNavCollapsed() ? '+' : '-' }}</span>
-        </button>
-        @if (!financeNavCollapsed()) {
-        <button
+       aria-label="Compras" [attr.aria-current]="activePage() === 'purchases' ? 'page' : null"><span class="nav-icon"><svg lucideShoppingBag aria-hidden="true"></svg></span><span class="nav-label">Compras</span></button>
+      <section class="nav-module" [hidden]="!canAccessModule('costs') && !canAccessModule('petty-cash') && !canAccessModule('financial-movements') && !canAccessModule('sales-profitability')" [class.active]="activePage() === 'costs' || activePage() === 'petty-cash' || activePage() === 'financial-movements' || activePage() === 'sales-profitability'" [class.collapsed]="financeNavCollapsed()">
+        <button class="nav-module-title" type="button" (click)="toggleFinanceNav()" [attr.aria-expanded]="!financeNavCollapsed() && !sidebarCollapsed()" aria-label="Finanzas" aria-controls="finance-nav-content"><span class="nav-icon"><svg lucideChartColumn aria-hidden="true"></svg></span><span class="nav-label">Finanzas</span><svg lucideChevronDown class="nav-group-chevron" [class.expanded]="!financeNavCollapsed() && !sidebarCollapsed()" aria-hidden="true"></svg></button>
+<div class="nav-module-content" id="finance-nav-content" [class.open]="!financeNavCollapsed() && !sidebarCollapsed()" [attr.inert]="financeNavCollapsed() || sidebarCollapsed() ? '' : null"><div class="nav-module-inner">
+        <button [hidden]="!canAccessModule('costs')"
           class="nav-item nav-subitem"
-          data-icon="C"
+
           type="button"
           [class.active]="activePage() === 'costs'"
           (click)="setPage('costs')"
-        >
-          Costos
-        </button>
-        <button
+         aria-label="Costos" [attr.aria-current]="activePage() === 'costs' ? 'page' : null"><span class="nav-icon"><svg lucideCalculator aria-hidden="true"></svg></span><span class="nav-label">Costos</span></button>
+        <button [hidden]="!canAccessModule('petty-cash')"
           class="nav-item nav-subitem"
-          data-icon="CH"
+
           type="button"
           [class.active]="activePage() === 'petty-cash'"
           (click)="setPage('petty-cash')"
-        >
-          Caja chica
-        </button>
-        <button
+         aria-label="Caja chica" [attr.aria-current]="activePage() === 'petty-cash' ? 'page' : null"><span class="nav-icon"><svg lucideWallet aria-hidden="true"></svg></span><span class="nav-label">Caja chica</span></button>
+        <button [hidden]="!canAccessModule('financial-movements')"
           class="nav-item nav-subitem"
-          data-icon="$"
+
           type="button"
           [class.active]="activePage() === 'financial-movements'"
           (click)="setPage('financial-movements')"
-        >
-          Finanzas
-        </button>
-        <button
+         aria-label="Finanzas" [attr.aria-current]="activePage() === 'financial-movements' ? 'page' : null"><span class="nav-icon"><svg lucideChartColumn aria-hidden="true"></svg></span><span class="nav-label">Finanzas</span></button>
+        <button [hidden]="!canAccessModule('sales-profitability')"
           class="nav-item nav-subitem"
-          data-icon="VR"
+
           type="button"
           [class.active]="activePage() === 'sales-profitability'"
           (click)="setPage('sales-profitability')"
-        >
-          Ventas y Rentabilidad
-        </button>
-        }
+         aria-label="Ventas y rentabilidad" [attr.aria-current]="activePage() === 'sales-profitability' ? 'page' : null"><span class="nav-icon"><svg lucideChartColumn aria-hidden="true"></svg></span><span class="nav-label">Ventas y rentabilidad</span></button>
+</div></div>
       </section>
-      <button
+      <button [hidden]="!canAccessModule('system-health')"
         class="nav-item"
-        data-icon="◉"
+
         type="button"
         [class.active]="activePage() === 'system-health'"
         (click)="setPage('system-health')"
-      >
-        Salud del sistema
-      </button>
-      <button
+       aria-label="Salud del sistema" [attr.aria-current]="activePage() === 'system-health' ? 'page' : null"><span class="nav-icon"><svg lucideActivity aria-hidden="true"></svg></span><span class="nav-label">Salud del sistema</span></button>
+      <button [hidden]="!canAccessModule('history')"
         class="nav-item"
-        data-icon="◷"
+
         type="button"
         [class.active]="activePage() === 'history'"
         (click)="setPage('history')"
-      >
-        Historico
-      </button>
+       aria-label="Histórico" [attr.aria-current]="activePage() === 'history' ? 'page' : null"><span class="nav-icon"><svg lucideHistory aria-hidden="true"></svg></span><span class="nav-label">Histórico</span></button>
       <button
+        [hidden]="!canAccessModule('settings')"
         class="nav-item settings-nav-item"
-        data-icon=""
+
         type="button"
         [class.active]="settingsModalOpen()"
         (click)="openSettingsModal()"
-      >
-        Configuracion
-      </button>
+       aria-label="Configuración"><span class="nav-icon"><svg lucideSettings aria-hidden="true"></svg></span><span class="nav-label">Configuración</span></button>
     </nav>
 
-    <button class="nav-item logout-item" data-icon="×" type="button" (click)="openLogoutCutModal()">Cerrar sesion</button>
+    <button class="nav-item logout-item" type="button" (click)="openLogoutCutModal()" aria-label="Cerrar sesión"><span class="nav-icon"><svg lucideLogOut aria-hidden="true"></svg></span><span class="nav-label">Cerrar sesión</span></button>
     <section class="sidebar-user-panel" [class.open]="userMenuOpen()">
       <button
         class="sidebar-user-button"
@@ -255,8 +220,8 @@
       </button>
       @if (userMenuOpen()) {
         <div class="sidebar-user-menu">
-          <button type="button" (click)="openSelfAttendanceMarkModal()">Agregar marca</button>
-          <button type="button" class="danger" (click)="openLogoutFromUserMenu()">Cerrar sesion</button>
+          <button type="button" (click)="openSelfAttendanceMarkModal()"><svg lucideCalendarDays class="nav-menu-icon" aria-hidden="true"></svg>Agregar marca</button>
+          <button type="button" class="danger" (click)="openLogoutFromUserMenu()"><svg lucideLogOut class="nav-menu-icon" aria-hidden="true"></svg>Cerrar sesión</button>
         </div>
       }
     </section>
@@ -335,10 +300,43 @@
     </div>
   }
 
+  <ng-template #financeTableTools let-key>
+    <div class="yr-modal-tools finance-table-tools">
+      <input type="search" placeholder="Buscar…" aria-label="Buscar en la tabla" [value]="modalTables.state(key).search" (input)="modalTables.input(key,'search',$event)" />
+      @if(financeTableConfigs[key].filterKey){<select aria-label="Filtrar tabla" [value]="modalTables.state(key).filter" (change)="modalTables.input(key,'filter',$event)"><option value="">Todos</option>@for(value of financeFilterOptions(key);track value){<option [value]="value">{{ value }}</option>}</select>}
+      <div class="yr-modal-density">@for(density of modalTables.densities;track density.value){<button class="yr-button yr-button-icon" type="button" [class.active]="modalTables.state(key).density===density.value" [attr.aria-label]="density.label" [title]="density.label" (click)="modalTables.patch(key,{density:density.value})">@switch(density.value){@case('compact'){<svg lucideRows4 class="yr-icon" aria-hidden="true"></svg>}@case('normal'){<svg lucideRows3 class="yr-icon" aria-hidden="true"></svg>}@default{<svg lucideRows2 class="yr-icon" aria-hidden="true"></svg>}}</button>}</div>
+    </div>
+  </ng-template>
+  <ng-template #financeTablePager let-key>
+    <div class="yr-modal-footer finance-table-pager">@if(modalTables.selectedRows(key,financeTableRows(key)).length){<button class="yr-button" type="button" (click)="modalTables.export(key,financeTableRows(key),financeTableConfigs[key])"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>CSV ({{ modalTables.selectedRows(key,financeTableRows(key)).length }})</button>}<label>Mostrar <select aria-label="Filas por página" [value]="modalTables.state(key).size" (change)="modalTables.input(key,'size',$event)">@for(size of [10,25,50,100];track size){<option [value]="size">{{ size }}</option>}</select></label><div class="yr-modal-pagination"><button class="yr-button" type="button" aria-label="Primera página" [disabled]="modalTables.current(key,financeTableRows(key),financeTableConfigs[key])===1" (click)="modalTables.go(key,1,financeTableRows(key),financeTableConfigs[key])"><svg lucideChevronsLeft class="yr-icon" aria-hidden="true"></svg></button>
+      <button class="yr-button" type="button" aria-label="Página anterior" [disabled]="modalTables.current(key,financeTableRows(key),financeTableConfigs[key])===1" (click)="modalTables.go(key,modalTables.current(key,financeTableRows(key),financeTableConfigs[key])-1,financeTableRows(key),financeTableConfigs[key])"><svg lucideChevronLeft class="yr-icon" aria-hidden="true"></svg></button><strong>{{ modalTables.current(key,financeTableRows(key),financeTableConfigs[key]) }} / {{ modalTables.pages(key,financeTableRows(key),financeTableConfigs[key]) }}</strong><button class="yr-button" type="button" aria-label="Página siguiente" [disabled]="modalTables.current(key,financeTableRows(key),financeTableConfigs[key])===modalTables.pages(key,financeTableRows(key),financeTableConfigs[key])" (click)="modalTables.go(key,modalTables.current(key,financeTableRows(key),financeTableConfigs[key])+1,financeTableRows(key),financeTableConfigs[key])"><svg lucideChevronRight class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button" type="button" aria-label="Última página" [disabled]="modalTables.current(key,financeTableRows(key),financeTableConfigs[key])===modalTables.pages(key,financeTableRows(key),financeTableConfigs[key])" (click)="modalTables.go(key,modalTables.pages(key,financeTableRows(key),financeTableConfigs[key]),financeTableRows(key),financeTableConfigs[key])"><svg lucideChevronsRight class="yr-icon" aria-hidden="true"></svg></button></div><span>{{ modalTables.filtered(key,financeTableRows(key),financeTableConfigs[key]).length }} resultados</span></div>
+  </ng-template>
   @if (settingsModalOpen()) {
+    <ng-template #settingsUserDensity let-key>
+      <div class="yr-modal-density" role="group" aria-label="Altura de las filas">
+        @for (density of modalTables.densities; track density.value) {
+          <button type="button" [title]="'Filas: ' + density.label" [attr.aria-label]="'Filas: ' + density.label" [attr.aria-pressed]="modalTables.state(key).density === density.value" (click)="modalTables.patch(key,{density: density.value})">@switch(density.value){@case('compact'){<svg lucideRows4 class="yr-icon" aria-hidden="true"></svg>}@case('normal'){<svg lucideRows3 class="yr-icon" aria-hidden="true"></svg>}@default{<svg lucideRows2 class="yr-icon" aria-hidden="true"></svg>}}</button>
+        }
+      </div>
+    </ng-template>
+    <ng-template #settingsUserPager let-key let-rows="rows" let-config="config">
+      @if (modalTables.selectedRows(key,rows).length) {
+        <div class="yr-modal-selection"><span>{{ modalTables.selectedRows(key,rows).length }} seleccionados</span><button type="button" class="ghost-button" (click)="modalTables.export(key,rows,config)">Exportar selección CSV</button><button type="button" class="ghost-button" (click)="modalTables.clear(key)">Limpiar selección</button></div>
+      }
+      <div class="yr-modal-pagination">
+        <label>Mostrar<select aria-label="Registros por página" [value]="modalTables.state(key).size" (change)="modalTables.input(key,'size',$event)">@for (size of modalTables.sizes; track size) {<option [value]="size">{{ size }}</option>}</select></label>
+        <nav aria-label="Páginas de la tabla">
+          <button type="button" aria-label="Primera página" [disabled]="modalTables.current(key,rows,config)===1" (click)="modalTables.go(key,1,rows,config)">&laquo;</button>
+          <button type="button" aria-label="Página anterior" [disabled]="modalTables.current(key,rows,config)===1" (click)="modalTables.go(key,modalTables.current(key,rows,config)-1,rows,config)">&lsaquo;</button>
+          <strong>{{ modalTables.current(key,rows,config) }} / {{ modalTables.pages(key,rows,config) }}</strong>
+          <button type="button" aria-label="Página siguiente" [disabled]="modalTables.current(key,rows,config)===modalTables.pages(key,rows,config)" (click)="modalTables.go(key,modalTables.current(key,rows,config)+1,rows,config)">&rsaquo;</button>
+          <button type="button" aria-label="Última página" [disabled]="modalTables.current(key,rows,config)===modalTables.pages(key,rows,config)" (click)="modalTables.go(key,modalTables.pages(key,rows,config),rows,config)">&raquo;</button>
+        </nav><span role="status">{{ modalTables.filtered(key,rows,config).length }} resultados</span>
+      </div>
+    </ng-template>
     <div class="settings-modal-backdrop" role="presentation" (click)="closeSettingsModal()">
       <section
-        class="settings-modal"
+        class="settings-modal customer-modal yr-billing-modal yr-ui"
         role="dialog"
         aria-modal="true"
         aria-label="Configuracion del sistema"
@@ -346,11 +344,10 @@
       >
         <header class="settings-modal-header">
           <div>
-            <p class="eyebrow">Sistema</p>
-            <h2>Configuracion general</h2>
+            <div class="yr-settings-title"><h2>Configuración general</h2><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar opciones" aria-label="Mostrar u ocultar opciones" aria-controls="settings-content" [attr.aria-expanded]="!settingsContentCollapsed()" (click)="settingsContentCollapsed.set(!settingsContentCollapsed())">@if(settingsContentCollapsed()){<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}</button></div>
           </div>
           <button class="settings-close-button" type="button" aria-label="Cerrar configuracion" (click)="closeSettingsModal()">
-            X
+            <svg lucideX class="yr-icon" aria-hidden="true"></svg>
           </button>
         </header>
 
@@ -358,13 +355,84 @@
           <nav class="settings-tabs" aria-label="Segmentos de configuracion">
             @for (tab of settingsTabs; track tab.id) {
               <button type="button" [class.active]="activeSettingsTab() === tab.id" (click)="setSettingsTab(tab.id)">
+                @if(tab.id==='users'){<svg lucideUsers class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideSettings class="yr-icon" aria-hidden="true"></svg>}
                 {{ tab.label }}
               </button>
             }
           </nav>
 
-          <div class="settings-panel">
+          <div id="settings-content" class="settings-panel" [hidden]="settingsContentCollapsed()">
             @switch (activeSettingsTab()) {
+              @case ('users') {
+                @if (!canManageUsers()) {
+                  <section aria-label="Acceso a usuarios"><h3>Usuarios</h3><p>La gestión de usuarios y accesos requiere el perfil Administrador.</p><p>Perfil actual: {{ currentUser()?.profile || currentUser()?.rol || 'Sin perfil' }}.</p></section>
+                } @else {
+                <section class="settings-users" aria-label="Gestión de usuarios">
+                  <div class="yr-modal-tools">
+                    <input type="search" placeholder="Buscar nombre, usuario o perfil…" aria-label="Buscar usuario" [value]="modalTables.state('users').search" (input)="modalTables.input('users','search',$event)" />
+                    <select aria-label="Estado de usuario" [value]="modalTables.state('users').filter" (change)="modalTables.input('users','filter',$event)"><option value="">Todos los estados</option><option value="Activo">Activos</option><option value="Inactivo">Inactivos</option></select>
+                    <button class="yr-button yr-button-icon" type="button" title="Actualizar" aria-label="Actualizar usuarios" [disabled]="managedUsersLoading()" (click)="loadManagedUsers()"><svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg></button>
+                    <button class="yr-button yr-button-icon" type="button" title="Crear usuario" aria-label="Crear usuario" (click)="editManagedUser(null)"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button>
+                    <ng-container [ngTemplateOutlet]="settingsUserDensity" [ngTemplateOutletContext]="{$implicit:'users'}" />
+                  </div>
+                  @if(managedUsersError()){<p role="alert" class="checkout-error">{{ managedUsersError() }}</p>}
+                  @if(managedUsersMessage()){<p role="status">{{ managedUsersMessage() }}</p>}
+                  @if(managedUsersLoading()){<p role="status">Cargando usuarios…</p>}
+                  <div class="yr-modal-table-shell"><table class="yr-modal-table" [attr.data-density]="modalTables.state('users').density">
+                    <thead><tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                      @for(column of userTableConfig.columns;track column.key){<th [attr.aria-sort]="modalTables.ariaSort('users',column.key)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('users',column.key)">{{ column.label }} {{ modalTables.sortLabel('users',column.key) }}</button></th>}<th>Acción</th></tr></thead>
+                    <tbody>@for(user of modalTables.pageRows('users',managedUserRows(),userTableConfig);track user.id){
+                      <tr [class.yr-modal-selected]="modalTables.selected('users',user)"><td class="yr-modal-check"><input type="checkbox" [attr.aria-label]="'Seleccionar '+user.nombre" [checked]="modalTables.selected('users',user)" (change)="modalTables.toggle('users',user)" /></td><td data-label="Nombre">{{ user.nombre }}</td><td data-label="Usuario">{{ user.usuario }}</td><td data-label="Perfil">{{ user.profile }}</td><td data-label="Estado">{{ user.status }}</td><td><div class="settings-user-actions"><button class="yr-button yr-button-icon" title="Editar usuario y accesos" type="button" [attr.aria-label]="'Editar '+user.nombre" (click)="editManagedUser(user)"><svg lucidePencil class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" title="Desactivar usuario" type="button" [attr.aria-label]="'Desactivar '+user.nombre" [disabled]="!user.activo || user.id===currentUser()?.id" (click)="managedUserDelete.set(user)"><svg lucideBan class="yr-icon" aria-hidden="true"></svg></button></div></td></tr>
+                    }@empty{<tr><td colspan="6">{{ managedUsersError() ? 'No se pudieron obtener los usuarios.' : 'No hay usuarios que coincidan.' }}</td></tr>}</tbody>
+                  </table></div>
+                  <ng-container [ngTemplateOutlet]="settingsUserPager" [ngTemplateOutletContext]="{$implicit:'users',rows:managedUserRows(),config:userTableConfig}" />
+                  @if(managedUserDraft();as draft){
+                    <div class="settings-user-modal-backdrop" (click)="$event.stopPropagation();closeManagedUserEditor()">
+                    <section class="settings-user-modal" role="dialog" aria-modal="true" aria-labelledby="user-editor-title" (click)="$event.stopPropagation()" (keydown)="managedUserEditorKeydown($event)">
+                    <form class="settings-user-editor" (submit)="$event.preventDefault();saveManagedUser()">
+                      <header class="settings-user-modal-header">
+                        <div class="user-editor-heading"><span class="user-editor-symbol"><svg lucideUsers class="yr-icon" aria-hidden="true"></svg></span><div><h3 id="user-editor-title">{{ draft.id ? 'Editar usuario' : 'Crear usuario' }}</h3><p>{{ draft.nombre || 'Nueva cuenta' }} <span class="user-profile-badge">{{ draft.profile }}</span></p></div></div>
+                        <button class="yr-button yr-button-icon" type="button" aria-label="Cerrar edición de usuario" [disabled]="managedUsersSaving()" (click)="closeManagedUserEditor()"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
+                      </header>
+                      <fieldset class="user-editor-body" [disabled]="managedUsersSaving()">
+                        <section class="user-account-panel" aria-labelledby="user-account-title">
+                          <h4 id="user-account-title">Datos de la cuenta</h4>
+                          <div class="settings-user-fields">
+                            <label>Nombre<input required maxlength="120" [value]="draft.nombre" (input)="updateManagedUser('nombre',$event)" autocomplete="name" /></label>
+                            <label>Usuario<input required maxlength="60" [value]="draft.usuario" (input)="updateManagedUser('usuario',$event)" autocomplete="off" /></label>
+                            <label>{{ draft.id ? 'Nueva contraseña' : 'Contraseña' }}<input type="password" [required]="!draft.id" minlength="8" maxlength="128" [value]="draft.password" (input)="updateManagedUser('password',$event)" autocomplete="new-password" /><small>{{ draft.id ? 'Déjala vacía para conservar la actual.' : 'Usa entre 8 y 128 caracteres.' }}</small></label>
+                            <label>Perfil<select [value]="draft.profile" (change)="updateManagedUser('profile',$event)"><option>Administrador</option><option>Operador</option><option>Consulta</option></select><small>Cambiar el perfil restablece los permisos.</small></label>
+                          </div>
+                          <label class="user-account-status"><span><strong>Cuenta activa</strong><small>{{ draft.activo ? 'Puede iniciar sesión' : 'Acceso suspendido' }}</small></span><input type="checkbox" role="switch" aria-label="Cuenta activa" [checked]="draft.activo" (change)="updateManagedUser('activo',$event)" /></label>
+                        </section>
+                        <section class="user-permissions-panel" aria-labelledby="user-permissions-title">
+                          <div class="user-permissions-heading"><h4 id="user-permissions-title">Accesos por módulo</h4><span>{{ userAccessModules.length }} módulos</span></div>
+                          <p class="user-permissions-help">{{ draft.profile==='Administrador' ? 'Este perfil tiene gestión completa.' : 'Selecciona el nivel de acceso para cada módulo.' }}</p>
+                          <div class="user-permission-legend"><span><svg lucideBan class="yr-icon" aria-hidden="true"></svg>Sin acceso</span><span><svg lucideEye class="yr-icon" aria-hidden="true"></svg>Consulta</span><span><svg lucidePencil class="yr-icon" aria-hidden="true"></svg>Gestión</span></div>
+                          <div class="user-permission-list">
+                            @for(module of userAccessModules;track module.key){
+                              <div class="user-permission-row"><span>{{ module.label }}</span><div class="user-permission-options" role="group" [attr.aria-label]="'Acceso a '+module.label">
+                                <button type="button" title="Sin acceso" [attr.aria-label]="module.label+': sin acceso'" [attr.aria-pressed]="(draft.permissions[module.key] || 'none')==='none'" [class.selected]="(draft.permissions[module.key] || 'none')==='none'" [disabled]="draft.profile==='Administrador' || module.key==='users'" (click)="setManagedUserAccess(module.key,'none')"><svg lucideBan class="yr-icon" aria-hidden="true"></svg></button>
+                                <button type="button" title="Consulta" [attr.aria-label]="module.label+': consulta'" [attr.aria-pressed]="draft.permissions[module.key]==='read'" [class.selected]="draft.permissions[module.key]==='read'" [disabled]="draft.profile==='Administrador' || module.key==='users'" (click)="setManagedUserAccess(module.key,'read')"><svg lucideEye class="yr-icon" aria-hidden="true"></svg></button>
+                                <button type="button" title="Gestión" [attr.aria-label]="module.label+': gestión'" [attr.aria-pressed]="draft.permissions[module.key]==='write'" [class.selected]="draft.permissions[module.key]==='write'" [disabled]="draft.profile==='Administrador' || module.key==='users'" (click)="setManagedUserAccess(module.key,'write')"><svg lucidePencil class="yr-icon" aria-hidden="true"></svg></button>
+                              </div></div>
+                            }
+                          </div>
+                        </section>
+                      </fieldset>
+                      <footer class="user-editor-footer">
+                        <div class="user-editor-feedback">@if(managedUsersError()){<p role="alert" class="checkout-error">{{ managedUsersError() }}</p>}@else{<small>Los cambios se aplican al guardar.</small>}</div>
+                        <div class="settings-user-actions"><button class="yr-button" type="button" [disabled]="managedUsersSaving()" (click)="closeManagedUserEditor()">Cancelar</button><button class="yr-button yr-button-primary" type="submit" [disabled]="managedUsersSaving()"><svg lucideCheck class="yr-icon" aria-hidden="true"></svg>{{ managedUsersSaving() ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+                      </footer>
+                    </form>
+                    </section>
+                    </div>
+                  }
+                  @if(managedUserDelete();as user){<div class="settings-user-confirm" role="alertdialog" aria-modal="false" aria-label="Confirmar desactivación"><h3>Desactivar a {{ user.nombre }}</h3><p>No podrá iniciar sesión. Sus facturas y registros se conservan.</p><div class="settings-user-actions"><button class="yr-button" type="button" [disabled]="managedUsersSaving()" (click)="managedUserDelete.set(null)">Cancelar</button><button class="yr-button yr-button-danger" type="button" [disabled]="managedUsersSaving()" (click)="deactivateManagedUser()">Desactivar usuario</button></div></div>}
+                </section>
+                }
+              }
+
               @case ('appearance') {
                 <div class="settings-grid">
                   <label class="settings-field">
@@ -386,9 +454,9 @@
                   <div class="settings-field">
                     <span>Zoom</span>
                     <div class="settings-stepper">
-                      <button type="button" (click)="decreasePageZoom()">-</button>
+                      <button type="button" (click)="decreasePageZoom()" aria-label="Reducir zoom"><svg lucideMinus class="yr-icon" aria-hidden="true"></svg></button>
                       <strong>{{ pageZoomPercent() }}%</strong>
-                      <button type="button" (click)="increasePageZoom()">+</button>
+                      <button type="button" (click)="increasePageZoom()" aria-label="Aumentar zoom"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button>
                     </div>
                   </div>
                   <div class="settings-field">
@@ -572,28 +640,25 @@
                   <section class="database-backup-history">
                     <div class="analytics-heading">
                       <div>
-                        <p class="eyebrow">RESPALDOS DISPONIBLES</p>
+
                         <h3>Historial</h3>
                       </div>
                       <button class="ghost-button" type="button" [disabled]="databaseBackupLoading()" (click)="loadDatabaseBackups()">
                         {{ databaseBackupLoading() ? 'Cargando...' : 'Actualizar' }}
                       </button>
                     </div>
+                    <div class="yr-modal-tools"><input type="search" placeholder="Buscar respaldo…" aria-label="Buscar respaldo" [value]="modalTables.state('backups').search" (input)="modalTables.input('backups','search',$event)" /><select aria-label="Estado del respaldo" [value]="modalTables.state('backups').filter" (change)="modalTables.input('backups','filter',$event)"><option value="">Todos los estados</option>@for(status of modalTables.options(databaseBackups(),'status');track status){<option [value]="status">{{ status }}</option>}</select><ng-container [ngTemplateOutlet]="settingsUserDensity" [ngTemplateOutletContext]="{$implicit:'backups'}" /></div>
                     <div class="table-wrap">
-                      <table class="invoice-master-table">
+                      <table class="yr-modal-table" [attr.data-density]="modalTables.state('backups').density">
                         <thead>
                           <tr>
-                            <th>Fecha</th>
-                            <th>Tamano</th>
-                            <th>Tipo</th>
-                            <th>Estado</th>
-                            <th>Archivo</th>
-                            <th>Accion</th>
+                            <th class="yr-modal-check"><span class="sr-only">Selección</span></th>@for(column of backupTableConfig.columns;track column.key){<th [attr.aria-sort]="modalTables.ariaSort('backups',column.key)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('backups',column.key)">{{ column.label }} {{ modalTables.sortLabel('backups',column.key) }}</button></th>}<th>Acción</th>
                           </tr>
                         </thead>
                         <tbody>
-                          @for (backup of databaseBackups(); track backup.id) {
-                            <tr>
+                          @for (backup of modalTables.pageRows('backups',databaseBackups(),backupTableConfig); track backup.id) {
+                            <tr [class.yr-modal-selected]="modalTables.selected('backups',backup)">
+                              <td class="yr-modal-check"><input type="checkbox" [attr.aria-label]="'Seleccionar '+backup.fileName" [checked]="modalTables.selected('backups',backup)" (change)="modalTables.toggle('backups',backup)" /></td>
                               <td>{{ backup.createdAt | date: 'short' }}</td>
                               <td>{{ formatHealthBytes(backup.size) }}</td>
                               <td><span class="invoice-status-pill" [class.annulled]="backup.type === 'Pre-Restauración'">{{ backup.type }}</span></td>
@@ -612,12 +677,13 @@
                             </tr>
                           } @empty {
                             <tr>
-                              <td colspan="6" class="table-feedback-row">No hay respaldos disponibles.</td>
+                              <td colspan="7" class="table-feedback-row">No hay respaldos disponibles.</td>
                             </tr>
                           }
                         </tbody>
                       </table>
                     </div>
+                    <ng-container [ngTemplateOutlet]="settingsUserPager" [ngTemplateOutletContext]="{$implicit:'backups',rows:databaseBackups(),config:backupTableConfig}" />
                   </section>
                 </div>
               }
@@ -838,7 +904,9 @@
       </div>
     </details>
   </ng-template>
-  @if (activePage() === 'inventory-sheet') {
+  @if (!canAccessModule(activePage())) {
+    <section class="inventory-workspace yr-ui"><h1>Sin módulos asignados</h1><p>Solicita al administrador que revise tus accesos.</p></section>
+  } @else if (activePage() === 'inventory-sheet') {
     <!-- PAGINA: INVENTARIO | FUNCION PRINCIPAL: ADMINISTRAR PRODUCTOS, COSTOS, STOCK Y ALERTAS DE INVENTARIO. -->
     <section class="inventory-workspace yr-ui">
       @if (inventorySuccessMessage()) {
@@ -892,10 +960,10 @@
           </div>
         </div>
         <div class="inventory-header-actions">
-          <button class="primary-button" type="button" (click)="setPage('billing')">
+          <button [hidden]="!canAccessModule('billing')" class="primary-button" type="button" (click)="setPage('billing')">
             Ir a facturacion
           </button>
-          <button class="primary-button" type="button" (click)="setPage('inventory-out-of-stock')">
+          <button [hidden]="!canAccessModule('inventory-out-of-stock')" class="primary-button" type="button" (click)="setPage('inventory-out-of-stock')">
             Kardex agotados
           </button>
           <button class="primary-button" type="button" (click)="openInactiveProductsPanel()">
@@ -2196,7 +2264,7 @@
             <strong>{{ totalUnits() | number }}</strong>
           </div>
         </article>
-        <button
+        <button [hidden]="!canAccessModule('inventory-out-of-stock')"
           class="inventory-card kpi-card inventory-kpi-button"
           type="button"
           (click)="setPage('inventory-out-of-stock')"
@@ -2469,10 +2537,10 @@
           </div>
         </div>
         <div class="inventory-header-actions">
-          <button class="ghost-button" type="button" (click)="setPage('inventory-sheet')">
+          <button [hidden]="!canAccessModule('inventory-sheet')" class="ghost-button" type="button" (click)="setPage('inventory-sheet')">
             Volver a inventario
           </button>
-          <button class="primary-button" type="button" (click)="setPage('billing')">
+          <button [hidden]="!canAccessModule('billing')" class="primary-button" type="button" (click)="setPage('billing')">
             Ir a facturacion
           </button>
         </div>
@@ -2568,7 +2636,7 @@
                       <button type="button" title="Reponer" aria-label="Reponer" (click)="openInventoryEditModal(product.id)">
                         <svg class="yr-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3ZM3 7.5l9 4.5 9-4.5M12 12v9M7.5 5.25l9 4.5"/><path d="M16 15h4m-2-2v4"/></svg>
                       </button>
-                      <button type="button" title="Inventario" aria-label="Inventario" (click)="setPage('inventory-sheet')">
+                      <button [hidden]="!canAccessModule('inventory-sheet')" type="button" title="Inventario" aria-label="Inventario" (click)="setPage('inventory-sheet')">
                         <svg class="yr-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h8M8 17h8"/></svg>
                       </button>
                     </div>
@@ -6265,7 +6333,7 @@
           <h1>Horas semanales por jornada</h1>
           <p>Ingresa horas por usuario, dia y valor horario para calcular el total semanal.</p>
         </div>
-        <button class="ghost-button" type="button" (click)="setPage('payroll')">
+        <button [hidden]="!canAccessModule('payroll')" class="ghost-button" type="button" (click)="setPage('payroll')">
           Volver a planillas
         </button>
       </header>
@@ -6367,58 +6435,55 @@
     </section>
   } @else if (activePage() === 'costs') {
     <!-- PAGINA: COSTOS | FUNCION PRINCIPAL: ANALIZAR COSTOS FIJOS, VARIABLES, GASTO MENSUAL Y MARGEN OPERATIVO. -->
-    <section class="dashboard-workspace costs-workspace">
+    <section class="dashboard-workspace finance-ui yr-ui costs-workspace">
       <header class="dashboard-topbar">
         <div>
-          <p class="eyebrow">Costos</p>
-          <h1>Costos operativos</h1>
-          <p>Analisis de costos fijos estimados, costos variables reales, gasto mensual y margen operativo.</p>
+
+          <div class="finance-title"><h1>Módulo de costos</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" [attr.aria-expanded]="financePanelOpen('costs-summary')" (click)="toggleFinancePanel('costs-summary')">@if(financePanelOpen('costs-summary')){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}</button></div>
+
         </div>
         <div class="dashboard-actions">
-          <label class="costs-period-selector">
-            <span>Vista</span>
-            <select [value]="selectedCostPeriod()" (change)="updateCostPeriod($event)">
+          <label class="costs-period-selector" [title]="'Vista: '+ selectedCostPeriod()">
+            <svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Vista</span>
+            <select aria-label="Vista" [value]="selectedCostPeriod()" (change)="updateCostPeriod($event)">
               <option value="week">Semana</option>
               <option value="month">Mes</option>
               <option value="year">Ano</option>
             </select>
           </label>
           @if (selectedCostPeriod() === 'week') {
-            <label class="costs-period-selector">
-              <span>Semana</span>
-              <select [value]="selectedCostWeek()" (change)="updateCostWeek($event)">
+            <label class="costs-period-selector" [title]="'Semana: '+ selectedCostWeek()">
+              <svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Semana</span>
+              <select aria-label="Semana" [value]="selectedCostWeek()" (change)="updateCostWeek($event)">
                 @for (week of costWeekOptions(); track week) {
                   <option [value]="week">{{ week }}</option>
                 }
               </select>
             </label>
           }
-          <label class="costs-period-selector">
-            <span>Ano</span>
-            <select [value]="selectedCostYear()" (change)="updateCostYear($event)">
+          <label class="costs-period-selector" [title]="'Ano: '+ selectedCostYear()">
+            <svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Ano</span>
+            <select aria-label="Ano" [value]="selectedCostYear()" (change)="updateCostYear($event)">
               @for (year of costYearOptions(); track year) {
                 <option [value]="year">{{ year }}</option>
               }
             </select>
           </label>
           @if (selectedCostPeriod() !== 'year') {
-            <label class="costs-period-selector">
-              <span>Mes</span>
-              <select [value]="selectedCostMonth()" (change)="updateCostMonth($event)">
+            <label class="costs-period-selector" [title]="'Mes: '+ selectedCostMonth()">
+              <svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Mes</span>
+              <select aria-label="Mes" [value]="selectedCostMonth()" (change)="updateCostMonth($event)">
                 @for (month of costMonthOptions; track month.value) {
                   <option [value]="month.value">{{ month.label }}</option>
                 }
               </select>
             </label>
           }
-          <div class="user-pill">
-            <span>YR</span>
-            <strong>{{ currentUser()?.nombre || 'Usuario' }}</strong>
-          </div>
-        </div>
-      </header>
 
-      <section class="dashboard-kpis costs-kpis" aria-label="Datos clave de costos">
+        </div>
+      <div class="finance-panel-nav"><button class="yr-button yr-button-icon" type="button" title="Agregar costo" aria-label="Agregar costo" (click)="openOperationalCostModal()"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" type="button" title="Costos operativos" aria-label="Costos operativos" [class.active]="financePanelOpen('costs-operational')" [attr.aria-expanded]="financePanelOpen('costs-operational')" (click)="toggleFinancePanel('costs-operational')"><svg lucideCalculator class="yr-icon" aria-hidden="true"></svg></button></div></header>
+
+      <section class="dashboard-kpis costs-kpis" aria-label="Datos clave de costos" [hidden]="!financePanelOpen('costs-summary')">
         <article class="analytics-card kpi-card">
           <span>Costo actual de inventario</span>
           <strong>{{ monthlyFixedCostEstimate() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
@@ -6457,7 +6522,7 @@
         </article>
       </section>
 
-      <section class="analytics-card invoices-table-card costs-table-card operational-cost-card">
+      <section class="analytics-card invoices-table-card costs-table-card operational-cost-card" [hidden]="!financePanelOpen('costs-operational')">
         <div class="analytics-heading">
           <div>
             <h2>Costos operativos</h2>
@@ -6465,9 +6530,7 @@
           </div>
           <div class="operational-cost-heading-actions">
             <strong>{{ operationalCostRows().length | number }} registros</strong>
-            <button class="daily-sales-button" type="button" (click)="openOperationalCostModal()">
-              Agregar costo
-            </button>
+            <button class="daily-sales-button" type="button" (click)="openOperationalCostModal()" title="Agregar costo" aria-label="Agregar costo"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button>
           </div>
         </div>
 
@@ -6496,7 +6559,7 @@
       @if (operationalCostModalOpen()) {
         <div class="customer-modal-backdrop operational-cost-modal-backdrop" role="presentation" (click)="closeOperationalCostModal()">
           <section
-            class="customer-modal operational-cost-modal"
+            class="customer-modal yr-ui finance-modal operational-cost-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Agregar costo operativo"
@@ -6508,7 +6571,7 @@
                 <h2>Agregar costo operativo</h2>
                 <p>Registra gastos reales del periodo para estimar mejor la utilidad neta.</p>
               </div>
-              <button class="ghost-button" type="button" (click)="closeOperationalCostModal()">Cerrar</button>
+              <button class="ghost-button" type="button" (click)="closeOperationalCostModal()" title="Cerrar" aria-label="Cerrar"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
             </div>
 
             <div class="operational-cost-modal-grid">
@@ -6583,21 +6646,8 @@
         </div>
       }
 
-      <section class="dashboard-trend-grid costs-trend-grid" aria-label="Graficos de costos">
-        <article class="analytics-card trend-card cost-trend-card">
-          <div class="analytics-heading">
-            <div>
-              <h2>Distribucion de costos</h2>
-              <p>Relacion actual entre costo inventariado y utilidad potencial del stock</p>
-            </div>
-          </div>
-          <div class="chartjs-trend-shell cost-chart-shell pie-cost-chart-shell">
-            <canvas #costsDistributionCanvas aria-label="Distribucion de costos"></canvas>
-            @if (monthlyFixedCostEstimate() === 0 && monthlyOperatingCost() === 0) {
-              <span class="chart-empty-label">Sin costos para distribuir</span>
-            }
-          </div>
-        </article>
+      <section class="dashboard-trend-grid costs-trend-grid" aria-label="Graficos de costos" [hidden]="!financePanelOpen('costs-summary')">
+
 
         <article class="analytics-card trend-card cost-trend-card">
           <div class="analytics-heading">
@@ -6649,17 +6699,16 @@
         </div>
 
         <div class="table-wrap">
-          <table class="invoice-master-table">
+          <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'cost-changes'}" /><table [attr.data-density]="modalTables.state('cost-changes').density" class="yr-modal-table invoice-master-table">
             <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Categoria</th>
-                <th>Costo anterior</th>
-                <th>Costo actual</th>
-                <th>Aumento</th>
-                <th>%</th>
-                <th>Precio venta</th>
-                <th>Stock</th>
+              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','productName')">Producto {{ modalTables.sortLabel('cost-changes','productName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','category')">Categoria {{ modalTables.sortLabel('cost-changes','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','previousCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','previousCost')">Costo anterior {{ modalTables.sortLabel('cost-changes','previousCost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','currentCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','currentCost')">Costo actual {{ modalTables.sortLabel('cost-changes','currentCost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Aumento {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','variation')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','variation')">% {{ modalTables.sortLabel('cost-changes','variation') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Cambio {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
               </tr>
             </thead>
             <tbody>
@@ -6672,8 +6721,8 @@
                   <td colspan="8" class="table-feedback-row">No hay cambios de costo detectados en compras recientes.</td>
                 </tr>
               } @else {
-                @for (item of costChangedProducts(); track item.productId) {
-                  <tr>
+                @for (item of modalTables.pageRows('cost-changes',financeTableRows('cost-changes'),financeTableConfigs['cost-changes']); track item.productId) {
+                  <tr [class.yr-modal-selected]="modalTables.selected('cost-changes',item)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-changes',item)" (change)="modalTables.toggle('cost-changes',item)" /></td>
                     <td>
                       <strong>{{ item.productName }}</strong>
                       <span>{{ item.lastDate ? (item.lastDate | date: 'dd/MM/yyyy') : '-' }}</span>
@@ -6683,12 +6732,12 @@
                     <td>{{ item.currentCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
                     <td>{{ item.difference | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
                     <td>{{ item.variation | percent: '1.1-2' }}</td>
-                    <td colspan="2">{{ item.difference >= 0 ? 'Aumento' : 'Reduccion' }}</td>
+                    <td>{{ item.difference >= 0 ? 'Aumento' : 'Reduccion' }}</td>
                   </tr>
                 }
               }
             </tbody>
-          </table>
+          </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'cost-changes'}" />
         </div>
       </section>
 
@@ -6709,22 +6758,22 @@
         </div>
 
         <div class="table-wrap">
-          <table class="invoice-master-table">
+          <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'cost-products'}" /><table [attr.data-density]="modalTables.state('cost-products').density" class="yr-modal-table invoice-master-table">
             <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Categoria</th>
-                <th>Movimiento</th>
-                <th>Rotacion mensual</th>
-                <th>Venta</th>
-                <th>Costo</th>
-                <th>Utilidad</th>
-                <th>% ganancia</th>
+              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','productName')">Producto {{ modalTables.sortLabel('cost-products','productName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','category')">Categoria {{ modalTables.sortLabel('cost-products','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','quantity')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','quantity')">Movimiento {{ modalTables.sortLabel('cost-products','quantity') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','monthlyRotation')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','monthlyRotation')">Rotacion mensual {{ modalTables.sortLabel('cost-products','monthlyRotation') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','sales')">Venta {{ modalTables.sortLabel('cost-products','sales') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','cost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','cost')">Costo {{ modalTables.sortLabel('cost-products','cost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','utility')">Utilidad {{ modalTables.sortLabel('cost-products','utility') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','margin')">% ganancia {{ modalTables.sortLabel('cost-products','margin') }}</button></th>
               </tr>
             </thead>
             <tbody>
-              @for (product of filteredCostProductMovementRows(); track product.productId) {
-                <tr>
+              @for (product of modalTables.pageRows('cost-products',financeTableRows('cost-products'),financeTableConfigs['cost-products']); track product.productId) {
+                <tr [class.yr-modal-selected]="modalTables.selected('cost-products',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-products',product)" (change)="modalTables.toggle('cost-products',product)" /></td>
                   <td>
                     <strong>{{ product.productName }}</strong>
                     <span>{{ product.sku }}</span>
@@ -6743,42 +6792,40 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="8" class="table-feedback-row">
+                  <td colspan="9" class="table-feedback-row">
                     {{ costAnalysisLoading() ? 'Cargando detalle de ventas...' : 'No hay ventas con detalle para el periodo seleccionado.' }}
                   </td>
                 </tr>
               }
             </tbody>
-          </table>
+          </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'cost-products'}" />
         </div>
       </section>
     </section>
   } @else if (activePage() === 'financial-movements') {
-    <section class="dashboard-workspace financial-workspace">
+    <section class="dashboard-workspace finance-ui yr-ui financial-workspace">
       <header class="payroll-topbar financial-topbar">
         <div>
-          <p class="eyebrow">Finanzas</p>
-          <h1>Movimientos financieros</h1>
-          <p>Control de entradas, salidas, caja, transferencias y tarjeta de credito.</p>
+
+          <div class="finance-title"><h1>Módulo de finanzas</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" [attr.aria-expanded]="financePanelOpen('financial-movements-summary')" (click)="toggleFinancePanel('financial-movements-summary')">@if(financePanelOpen('financial-movements-summary')){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}</button></div>
+
         </div>
         <div class="attendance-topbar-actions financial-actions">
-          <input
-            class="financial-period-input"
+          <label class="finance-icon-filter" title="Mes de movimientos"><svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><input
+            class="financial-period-input" aria-label="Mes de movimientos"
             type="month"
             [value]="selectedFinancialPeriod()"
             (input)="updateFinancialPeriod($event)"
-          />
-          <button class="daily-sales-button" type="button" (click)="openFinancialMovementModal()">
-            Registrar movimiento
-          </button>
+          /></label>
+          <button class="daily-sales-button" type="button" (click)="openFinancialMovementModal()" title="Registrar movimiento" aria-label="Registrar movimiento"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button>
         </div>
-      </header>
+      <div class="finance-panel-nav"></div></header>
 
       @if (financialMovementsError() && !financialMovementModalOpen()) {
         <p class="login-error">{{ financialMovementsError() }}</p>
       }
 
-      <section class="payroll-kpis financial-kpis" aria-label="Resumen financiero">
+      <section class="payroll-kpis financial-kpis" aria-label="Resumen financiero" [hidden]="!financePanelOpen('financial-movements-summary')">
         <article class="payroll-card kpi-card financial-kpi-card">
           <span>Entradas del mes</span>
           <strong>{{ financialEntriesTotal() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
@@ -6806,7 +6853,7 @@
         </article>
       </section>
 
-      <section class="payroll-card payroll-chart-card financial-chart-card">
+      <section class="payroll-card payroll-chart-card financial-chart-card" [hidden]="!financePanelOpen('financial-movements-summary')">
         <div class="analytics-heading">
           <div>
             <h2>Tendencia de movimientos</h2>
@@ -6830,31 +6877,31 @@
           <span>{{ financialMovementsLoading() ? 'Cargando...' : (financialDayGroups().length + ' dias') }}</span>
         </div>
         <div class="table-wrap">
-          <table class="invoice-master-table financial-table">
+          <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-movements'}" /><table [attr.data-density]="modalTables.state('finance-movements').density" class="yr-modal-table invoice-master-table financial-table">
             <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Tipo</th>
-                <th>Metodo</th>
-                <th>Aplica a</th>
-                <th>Categoria</th>
-                <th>Descripcion</th>
-                <th>Monto</th>
-                <th>Usuario</th>
-                <th>Estado</th>
+              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','date')">Fecha {{ modalTables.sortLabel('finance-movements','date') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','movementType')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','movementType')">Tipo {{ modalTables.sortLabel('finance-movements','movementType') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','paymentMethod')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','paymentMethod')">Metodo {{ modalTables.sortLabel('finance-movements','paymentMethod') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','target')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','target')">Aplica a {{ modalTables.sortLabel('finance-movements','target') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','category')">Categoria {{ modalTables.sortLabel('finance-movements','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','description')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','description')">Descripcion {{ modalTables.sortLabel('finance-movements','description') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','amount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','amount')">Monto {{ modalTables.sortLabel('finance-movements','amount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','userName')">Usuario {{ modalTables.sortLabel('finance-movements','userName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','status')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','status')">Estado {{ modalTables.sortLabel('finance-movements','status') }}</button></th>
               </tr>
             </thead>
             <tbody>
               @for (dayGroup of financialDayGroups(); track dayGroup.key) {
                 <tr class="invoice-day-group-row financial-day-group-row">
-                  <td colspan="3">
+                  <td colspan="4">
                     <button
                       class="invoice-collapse-button"
                       type="button"
                       [attr.aria-expanded]="isFinancialDayExpanded(dayGroup.key)"
                       (click)="toggleFinancialDay(dayGroup.key)"
                     >
-                      {{ isFinancialDayExpanded(dayGroup.key) ? '-' : '+' }}
+                      @if(isFinancialDayExpanded(dayGroup.key)){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}
                     </button>
                     <strong>{{ dayGroup.label }}</strong>
                   </td>
@@ -6872,14 +6919,14 @@
                 @if (isFinancialDayExpanded(dayGroup.key)) {
                   @for (typeGroup of dayGroup.movementGroups; track typeGroup.key) {
                     <tr class="financial-type-group-row">
-                      <td colspan="3">
+                      <td colspan="4">
                         <button
                           class="invoice-collapse-button"
                           type="button"
                           [attr.aria-expanded]="isFinancialTypeExpanded(typeGroup.key)"
                           (click)="toggleFinancialType(typeGroup.key)"
                         >
-                          {{ isFinancialTypeExpanded(typeGroup.key) ? '-' : '+' }}
+                          @if(isFinancialTypeExpanded(typeGroup.key)){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}
                         </button>
                         <span class="financial-pill" [class.out]="typeGroup.movementType === 'salida'">
                           {{ typeGroup.label }}
@@ -6893,14 +6940,14 @@
                     @if (isFinancialTypeExpanded(typeGroup.key)) {
                       @for (paymentGroup of typeGroup.paymentGroups; track paymentGroup.key) {
                         <tr class="invoice-payment-group-row financial-payment-group-row">
-                          <td colspan="3">
+                          <td colspan="4">
                             <button
                               class="invoice-collapse-button"
                               type="button"
                               [attr.aria-expanded]="isFinancialPaymentExpanded(paymentGroup.key)"
                               (click)="toggleFinancialPayment(paymentGroup.key)"
                             >
-                              {{ isFinancialPaymentExpanded(paymentGroup.key) ? '-' : '+' }}
+                              @if(isFinancialPaymentExpanded(paymentGroup.key)){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}
                             </button>
                             <span class="invoice-payment-pill" [class.cash]="paymentGroup.paymentMethod === 'efectivo'">
                               {{ paymentGroup.label }}
@@ -6913,7 +6960,7 @@
 
                         @if (isFinancialPaymentExpanded(paymentGroup.key)) {
                           @for (movement of paymentGroup.movements; track movement.id) {
-                            <tr>
+                            <tr [class.yr-modal-selected]="modalTables.selected('finance-movements',movement)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-movements',movement)" (change)="modalTables.toggle('finance-movements',movement)" /></td>
                               <td>{{ formatTableDateTime(movement.date) }}</td>
                               <td>
                                 <span class="financial-pill" [class.out]="movement.movementType === 'salida'">
@@ -6936,26 +6983,26 @@
                 }
               } @empty {
                 <tr>
-                  <td colspan="9" class="table-feedback-row">
+                  <td colspan="10" class="table-feedback-row">
                     {{ financialMovementsLoading() ? 'Cargando movimientos financieros...' : 'No hay movimientos en el periodo seleccionado.' }}
                   </td>
                 </tr>
               }
             </tbody>
-          </table>
+          </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-movements'}" />
         </div>
       </section>
 
       @if (financialMovementModalOpen()) {
         <div class="customer-modal-backdrop financial-modal-backdrop" role="presentation" (click)="closeFinancialMovementModal()">
           <section
-            class="customer-modal financial-modal"
+            class="customer-modal yr-ui finance-modal financial-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Registrar movimiento financiero"
             (click)="$event.stopPropagation()"
           >
-            <button class="product-catalog-close" type="button" aria-label="Cerrar" (click)="closeFinancialMovementModal()">×</button>
+            <button class="product-catalog-close" type="button" aria-label="Cerrar" (click)="closeFinancialMovementModal()"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
             <header class="customer-modal-header">
               <div>
                 <p class="eyebrow">Finanzas</p>
@@ -7050,7 +7097,7 @@
       }
     </section>
   } @else if (activePage() === 'petty-cash') {
-    <section class="dashboard-workspace petty-cash-workspace">
+    <section class="dashboard-workspace finance-ui yr-ui petty-cash-workspace">
       @if (pettyCashToastMessage()) {
         <div
           class="inventory-toast petty-cash-toast"
@@ -7059,27 +7106,7 @@
           aria-live="polite"
         >
           <span class="sale-toast-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              @if (pettyCashToastVariant() === 'error') {
-                <path
-                  d="M8 8l8 8M16 8l-8 8"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                />
-              } @else {
-                <path
-                  d="M20 6L9 17l-5-5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                />
-              }
-            </svg>
+            @if(pettyCashToastVariant()==='error'){<svg lucideX class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideCheck class="yr-icon" aria-hidden="true"></svg>}
           </span>
           <div class="sale-toast-copy">
             <strong>{{ pettyCashToastVariant() === 'error' ? 'Cambio no aplicado' : 'Caja chica actualizada' }}</strong>
@@ -7090,29 +7117,24 @@
 
       <header class="dashboard-topbar">
         <div>
-          <p class="eyebrow">Caja chica</p>
-          <h1>Control diario de caja registradora</h1>
-          <p>Seguimiento del conteo fisico, aporte a caja chica y reservas del 1% para catorceavo/aguinaldo y 1% para dividendo.</p>
+
+          <div class="finance-title"><h1>Módulo de caja chica</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" [attr.aria-expanded]="financePanelOpen('petty-cash-summary')" (click)="toggleFinancePanel('petty-cash-summary')">@if(financePanelOpen('petty-cash-summary')){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}</button></div>
+
         </div>
         <div class="dashboard-actions">
-          <button class="daily-sales-button petty-cash-add-button" type="button" (click)="openPettyCashModal()">
-            Agregar registro
-          </button>
+          <button class="daily-sales-button petty-cash-add-button" type="button" (click)="openPettyCashModal()" title="Agregar registro" aria-label="Agregar registro"><svg lucidePlus class="yr-icon" aria-hidden="true"></svg></button>
           <button class="daily-sales-button petty-cash-refresh-button" type="button" [disabled]="pettyCashLoading()" (click)="loadPettyCashData()">
-            {{ pettyCashLoading() ? 'Cargando...' : 'Actualizar' }}
+            <svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Actualizar caja chica</span>
           </button>
-          <div class="user-pill">
-            <span>YR</span>
-            <strong>{{ currentUser()?.nombre || 'Usuario' }}</strong>
-          </div>
+
         </div>
-      </header>
+      <div class="finance-panel-nav"></div></header>
 
       @if (pettyCashError()) {
         <p class="login-error">{{ pettyCashError() }}</p>
       }
 
-      <section class="dashboard-kpis petty-cash-kpis" aria-label="Indicadores de caja chica">
+      <section class="dashboard-kpis petty-cash-kpis" aria-label="Indicadores de caja chica" [hidden]="!financePanelOpen('petty-cash-summary')">
         <article class="analytics-card kpi-card">
           <span>Se pasa a caja chica</span>
           <strong>{{ pettyCashTotals().cashToPetty | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</strong>
@@ -7135,7 +7157,7 @@
         </article>
       </section>
 
-      <section class="analytics-card trend-card petty-cash-trend-card">
+      <section class="analytics-card trend-card petty-cash-trend-card" [hidden]="!financePanelOpen('petty-cash-summary')">
         <div class="analytics-heading">
           <div>
             <h2>Tendencia de caja chica</h2>
@@ -7171,39 +7193,35 @@
         </div>
 
         <div class="table-wrap">
-          <table class="invoice-master-table petty-cash-table">
+          <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-cash'}" /><table [attr.data-density]="modalTables.state('finance-cash').density" class="yr-modal-table invoice-master-table petty-cash-table">
             <thead>
-              <tr>
+              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
                 <th>Acciones</th>
-                <th>Fecha</th>
-                <th>Cajero</th>
-                <th>Monto inicial</th>
-                <th>Monto final</th>
-                <th>Facturacion turno</th>
-                <th>Caja chica</th>
-                <th>Queda registradora</th>
-                <th>Billetera cambio</th>
-                <th>Total caja chica</th>
-                <th>Salidas</th>
-                <th>Motivo</th>
-                <th>Total real</th>
-                <th>Comentarios</th>
-                <th>Beneficio / dividendo</th>
-                <th>Catorceavo / aguinaldo</th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','date')">Fecha {{ modalTables.sortLabel('finance-cash','date') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','userName')">Cajero {{ modalTables.sortLabel('finance-cash','userName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','initialAmount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','initialAmount')">Monto inicial {{ modalTables.sortLabel('finance-cash','initialAmount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','finalAmount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','finalAmount')">Monto final {{ modalTables.sortLabel('finance-cash','finalAmount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','turnBilling')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','turnBilling')">Facturacion turno {{ modalTables.sortLabel('finance-cash','turnBilling') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashToPetty')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashToPetty')">Caja chica {{ modalTables.sortLabel('finance-cash','cashToPetty') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','registerBalance')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','registerBalance')">Queda registradora {{ modalTables.sortLabel('finance-cash','registerBalance') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','changeWallet')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','changeWallet')">Billetera cambio {{ modalTables.sortLabel('finance-cash','changeWallet') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','pettyCashTotal')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','pettyCashTotal')">Total caja chica {{ modalTables.sortLabel('finance-cash','pettyCashTotal') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashOut')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashOut')">Salidas {{ modalTables.sortLabel('finance-cash','cashOut') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','reason')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','reason')">Motivo {{ modalTables.sortLabel('finance-cash','reason') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','realCashTotal')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','realCashTotal')">Total real {{ modalTables.sortLabel('finance-cash','realCashTotal') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','comments')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','comments')">Comentarios {{ modalTables.sortLabel('finance-cash','comments') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','dividendReserve')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','dividendReserve')">Beneficio / dividendo {{ modalTables.sortLabel('finance-cash','dividendReserve') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','fourteenthReserve')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','fourteenthReserve')">Catorceavo / aguinaldo {{ modalTables.sortLabel('finance-cash','fourteenthReserve') }}</button></th>
               </tr>
             </thead>
             <tbody>
-              @for (row of paginatedPettyCashRows(); track row.id) {
-                <tr>
+              @for (row of modalTables.pageRows('finance-cash',financeTableRows('finance-cash'),financeTableConfigs['finance-cash']); track row.id) {
+                <tr [class.yr-modal-selected]="modalTables.selected('finance-cash',row)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-cash',row)" (change)="modalTables.toggle('finance-cash',row)" /></td>
                   <td>
                     <div class="petty-cash-row-actions">
-                      <button type="button" class="edit" (click)="editPettyCashRow(row)">
-                        Editar
-                      </button>
+                      <button type="button" class="edit" (click)="editPettyCashRow(row)" title="Editar" aria-label="Editar"><svg lucidePencil class="yr-icon" aria-hidden="true"></svg></button>
                       @if (row.source !== 'base') {
-                        <button type="button" class="danger" [disabled]="pettyCashSaving()" (click)="openPettyCashDeleteModal(row)">
-                          Eliminar
-                        </button>
+                        <button type="button" class="danger" [disabled]="pettyCashSaving()" (click)="openPettyCashDeleteModal(row)" title="Eliminar" aria-label="Eliminar"><svg lucideBan class="yr-icon" aria-hidden="true"></svg></button>
                       } @else {
                         <span class="petty-cash-protected-pill">Base</span>
                       }
@@ -7227,13 +7245,13 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="15" class="table-feedback-row">
+                  <td colspan="17" class="table-feedback-row">
                     {{ pettyCashLoading() ? 'Cargando historico de caja chica...' : 'No hay cortes diarios registrados.' }}
                   </td>
                 </tr>
               }
             </tbody>
-          </table>
+          </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-cash'}" />
         </div>
         <div class="inventory-pagination petty-cash-pagination">
           <span>
@@ -7241,13 +7259,9 @@
             {{ pettyCashRows().length }} movimientos
           </span>
           <div class="inventory-pagination-actions">
-            <button type="button" (click)="previousPettyCashPage()" [disabled]="pettyCashPage() === 1">
-              Anterior
-            </button>
+            <button type="button" (click)="previousPettyCashPage()" [disabled]="pettyCashPage() === 1" title="Anterior" aria-label="Anterior"><svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg></button>
             <strong>Pagina {{ pettyCashPage() }} de {{ pettyCashPageCount() }}</strong>
-            <button type="button" (click)="nextPettyCashPage()" [disabled]="pettyCashPage() === pettyCashPageCount()">
-              Siguiente
-            </button>
+            <button type="button" (click)="nextPettyCashPage()" [disabled]="pettyCashPage() === pettyCashPageCount()" title="Siguiente" aria-label="Siguiente"><svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg></button>
           </div>
         </div>
       </section>
@@ -7255,7 +7269,7 @@
       @if (pettyCashModalOpen()) {
         <div class="customer-modal-backdrop petty-cash-modal-backdrop" role="presentation" (click)="closePettyCashModal()">
           <section
-            class="customer-modal petty-cash-modal"
+            class="customer-modal yr-ui finance-modal petty-cash-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Agregar registro de caja chica"
@@ -7293,7 +7307,7 @@
                         : 'Nuevo registro'
                   }}
                 </span>
-                <button class="ghost-button" type="button" (click)="closePettyCashModal()">Cerrar</button>
+                <button class="ghost-button" type="button" (click)="closePettyCashModal()" title="Cerrar" aria-label="Cerrar"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
               </div>
             </div>
 
@@ -7379,23 +7393,14 @@
       @if (pettyCashDeleteTarget(); as deleteRow) {
         <div class="customer-modal-backdrop petty-cash-modal-backdrop" role="presentation" (click)="closePettyCashDeleteModal()">
           <section
-            class="customer-modal petty-cash-delete-modal"
+            class="customer-modal yr-ui finance-modal petty-cash-delete-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Confirmar eliminacion de caja chica"
             (click)="$event.stopPropagation()"
           >
             <div class="petty-cash-delete-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M7 7l10 10M17 7L7 17"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.4"
-                />
-              </svg>
+              <svg lucideInfo class="yr-icon" aria-hidden="true"></svg>
             </div>
             <div>
               <p class="eyebrow">Confirmar eliminacion</p>
@@ -7428,15 +7433,15 @@
       }
     </section>
   } @else if (activePage() === 'sales-profitability') {
-    <section class="dashboard-workspace profitability-workspace">
+    <section class="dashboard-workspace finance-ui yr-ui profitability-workspace">
       <header class="dashboard-topbar profitability-topbar">
         <div>
-          <p class="eyebrow">Ventas y Rentabilidad</p>
-          <h1>Salud financiera del negocio</h1>
-          <p>KPIs, utilidad real, clientes, productos, alertas y kardex consolidados desde ventas, inventario, compras y costos.</p>
+
+          <div class="finance-title"><h1>Ventas y rentabilidad</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" [attr.aria-expanded]="financePanelOpen('sales-profitability-summary')" (click)="toggleFinancePanel('sales-profitability-summary')">@if(financePanelOpen('sales-profitability-summary')){<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}</button></div>
+
         </div>
         <div class="dashboard-actions">
-          <select
+          <label class="finance-icon-filter" title="Mes de rentabilidad"><svg lucideCalendarDays class="yr-icon" aria-hidden="true"></svg><select
             class="profitability-month-select"
             [value]="selectedSalesProfitabilityPeriod()"
             (change)="updateSalesProfitabilityPeriod($event)"
@@ -7445,15 +7450,12 @@
             @for (period of salesProfitabilityMonthOptions(); track period.key) {
               <option [value]="period.key">{{ period.label }}</option>
             }
-          </select>
+          </select></label>
           @if (salesProfitabilityAnalytics(); as analytics) {
-            <div class="user-pill">
-              <span>BI</span>
-              <strong>{{ analytics.generatedAt | date: 'short' }}</strong>
-            </div>
+
           }
         </div>
-      </header>
+      <div class="finance-panel-nav"><button class="yr-button yr-button-icon" type="button" title="Análisis de rentabilidad" aria-label="Análisis de rentabilidad" [class.active]="financePanelOpen('sales-profitability-analysis')" [attr.aria-expanded]="financePanelOpen('sales-profitability-analysis')" (click)="toggleFinancePanel('sales-profitability-analysis')"><svg lucideCalculator class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" type="button" title="Productos y clientes" aria-label="Productos y clientes" [class.active]="financePanelOpen('sales-profitability-rankings')" [attr.aria-expanded]="financePanelOpen('sales-profitability-rankings')" (click)="toggleFinancePanel('sales-profitability-rankings')"><svg lucideUsers class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" type="button" title="Reportes" aria-label="Reportes" [class.active]="financePanelOpen('sales-profitability-reports')" [attr.aria-expanded]="financePanelOpen('sales-profitability-reports')" (click)="toggleFinancePanel('sales-profitability-reports')"><svg lucideFileText class="yr-icon" aria-hidden="true"></svg></button></div></header>
 
       @if (salesProfitabilityError()) {
         <p class="login-error">{{ salesProfitabilityError() }}</p>
@@ -7464,7 +7466,7 @@
           <strong>Cargando analisis financiero...</strong>
         </section>
       } @else if (salesProfitabilityAnalytics(); as analytics) {
-        <section class="dashboard-kpis profitability-kpis" aria-label="Indicadores de ventas y rentabilidad">
+        <section class="dashboard-kpis profitability-kpis" aria-label="Indicadores de ventas y rentabilidad" [hidden]="!financePanelOpen('sales-profitability-summary')">
           @for (kpi of salesProfitabilityKpiRows(); track kpi.key) {
             <article class="analytics-card kpi-card profitability-kpi-card">
               <span>{{ kpi.label }}</span>
@@ -7488,7 +7490,7 @@
           }
         </section>
 
-        <section class="profitability-financial-grid">
+        <section class="profitability-financial-grid" [hidden]="!financePanelOpen('sales-profitability-analysis')">
           <article class="analytics-card profitability-financial-card">
             <div class="analytics-heading">
               <div>
@@ -7549,7 +7551,7 @@
           </article>
         </section>
 
-        <section class="profitability-chart-grid" aria-label="Graficos de ventas y utilidad">
+        <section class="profitability-chart-grid" aria-label="Graficos de ventas y utilidad" [hidden]="!financePanelOpen('sales-profitability-summary')">
           <article class="analytics-card trend-card ticket-trend-card profitability-sales-trend-card">
             <div class="analytics-heading">
               <div>
@@ -7667,7 +7669,7 @@
           </article>
         </section>
 
-        <section class="profitability-table-grid">
+        <section class="profitability-table-grid" [hidden]="!financePanelOpen('sales-profitability-rankings')">
           <article class="analytics-card profitability-table-card">
             <div class="analytics-heading">
               <div>
@@ -7676,19 +7678,19 @@
               </div>
             </div>
             <div class="table-wrap">
-              <table class="invoice-master-table">
+              <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-sold'}" /><table [attr.data-density]="modalTables.state('finance-sold').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Ventas</th>
-                    <th>Utilidad</th>
-                    <th>Margen</th>
+                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','productName')">Producto {{ modalTables.sortLabel('finance-sold','productName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','quantity')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','quantity')">Cantidad {{ modalTables.sortLabel('finance-sold','quantity') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','sales')">Ventas {{ modalTables.sortLabel('finance-sold','sales') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','utility')">Utilidad {{ modalTables.sortLabel('finance-sold','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','margin')">Margen {{ modalTables.sortLabel('finance-sold','margin') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (product of profitabilityTopSoldRows(); track product.productId) {
-                    <tr>
+                  @for (product of modalTables.pageRows('finance-sold',financeTableRows('finance-sold'),financeTableConfigs['finance-sold']); track product.productId) {
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-sold',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-sold',product)" (change)="modalTables.toggle('finance-sold',product)" /></td>
                       <td><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
                       <td>{{ product.quantity || 0 | number: '1.0-2' }}</td>
                       <td>{{ product.sales || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
@@ -7696,22 +7698,12 @@
                       <td>{{ (product.margin || 0) | percent: '1.1-2' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="5" class="table-feedback-row">Sin ventas de productos.</td></tr>
+                    <tr><td colspan="6" class="table-feedback-row">Sin ventas de productos.</td></tr>
                   }
                 </tbody>
-              </table>
+              </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-sold'}" />
             </div>
-            <div class="profitability-pagination">
-              <span>
-                {{ profitabilityPageStart(profitabilityTopSoldPage(), analytics.products.topSold.length) }}-{{ profitabilityPageEnd(profitabilityTopSoldPage(), analytics.products.topSold.length) }}
-                de {{ analytics.products.topSold.length }}
-              </span>
-              <div>
-                <button type="button" [disabled]="profitabilityTopSoldPage() === 1" (click)="setProfitabilityTablePage('topSold', profitabilityTopSoldPage() - 1, analytics.products.topSold.length)">Anterior</button>
-                <strong>{{ profitabilityTopSoldPage() }} / {{ profitabilityPageCount(analytics.products.topSold.length) }}</strong>
-                <button type="button" [disabled]="profitabilityTopSoldPage() === profitabilityPageCount(analytics.products.topSold.length)" (click)="setProfitabilityTablePage('topSold', profitabilityTopSoldPage() + 1, analytics.products.topSold.length)">Siguiente</button>
-              </div>
-            </div>
+
           </article>
 
           <article class="analytics-card profitability-table-card">
@@ -7722,19 +7714,19 @@
               </div>
             </div>
             <div class="table-wrap">
-              <table class="invoice-master-table">
+              <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-profit'}" /><table [attr.data-density]="modalTables.state('finance-profit').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Precio</th>
-                    <th>Costo</th>
-                    <th>Utilidad</th>
-                    <th>Margen</th>
+                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','productName')">Producto {{ modalTables.sortLabel('finance-profit','productName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','salePrice')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','salePrice')">Precio {{ modalTables.sortLabel('finance-profit','salePrice') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','cost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','cost')">Costo {{ modalTables.sortLabel('finance-profit','cost') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','utility')">Utilidad {{ modalTables.sortLabel('finance-profit','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','margin')">Margen {{ modalTables.sortLabel('finance-profit','margin') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (product of profitabilityTopProfitableRows(); track product.productId) {
-                    <tr>
+                  @for (product of modalTables.pageRows('finance-profit',financeTableRows('finance-profit'),financeTableConfigs['finance-profit']); track product.productId) {
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-profit',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-profit',product)" (change)="modalTables.toggle('finance-profit',product)" /></td>
                       <td><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
                       <td>{{ product.salePrice || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
                       <td>{{ product.cost || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
@@ -7742,22 +7734,12 @@
                       <td>{{ (product.margin || 0) | percent: '1.1-2' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="5" class="table-feedback-row">Sin utilidad por producto.</td></tr>
+                    <tr><td colspan="6" class="table-feedback-row">Sin utilidad por producto.</td></tr>
                   }
                 </tbody>
-              </table>
+              </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-profit'}" />
             </div>
-            <div class="profitability-pagination">
-              <span>
-                {{ profitabilityPageStart(profitabilityTopProfitablePage(), analytics.products.topProfitable.length) }}-{{ profitabilityPageEnd(profitabilityTopProfitablePage(), analytics.products.topProfitable.length) }}
-                de {{ analytics.products.topProfitable.length }}
-              </span>
-              <div>
-                <button type="button" [disabled]="profitabilityTopProfitablePage() === 1" (click)="setProfitabilityTablePage('topProfitable', profitabilityTopProfitablePage() - 1, analytics.products.topProfitable.length)">Anterior</button>
-                <strong>{{ profitabilityTopProfitablePage() }} / {{ profitabilityPageCount(analytics.products.topProfitable.length) }}</strong>
-                <button type="button" [disabled]="profitabilityTopProfitablePage() === profitabilityPageCount(analytics.products.topProfitable.length)" (click)="setProfitabilityTablePage('topProfitable', profitabilityTopProfitablePage() + 1, analytics.products.topProfitable.length)">Siguiente</button>
-              </div>
-            </div>
+
           </article>
 
           <article class="analytics-card profitability-table-card">
@@ -7768,19 +7750,19 @@
               </div>
             </div>
             <div class="table-wrap">
-              <table class="invoice-master-table">
+              <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-customers'}" /><table [attr.data-density]="modalTables.state('finance-customers').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Facturas</th>
-                    <th>Ventas</th>
-                    <th>Utilidad</th>
-                    <th>Ultima venta</th>
+                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','customerName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','customerName')">Cliente {{ modalTables.sortLabel('finance-customers','customerName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','invoices')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','invoices')">Facturas {{ modalTables.sortLabel('finance-customers','invoices') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','sales')">Ventas {{ modalTables.sortLabel('finance-customers','sales') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','utility')">Utilidad {{ modalTables.sortLabel('finance-customers','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','lastSale')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','lastSale')">Ultima venta {{ modalTables.sortLabel('finance-customers','lastSale') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (customer of profitabilityCustomerRows(); track customer.customerId) {
-                    <tr>
+                  @for (customer of modalTables.pageRows('finance-customers',financeTableRows('finance-customers'),financeTableConfigs['finance-customers']); track customer.customerId) {
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-customers',customer)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-customers',customer)" (change)="modalTables.toggle('finance-customers',customer)" /></td>
                       <td><strong>{{ customer.customerName }}</strong></td>
                       <td>{{ customer.invoices }}</td>
                       <td>{{ customer.sales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
@@ -7788,22 +7770,12 @@
                       <td>{{ customer.lastSale | date: 'short' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="5" class="table-feedback-row">Sin clientes con ventas.</td></tr>
+                    <tr><td colspan="6" class="table-feedback-row">Sin clientes con ventas.</td></tr>
                   }
                 </tbody>
-              </table>
+              </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-customers'}" />
             </div>
-            <div class="profitability-pagination">
-              <span>
-                {{ profitabilityPageStart(profitabilityCustomersPage(), analytics.customers.topRevenue.length) }}-{{ profitabilityPageEnd(profitabilityCustomersPage(), analytics.customers.topRevenue.length) }}
-                de {{ analytics.customers.topRevenue.length }}
-              </span>
-              <div>
-                <button type="button" [disabled]="profitabilityCustomersPage() === 1" (click)="setProfitabilityTablePage('customers', profitabilityCustomersPage() - 1, analytics.customers.topRevenue.length)">Anterior</button>
-                <strong>{{ profitabilityCustomersPage() }} / {{ profitabilityPageCount(analytics.customers.topRevenue.length) }}</strong>
-                <button type="button" [disabled]="profitabilityCustomersPage() === profitabilityPageCount(analytics.customers.topRevenue.length)" (click)="setProfitabilityTablePage('customers', profitabilityCustomersPage() + 1, analytics.customers.topRevenue.length)">Siguiente</button>
-              </div>
-            </div>
+
           </article>
 
           <article class="analytics-card profitability-table-card">
@@ -7881,24 +7853,24 @@
           </div>
 
           <div class="table-wrap">
-            <table class="invoice-master-table">
+            <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-kardex'}" /><table [attr.data-density]="modalTables.state('finance-kardex').density" class="yr-modal-table invoice-master-table">
               <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Documento</th>
-                  <th>Movimiento</th>
-                  <th>Producto</th>
-                  <th>Entrada</th>
-                  <th>Salida</th>
-                  <th>Existencia</th>
-                  <th>Costo unitario</th>
-                  <th>Costo promedio</th>
-                  <th>Usuario</th>
+                <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','date')">Fecha {{ modalTables.sortLabel('finance-kardex','date') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','document')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','document')">Documento {{ modalTables.sortLabel('finance-kardex','document') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','movementType')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','movementType')">Movimiento {{ modalTables.sortLabel('finance-kardex','movementType') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','productName')">Producto {{ modalTables.sortLabel('finance-kardex','productName') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','entrada')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','entrada')">Entrada {{ modalTables.sortLabel('finance-kardex','entrada') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','salida')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','salida')">Salida {{ modalTables.sortLabel('finance-kardex','salida') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','existencia')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','existencia')">Existencia {{ modalTables.sortLabel('finance-kardex','existencia') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','unitCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','unitCost')">Costo unitario {{ modalTables.sortLabel('finance-kardex','unitCost') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','averageCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','averageCost')">Costo promedio {{ modalTables.sortLabel('finance-kardex','averageCost') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','userName')">Usuario {{ modalTables.sortLabel('finance-kardex','userName') }}</button></th>
                 </tr>
               </thead>
               <tbody>
-                @for (row of profitabilityKardexRows(); track row.id) {
-                  <tr>
+                @for (row of modalTables.pageRows('finance-kardex',financeTableRows('finance-kardex'),financeTableConfigs['finance-kardex']); track row.id) {
+                  <tr [class.yr-modal-selected]="modalTables.selected('finance-kardex',row)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-kardex',row)" (change)="modalTables.toggle('finance-kardex',row)" /></td>
                     <td>{{ row.date | date: 'short' }}</td>
                     <td>{{ row.document }}</td>
                     <td>{{ row.movementType }}</td>
@@ -7911,25 +7883,15 @@
                     <td>{{ row.userName }}</td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="10" class="table-feedback-row">Sin movimientos para los filtros aplicados.</td></tr>
+                  <tr><td colspan="11" class="table-feedback-row">Sin movimientos para los filtros aplicados.</td></tr>
                 }
               </tbody>
-            </table>
+            </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-kardex'}" />
           </div>
-          <div class="profitability-pagination">
-            <span>
-              {{ profitabilityPageStart(profitabilityKardexPage(), filteredSalesProfitabilityKardexRows().length) }}-{{ profitabilityPageEnd(profitabilityKardexPage(), filteredSalesProfitabilityKardexRows().length) }}
-              de {{ filteredSalesProfitabilityKardexRows().length }}
-            </span>
-            <div>
-              <button type="button" [disabled]="profitabilityKardexPage() === 1" (click)="setProfitabilityTablePage('kardex', profitabilityKardexPage() - 1, filteredSalesProfitabilityKardexRows().length)">Anterior</button>
-              <strong>{{ profitabilityKardexPage() }} / {{ profitabilityPageCount(filteredSalesProfitabilityKardexRows().length) }}</strong>
-              <button type="button" [disabled]="profitabilityKardexPage() === profitabilityPageCount(filteredSalesProfitabilityKardexRows().length)" (click)="setProfitabilityTablePage('kardex', profitabilityKardexPage() + 1, filteredSalesProfitabilityKardexRows().length)">Siguiente</button>
-            </div>
-          </div>
+
         </section>
 
-        <section class="analytics-card profitability-reports-card">
+        <section class="analytics-card profitability-reports-card" [hidden]="!financePanelOpen('sales-profitability-reports')">
           <div class="analytics-heading">
             <div>
               <h2>Reportes</h2>
@@ -7941,9 +7903,9 @@
               <article>
                 <strong>{{ report }}</strong>
                 <div>
-                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'pdf')">PDF</button>
-                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'excel')">Excel</button>
-                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'csv')">CSV</button>
+                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'pdf')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>PDF</button>
+                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'excel')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>Excel</button>
+                  <button type="button" (click)="exportSalesProfitabilityReport(report, 'csv')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>CSV</button>
                 </div>
               </article>
             }
@@ -8128,7 +8090,7 @@
             </div>
             <div class="system-health-broken-images">
               @for (image of health.brokenImages || []; track image.productId + image.imageUrl) {
-                <button type="button" (click)="setPage('inventory-sheet')">
+                <button [hidden]="!canAccessModule('inventory-sheet')" type="button" (click)="setPage('inventory-sheet')">
                   <strong>{{ image.sku || ('#' + image.productId) }}</strong>
                   <span>{{ image.name }}</span>
                 </button>

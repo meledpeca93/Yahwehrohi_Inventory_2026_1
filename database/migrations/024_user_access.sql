@@ -1,0 +1,16 @@
+-- Additive access/session structures; preserves dbo.usuario and historical references.
+IF OBJECT_ID('dbo.USUARIO_ACCESO','U') IS NULL
+CREATE TABLE dbo.USUARIO_ACCESO (
+ ID_USUARIO int NOT NULL PRIMARY KEY REFERENCES dbo.usuario(id_usuario),
+ PERFIL nvarchar(25) NOT NULL,
+ PERMISOS nvarchar(max) NOT NULL,
+ ACTUALIZADO_EN datetime2 NOT NULL DEFAULT SYSUTCDATETIME(),
+ CONSTRAINT CK_USUARIO_ACCESO_PERFIL CHECK (PERFIL IN (N'Administrador',N'Operador',N'Consulta')),
+ CONSTRAINT CK_USUARIO_ACCESO_JSON CHECK (ISJSON(PERMISOS)=1)
+);
+IF OBJECT_ID('dbo.USUARIO_SESION','U') IS NULL
+CREATE TABLE dbo.USUARIO_SESION (
+ TOKEN_HASH char(64) NOT NULL PRIMARY KEY,
+ ID_USUARIO int NOT NULL REFERENCES dbo.usuario(id_usuario),
+ VENCE_EN datetime2 NOT NULL
+);

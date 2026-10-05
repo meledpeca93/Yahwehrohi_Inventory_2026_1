@@ -101,6 +101,9 @@ try {
 
 app.use(cors({ origin: ['http://localhost:4200', 'http://127.0.0.1:4200'] }));
 app.use(express.json());
+const userAccess=require('./modules/users/users.routes');
+app.use('/api',userAccess.authorizeHttp);
+app.use('/api',userAccess.userRoutes());
 
 const imageAssetsPrefix = 'assets/img/';
 const imageAssetsPath = path.join(__dirname, '..', 'src', 'img');
@@ -437,7 +440,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     return res.json({
-      user,
+      user: await require('./modules/users/users.service').createSession(user),
     });
   } catch (error) {
     try {
@@ -448,7 +451,7 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(401).json({ message: 'Credenciales invalidas o usuario inactivo' });
       }
 
-      return res.json({ user });
+      return res.json({ user: await require('./modules/users/users.service').createSession(user) });
     } catch (retryError) {
       console.error('Error al iniciar sesion:', retryError.message || retryError);
     }
@@ -685,7 +688,7 @@ app.put('/api/daily-cuts/:id/cash-management', async (req, res) => {
 
 app.delete('/api/daily-cuts/:id/cash-management', async (req, res) => {
   try {
-    const result = await deleteDailyCutCashManagement(req.params.id, req.query.userId);
+    const result = await deleteDailyCutCashManagement(req.params.id, req.authenticatedUser.id);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al eliminar corte de caja chica' });
@@ -721,7 +724,7 @@ app.put('/api/petty-cash/:id', async (req, res) => {
 
 app.delete('/api/petty-cash/:id', async (req, res) => {
   try {
-    const result = await deletePettyCashRecord(req.params.id, req.query.userId);
+    const result = await deletePettyCashRecord(req.params.id, req.authenticatedUser.id);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Error al eliminar caja chica' });

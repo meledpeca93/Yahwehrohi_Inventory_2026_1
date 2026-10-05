@@ -126,3 +126,11 @@
 - Backend: `getSystemHealth`, resolucion de imagenes en `server/server.js` y `electron/main.js`.
 - Endpoints: `GET /api/health`, `GET /api/system-health`, `GET /api/product-images/:fileName`, `GET /api/product-images-local/:encodedPath`, `GET /api/product-image-thumbnails/:source/:fileRef`.
 - Estado: implementado.
+
+## Usuarios y accesos (05/10/2026)
+
+Configuración → Usuarios, visible para administradores. UI en `src/app/app.ts`, `app.html`, `yr-ui.css`; transporte HTTP/IPC en `server/modules/users`, `server/server.js`, `electron/main.js` y `preload.js`. CRUD, baja lógica, reactivación y permisos por módulo; pruebas `server/modules/users/users.test.js` y `src/app/users-management.spec.ts`.
+
+### Presentación Finanzas UI 2.0 (05/10/2026)
+
+Los cuatro submódulos de Finanzas comparten `finance-ui`, paneles contraíbles en `financePanels` y configuración de ocho tablas con `ModalTableState`. `src/app/finance-presentation.spec.ts` cubre entrada cerrada, filtros/páginas sin cambiar KPIs, CSV/selección y colores. No cambia transportes ni reglas de cálculo.

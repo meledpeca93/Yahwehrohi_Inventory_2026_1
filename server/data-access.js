@@ -661,23 +661,22 @@ async function loginUser(usuario, pass) {
   const result = await pool
     .request()
     .input('usuario', sql.VarChar(60), usuario)
-    .input('pass', sql.VarChar(255), pass)
     .query(`
       SELECT TOP 1
         id_usuario,
         nombre,
         usuario,
         rol,
-        activo
+        activo,
+        pass
       FROM usuario
       WHERE usuario = @usuario
-        AND pass = @pass
         AND activo = 1
     `);
 
   const user = result.recordset[0];
 
-  if (!user) {
+  if (!user || !(await require('./modules/users/access').verifyPassword(pass,user.pass))) {
     return null;
   }
 
@@ -10750,6 +10749,7 @@ module.exports = {
   listActiveUsers,
   listAttendanceUsers,
   loginUser,
+  insertAuditRecord,
   createQuote,
   registerPurchase,
   registerQuickInventoryPurchase,

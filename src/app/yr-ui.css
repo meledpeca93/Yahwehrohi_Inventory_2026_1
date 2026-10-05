@@ -1595,3 +1595,228 @@
 :host .app-shell .yr-attendance-main .attendance-topbar-actions button[aria-pressed=true] { background: var(--yr-primary-soft); color: var(--yr-primary); border-color: var(--yr-primary); }
 :host .app-shell .yr-attendance-main { grid-template-rows: none; align-items: start; }
 :host .app-shell .yr-attendance-main > :is(.attendance-schedule-card,.attendance-grid) { margin: 0; min-height: 0; }
+
+/* Configuración y gestión de usuarios: estilos claros independientes del tema guardado. */
+:host .app-shell .settings-modal.yr-ui { --bg:var(--yr-bg); --ink:var(--yr-text); --muted:var(--yr-text-muted); --line:var(--yr-border); --panel:var(--yr-surface); --panel-soft:var(--yr-surface-soft); --field-bg:#fff; --card-bg:var(--yr-surface); --primary:var(--yr-primary); background:var(--yr-surface); color:var(--yr-text); padding:20px; align-content:start; grid-auto-rows:max-content; }
+:host .app-shell .settings-modal.yr-ui .settings-modal-header { padding:0; border:0; min-height:38px; background:transparent; }
+:host .app-shell .settings-modal.yr-ui .yr-settings-title { display:flex; align-items:center; gap:12px; }
+:host .app-shell .settings-modal.yr-ui .settings-modal-header h2 { margin:0; font-size:1.35rem; font-weight:650; color:var(--yr-text); }
+:host .app-shell .settings-modal.yr-ui .settings-modal-body { grid-template-columns:190px minmax(0,1fr); gap:16px; min-height:0; }
+:host .app-shell .settings-modal.yr-ui .settings-tabs { padding:0; background:transparent; border:0; gap:6px; }
+:host .app-shell .settings-modal.yr-ui .settings-tabs button { display:flex; align-items:center; gap:10px; padding:10px; background:var(--yr-surface); color:var(--yr-text); border:1px solid transparent; border-radius:10px; font-size:.85rem; font-weight:600; }
+:host .app-shell .settings-modal.yr-ui .settings-tabs button.active { background:var(--yr-primary-soft); border-color:var(--yr-primary); color:var(--yr-primary); }
+:host .app-shell .settings-modal.yr-ui .settings-panel { padding:0; background:transparent; min-height:0; }
+:host .app-shell .settings-modal.yr-ui .settings-panel[hidden] { display:none; }
+:host .app-shell .settings-modal.yr-ui :is(.settings-field,.settings-switch,.settings-info,.settings-card) { background:var(--yr-surface-soft); color:var(--yr-text); border-color:var(--yr-border); border-radius:12px; box-shadow:none; }
+:host .app-shell .settings-modal.yr-ui :is(label,span,p,strong,small,h3,h4) { color:var(--yr-text); text-transform:none; letter-spacing:normal; }
+:host .app-shell .settings-modal.yr-ui :is(p,small) { color:var(--yr-text-muted); }
+:host .app-shell .settings-modal.yr-ui .settings-close-button { display:grid; place-items:center; width:38px; height:38px; padding:0; background:var(--yr-surface-soft); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:10px; }
+:host .app-shell .settings-modal.yr-ui .settings-users { display:grid; gap:12px; min-width:0; }
+:host .app-shell .settings-modal.yr-ui :is(.settings-user-editor,.settings-user-confirm) { padding:16px; border:1px solid var(--yr-border); border-radius:12px; background:var(--yr-surface-soft); }
+:host .app-shell .settings-modal.yr-ui .settings-user-editor fieldset { padding:0; border:0; min-width:0; }
+:host .app-shell .settings-modal.yr-ui :is(.settings-user-fields,.settings-access-grid) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+:host .app-shell .settings-modal.yr-ui :is(.settings-user-fields,.settings-access-grid) label { display:grid; gap:6px; }
+:host .app-shell .settings-modal.yr-ui .settings-user-active { display:flex; align-items:center; }
+:host .app-shell .settings-modal.yr-ui .settings-user-actions { display:flex; gap:8px; justify-content:center; margin-top:12px; }
+:host .app-shell .settings-modal.yr-ui .yr-button-icon { width:38px; height:38px; padding:0; }
+:host .app-shell .settings-modal.yr-ui button[hidden] { display:none; }
+:host .app-shell .sidebar button[hidden] { display:none; }
+@media(max-width:800px){
+ :host .app-shell .settings-modal.yr-ui .settings-modal-body { grid-template-columns:minmax(0,1fr); }
+ :host .app-shell .settings-modal.yr-ui .settings-tabs { display:flex; flex-wrap:wrap; }
+}
+@media(max-width:500px){
+ :host .app-shell .settings-modal.yr-ui :is(.settings-user-fields,.settings-access-grid) { grid-template-columns:minmax(0,1fr); }
+}
+
+:host .app-shell .settings-modal.yr-ui :is(.settings-action-button,.settings-stepper button,.settings-segmented button) { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); font-weight:600; box-shadow:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+:host .app-shell .settings-modal.yr-ui .settings-segmented button.active { background:var(--yr-primary-soft); color:var(--yr-primary); border-color:var(--yr-primary); }
+:host .app-shell .settings-modal.yr-ui .settings-action-button.danger { background:var(--yr-danger-soft); color:var(--yr-danger); border-color:var(--yr-danger); }
+:host .app-shell .settings-modal.yr-ui .table-wrap { overflow-x:auto; }
+
+.sidebar .nav-module[hidden] { display: none; }
+
+:host .app-shell .settings-nav-item::before { display:none; }
+:host .app-shell .settings-nav-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 32px; height:32px; border-radius:9px; background:var(--yr-primary,#0f766e); color:white; }
+:host .app-shell .settings-nav-icon svg { width:20px; height:20px; }
+
+:host .app-shell .settings-user-modal-backdrop { position:fixed; inset:0; z-index:20; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.45); backdrop-filter:blur(3px); }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal { width:min(820px,100%); max-height:calc(100dvh - 40px); overflow:auto; border-radius:16px; background:var(--yr-surface); box-shadow:0 24px 70px rgba(15,23,42,.24); }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal .settings-user-editor { margin:0; padding:20px; background:var(--yr-surface); }
+:host .app-shell .settings-user-modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+:host .app-shell .settings-user-modal-header h3 { margin:0; }
+
+/* Editor de usuarios: cabecera y acciones fijas, contenido compacto. */
+:host .app-shell .settings-modal.yr-ui .settings-user-modal { width:min(880px,100%); overflow:hidden; }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal .settings-user-editor { padding:0; border:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; max-height:calc(100dvh - 48px); }
+:host .app-shell .settings-user-modal-header { margin:0; padding:18px 22px; border-bottom:1px solid var(--yr-border); }
+:host .app-shell .user-editor-heading { display:flex; align-items:center; gap:12px; }
+:host .app-shell .user-editor-symbol { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:var(--yr-primary-soft); color:var(--yr-primary); }
+:host .app-shell .user-editor-heading p { margin:5px 0 0; font-size:12px; }
+:host .app-shell .settings-modal.yr-ui .user-profile-badge { display:inline-block; margin-left:8px; padding:3px 8px; border-radius:6px; background:var(--yr-primary-soft); color:var(--yr-primary); font-size:11px; font-weight:600; }
+:host .app-shell .settings-modal.yr-ui .settings-user-editor .user-editor-body { display:grid; grid-template-columns:260px minmax(0,1fr); overflow:auto; margin:0; padding:0; }
+:host .app-shell .user-account-panel { padding:20px; background:var(--yr-surface-soft); border-right:1px solid var(--yr-border); }
+:host .app-shell .settings-modal.yr-ui .user-account-panel .settings-user-fields { grid-template-columns:minmax(0,1fr); gap:16px; }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal h4 { margin:0 0 18px; font-size:14px; font-weight:700; }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal label { font-size:12px; font-weight:600; }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal :is(input:not([type=checkbox]),select) { min-height:40px; height:40px; width:100%; box-sizing:border-box; padding:8px 10px; font-size:13px; }
+:host .app-shell .settings-modal.yr-ui .settings-user-modal small { font-size:11px; font-weight:400; line-height:1.5; }
+:host .app-shell .settings-modal.yr-ui .user-account-status { display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--yr-border); margin-top:20px; padding-top:16px; }
+:host .app-shell .user-account-status span { display:grid; gap:4px; }
+:host .app-shell .user-account-status input { width:18px; height:18px; accent-color:var(--yr-primary); }
+:host .app-shell .user-permissions-panel { padding:20px; min-width:0; }
+:host .app-shell .user-permissions-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+:host .app-shell .settings-modal.yr-ui .user-permissions-heading h4 { margin:0; }
+:host .app-shell .user-permissions-heading span { font-size:11px; }
+:host .app-shell .user-permissions-help { font-size:12px; margin:8px 0 14px; }
+:host .app-shell .user-permission-legend { display:flex; flex-wrap:wrap; gap:14px; padding-bottom:12px; font-size:11px; }
+:host .app-shell .user-permission-legend span { display:inline-flex; align-items:center; gap:5px; }
+:host .app-shell .user-permission-legend svg { width:14px; height:14px; }
+:host .app-shell .user-permission-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:5px 0; border-top:1px solid var(--yr-border); font-size:12px; }
+:host .app-shell .user-permission-options { display:flex; flex-shrink:0; gap:3px; padding:3px; border-radius:8px; background:var(--yr-surface-soft); }
+:host .app-shell .user-permission-options button { display:grid; place-items:center; width:34px; height:27px; padding:0; border:1px solid transparent; border-radius:5px; color:var(--yr-text-muted); background:transparent; cursor:pointer; transition:background .15s,color .15s; }
+:host .app-shell .user-permission-options button svg { width:15px; height:15px; }
+:host .app-shell .user-permission-options button.selected { background:var(--yr-primary-soft); border-color:var(--yr-primary); color:var(--yr-primary); }
+:host .app-shell .user-permission-options button:disabled { cursor:default; opacity:.65; }
+:host .app-shell .user-permission-options button:focus-visible { outline:2px solid var(--yr-primary); outline-offset:2px; }
+:host .app-shell .user-editor-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 22px; border-top:1px solid var(--yr-border); background:var(--yr-surface); }
+:host .app-shell .settings-modal.yr-ui .user-editor-footer .settings-user-actions { margin:0; flex-shrink:0; }
+:host .app-shell .user-editor-feedback p { margin:0; font-size:12px; }
+@media(max-width:640px) {
+ :host .app-shell .settings-modal.yr-ui .settings-user-editor .user-editor-body { grid-template-columns:minmax(0,1fr); }
+ :host .app-shell .user-account-panel { border-right:0; border-bottom:1px solid var(--yr-border); }
+ :host .app-shell .user-editor-footer { flex-wrap:wrap; padding:12px 16px; }
+ :host .app-shell .settings-user-modal-header { padding:14px 16px; }
+}
+
+/* Finanzas 2.0: presentación compartida entre sus cuatro submódulos. */
+:host .app-shell .finance-ui { padding:12px 20px 20px; gap:16px; grid-template-rows:none; align-content:start; min-height:0; color:var(--yr-text); background:var(--yr-bg); }
+:host .app-shell .finance-ui [hidden] { display:none !important; }
+:host .app-shell .finance-ui :is(.dashboard-topbar,.payroll-topbar) { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; min-height:0; padding:0; margin:0; background:transparent; border:0; box-shadow:none; }
+:host .app-shell .finance-title { display:flex; align-items:center; gap:12px; }
+:host .app-shell .finance-ui h1 { margin:0; font-size:clamp(23px,2.4vw,30px); line-height:1.2; letter-spacing:-.6px; color:var(--yr-text); text-transform:none; }
+:host .app-shell .finance-ui :is(h2,h3,h4) { color:var(--yr-text); text-transform:none; letter-spacing:normal; }
+:host .app-shell .finance-ui h2 { font-size:17px; margin:0; }
+:host .app-shell .finance-ui :is(p,small) { color:var(--yr-text-muted); }
+:host .app-shell .finance-ui :is(.dashboard-actions,.attendance-topbar-actions,.finance-panel-nav) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0; }
+:host .app-shell .finance-ui .finance-panel-nav:empty { display:none; }
+:host .app-shell .finance-ui .costs-period-selector { display:flex; flex-direction:row; align-items:center; gap:6px; width:auto; }
+:host .app-shell .finance-ui :is(input,select,textarea),:host .app-shell .finance-modal :is(input,select,textarea) { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:10px; min-height:38px; padding:8px 10px; box-shadow:none; font:inherit; }
+:host .app-shell .finance-ui :is(.analytics-card,.payroll-card) { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:16px; box-shadow:var(--yr-shadow-soft); padding:20px; min-height:0; }
+:host .app-shell .finance-ui .kpi-card { background:var(--yr-surface-soft); padding:18px; }
+:host .app-shell .finance-ui .kpi-card :is(span,strong) { color:var(--yr-text); }
+:host .app-shell .finance-ui .kpi-card strong { font-size:26px; }
+:host .app-shell .finance-ui :is(.daily-sales-button,.ghost-button,.product-catalog-close,.petty-cash-row-action) { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width:38px; min-height:38px; padding:8px 12px; border:1px solid var(--yr-border); border-radius:10px; background:var(--yr-surface); color:var(--yr-text); box-shadow:none; }
+:host .app-shell .finance-ui .daily-sales-button { background:var(--yr-primary); border-color:var(--yr-primary); color:white; }
+:host .app-shell .finance-ui .yr-button-icon.active { background:var(--yr-primary-soft); color:var(--yr-primary); border-color:var(--yr-primary); }
+:host .app-shell .finance-ui :is(.analytics-heading,.payroll-chart-header) { margin-bottom:16px; }
+:host .app-shell .finance-ui :is(.chart-panel,.payroll-chart-panel,.costs-chart-panel) { background:var(--yr-surface-soft); border-radius:12px; }
+:host .app-shell .finance-ui :is(.table-wrap,.yr-modal-table-shell) { overflow-x:auto; min-width:0; }
+:host .app-shell .finance-ui .finance-table-tools { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; }
+:host .app-shell .finance-ui .finance-table-tools input { width:min(100%,320px); }
+:host .app-shell .finance-ui .yr-modal-density { display:flex; gap:6px; margin-left:auto; }
+:host .app-shell .finance-ui .yr-modal-density .active { color:var(--yr-primary); border-color:var(--yr-primary); background:var(--yr-primary-soft); }
+:host .app-shell .finance-ui .invoice-master-table { border-collapse:separate; border-spacing:0 7px; width:100%; color:var(--yr-text); }
+:host .app-shell .finance-ui .invoice-master-table th { background:var(--yr-surface-soft); color:var(--yr-text-muted); font-size:12px; text-transform:none; padding:10px; letter-spacing:normal; }
+:host .app-shell .finance-ui .invoice-master-table td { background:var(--yr-surface); color:var(--yr-text); padding:12px 10px; border-top:1px solid var(--yr-border); border-bottom:1px solid var(--yr-border); font-size:13px; }
+:host .app-shell .finance-ui .invoice-master-table td:first-child { border-left:1px solid var(--yr-border); border-radius:10px 0 0 10px; }
+:host .app-shell .finance-ui .invoice-master-table td:last-child { border-right:1px solid var(--yr-border); border-radius:0 10px 10px 0; }
+:host .app-shell .finance-ui .invoice-master-table :is(td strong,td span) { color:inherit; }
+:host .app-shell .finance-ui .invoice-master-table[data-density=compact] td { padding:7px 10px; }
+:host .app-shell .finance-ui .invoice-master-table[data-density=spacious] td { padding:18px 10px; }
+:host .app-shell .finance-ui .yr-modal-sort { color:inherit; font:inherit; background:transparent; border:0; cursor:pointer; }
+:host .app-shell .finance-ui .finance-table-pager { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-top:12px; color:var(--yr-text-muted); font-size:12px; }
+:host .app-shell .finance-ui .yr-modal-pagination { display:flex; align-items:center; gap:8px; }
+:host .app-shell .finance-ui :is(.operational-cost-summary article,.profitability-summary-item,.profitability-alert,.profitability-loss-item,.profitability-report-grid button) { background:var(--yr-surface-soft); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:10px; }
+:host .app-shell .finance-modal { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:18px; box-shadow:var(--yr-shadow); }
+:host .app-shell .finance-modal :is(h2,h3,strong,label) { color:var(--yr-text); text-transform:none; }
+:host .app-shell .finance-modal :is(p,small,span) { color:var(--yr-text-muted); }
+:host .app-shell .finance-modal .eyebrow { display:none; }
+:host .app-shell .finance-modal :is(.customer-modal-header,.petty-cash-modal-header) { padding:18px 20px; background:var(--yr-surface); border-bottom:1px solid var(--yr-border); }
+:host .app-shell .finance-modal :is(.petty-cash-modal-grid,.financial-modal-grid,.operational-cost-modal-grid) { gap:14px; padding:20px; }
+:host .app-shell .finance-modal :is(.petty-cash-modal-footer,.operational-cost-modal-footer) { background:var(--yr-surface-soft); border-top:1px solid var(--yr-border); padding:14px 20px; }
+:host .app-shell .finance-ui .petty-cash-toast { background:var(--yr-primary); color:white; }
+:host .app-shell .finance-ui .petty-cash-toast :is(strong,span) { color:white; }
+@media(max-width:800px) { :host .app-shell .finance-ui { padding:12px; } :host .app-shell .finance-ui :is(.dashboard-kpis,.payroll-kpis) { grid-template-columns:repeat(2,minmax(0,1fr)); } :host .app-shell .finance-ui :is(.profitability-table-grid,.profitability-financial-grid,.profitability-chart-grid,.costs-trend-grid) { grid-template-columns:minmax(0,1fr); } }
+:host .app-shell .finance-sidebar-icon { width:20px; height:20px; flex-shrink:0; }
+:host .app-shell .nav-subitem:has(.finance-sidebar-icon)::before { display:none; }
+:host .app-shell .finance-ui :is(.costs-period-selector,.finance-icon-filter) { position:relative; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border:1px solid var(--yr-border); background:var(--yr-surface); border-radius:10px; color:var(--yr-primary); padding:0; }
+:host .app-shell .finance-ui :is(.costs-period-selector,.finance-icon-filter) :is(select,input) { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; padding:0; min-height:0; }
+:host .app-shell .finance-ui :is(.costs-period-selector,.finance-icon-filter):focus-within { outline:2px solid var(--yr-primary); outline-offset:2px; }
+:host .app-shell .finance-ui .invoice-master-table .yr-modal-selected td { background:var(--yr-primary-soft); }
+:host .app-shell .finance-ui .invoice-master-table .yr-modal-check { width:30px; }
+:host .app-shell .finance-ui .invoice-master-table input[type=checkbox] { min-height:0; width:16px; height:16px; accent-color:var(--yr-primary); }
+:host .app-shell .finance-ui :is(.chartjs-trend-shell,.cost-category-totals,.petty-cash-group-row,.financial-day-group-row,.financial-type-group-row) { background:var(--yr-surface-soft); color:var(--yr-text); }
+:host .app-shell .finance-ui .chart-empty-label { color:var(--yr-text-muted); }
+:host .app-shell .finance-ui .profitability-report-grid article { background:var(--yr-surface-soft); border:1px solid var(--yr-border); color:var(--yr-text); border-radius:12px; }
+:host .app-shell .finance-ui .profitability-report-grid button { display:inline-flex; align-items:center; gap:6px; color:var(--yr-primary); }
+:host .app-shell .nav-module-title:has(.finance-sidebar-icon)::before { display:none; }
+:host .app-shell .finance-ui .petty-cash-row-actions { display:flex; gap:6px; }
+:host .app-shell .finance-ui .petty-cash-row-actions button { display:grid; place-items:center; width:34px; height:34px; padding:0; color:var(--yr-primary); background:var(--yr-primary-soft); border:1px solid var(--yr-border); border-radius:8px; }
+:host .app-shell .finance-ui .petty-cash-row-actions .danger { color:var(--yr-danger); background:var(--yr-danger-soft); }
+:host .app-shell .finance-ui .invoice-collapse-button { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:3px; background:var(--yr-surface); border:1px solid var(--yr-border); color:var(--yr-primary); border-radius:7px; }
+:host .app-shell .finance-ui .analytics-heading p { margin:4px 0 0; font-size:12px; }
+:host .app-shell .finance-modal :is(.ghost-button,.daily-sales-button,.product-catalog-close) { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:8px 12px; border:1px solid var(--yr-border); border-radius:10px; color:var(--yr-text); background:var(--yr-surface); }
+:host .app-shell .finance-modal .daily-sales-button { color:white; background:var(--yr-primary); }
+
+/* Navegación: Lucide uniforme y acordeones accesibles. */
+:host .app-shell { transition:grid-template-columns .22s ease; }
+:host .app-shell .modern-sidebar { width:100%; padding:16px 12px; background:var(--sidebar); scrollbar-width:thin; scrollbar-color:#536a7655 transparent; }
+:host .app-shell .modern-sidebar .sidebar-header { gap:8px; margin-bottom:22px; }
+:host .app-shell .modern-sidebar .brand { gap:10px; min-width:0; }
+:host .app-shell .modern-sidebar .brand-mark { width:36px; height:36px; border-radius:11px; font-size:14px; flex-shrink:0; background:#087568; box-shadow:0 4px 12px #0002; }
+:host .app-shell .modern-sidebar .brand-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:650; line-height:1.4; }
+:host .app-shell .modern-sidebar .brand-name small { display:block; font-size:10px; color:#94a9b7; letter-spacing:.3px; font-weight:400; }
+:host .app-shell .modern-sidebar .sidebar-collapse-button { width:30px; height:30px; padding:5px; border:1px solid #ffffff18; border-radius:9px; background:#ffffff08; color:#cedce4; }
+:host .app-shell .modern-sidebar .sidebar-collapse-button::before { display:none; }
+:host .app-shell .modern-sidebar svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+:host .app-shell .modern-sidebar .sidebar-toggle-icon { transition:transform .22s ease; }
+:host .app-shell .modern-sidebar .sidebar-toggle-icon.rotated { transform:rotate(180deg); }
+:host .app-shell .modern-sidebar .nav-list { display:grid; gap:5px; margin:0; padding:0; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { display:flex; align-items:center; justify-content:flex-start; width:100%; gap:11px; min-height:43px; padding:9px 11px; margin:0; border:1px solid transparent; border-radius:10px; background:transparent; color:#c4d1db; font-size:13px; font-weight:500; line-height:1.3; text-transform:none; letter-spacing:0; text-align:left; transition:background .16s,color .16s,border-color .16s; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title)::before,:host .app-shell .modern-sidebar .nav-subitem::after { display:none; }
+:host .app-shell .modern-sidebar .nav-icon { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; flex:0 0 22px; color:#9cb1bf; background:transparent; }
+:host .app-shell .modern-sidebar .nav-label { flex:1; min-width:0; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title):hover { color:#fff; background:#ffffff09; }
+:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color:#e1f8f1; border-color:#35b99c36; font-weight:600; box-shadow:inset 3px 0 0 #35b99c; }
+:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color:#6de0c2; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title,.sidebar-collapse-button):focus-visible { outline:2px solid #6de0c2; outline-offset:2px; }
+:host .app-shell .modern-sidebar .nav-module { display:block; margin:2px 0; padding:0; border:0; background:transparent; box-shadow:none; border-radius:0; }
+:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color:#d3efe5; }
+:host .app-shell .modern-sidebar .nav-group-chevron { width:15px; height:15px; margin-left:auto; color:#8da3b2; transition:transform .22s ease; }
+:host .app-shell .modern-sidebar .nav-group-chevron.expanded { transform:rotate(180deg); }
+:host .app-shell .modern-sidebar .nav-module-content { display:grid; grid-template-rows:0fr; visibility:hidden; opacity:0; transition:grid-template-rows .22s ease,opacity .18s ease,visibility .22s; }
+:host .app-shell .modern-sidebar .nav-module-content.open { grid-template-rows:1fr; visibility:visible; opacity:1; }
+:host .app-shell .modern-sidebar .nav-module-inner { overflow:hidden; min-height:0; }
+:host .app-shell .modern-sidebar .nav-subitem { width:calc(100% - 16px); margin:3px 0 3px 16px; padding-left:13px; min-height:38px; font-size:12px; }
+:host .app-shell .modern-sidebar .nav-subitem .nav-icon svg { width:17px; height:17px; }
+:host .app-shell .modern-sidebar .logout-item { display:none; }
+:host .app-shell .modern-sidebar .sidebar-user-panel { margin-top:auto; padding-top:16px; border-top:1px solid #ffffff12; }
+:host .app-shell .modern-sidebar .sidebar-user-button { display:flex; align-items:center; gap:10px; padding:10px 6px; border-radius:10px; text-align:left; }
+:host .app-shell .modern-sidebar .sidebar-user-avatar { width:36px; height:36px; flex:0 0 36px; }
+:host .app-shell .modern-sidebar .sidebar-user-name { font-size:12px; font-weight:600; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button { display:flex; align-items:center; gap:10px; font-size:12px; }
+:host .app-shell.sidebar-collapsed .modern-sidebar { padding:12px 8px; }
+:host .app-shell.sidebar-collapsed .modern-sidebar .sidebar-header { display:flex; flex-direction:column; align-items:center; gap:10px; }
+:host .app-shell.sidebar-collapsed .modern-sidebar .brand-name,:host .app-shell.sidebar-collapsed .modern-sidebar .nav-label,:host .app-shell.sidebar-collapsed .modern-sidebar .nav-group-chevron,:host .app-shell.sidebar-collapsed .modern-sidebar .sidebar-user-name { display:none; }
+:host .app-shell.sidebar-collapsed .modern-sidebar :is(.nav-item,.nav-module-title) { display:flex; justify-content:center; padding:10px; min-height:43px; font-size:13px; gap:0; }
+:host .app-shell.sidebar-collapsed .modern-sidebar .sidebar-user-button { justify-content:center; padding:8px 0; }
+@media(prefers-reduced-motion:reduce) { :host .app-shell,:host .app-shell .modern-sidebar * { transition:none !important; } }
+:host .app-shell .modern-sidebar [hidden] { display:none !important; }
+
+/* El menú conserva su superficie oscura en todos los módulos y anchos. */
+:host .app-shell .modern-sidebar,
+:host .app-shell.yr-pos .modern-sidebar { --sidebar:#1f2937; --sidebar-soft:#ffffff09; background:#1f2937; color:#e2eaf0; border-right:1px solid #ffffff12; }
+:host .app-shell .modern-sidebar :is(.brand,.sidebar-user-button,.sidebar-user-name) { color:#e2eaf0; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { color:#c4d1db; }
+:host .app-shell .modern-sidebar .nav-icon { color:#9cb1bf; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title,.sidebar-user-button):hover { background:#ffffff09; color:#fff; }
+:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color:#e1f8f1; border-color:#35b99c36; box-shadow:inset 3px 0 0 #35b99c; }
+:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color:#6de0c2; }
+:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color:#d3efe5; }
+:host .app-shell .modern-sidebar .sidebar-collapse-button { color:#cedce4; background:#ffffff08; border-color:#ffffff18; }
+:host .app-shell .modern-sidebar .sidebar-user-panel { border-top-color:#ffffff12; }
+:host .app-shell .modern-sidebar .sidebar-user-menu { background:#263443; border-color:#ffffff18; box-shadow:0 12px 30px #0003; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button { background:transparent; color:#e2eaf0; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button:hover { background:#ffffff0c; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button.danger { color:#ffb4bc; }

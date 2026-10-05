@@ -63,3 +63,7 @@
 - Auditoria reutiliza `insertAuditRecord` y, antes de escribir, puede usar `setAuditContext`.
 - Movimientos de inventario operativos se registran en `dbo.INVENTARIO_LOG` mediante `insertInventoryLogRecord`.
 - FEFO usa `dbo.PRODUCTO_LOTE` y `dbo.VENTA_LOTE_DETALLE`.
+
+## Autorización de usuarios (05/10/2026)
+
+`server/modules/users` concentra perfiles, permisos, sesiones, CRUD y validación de contraseñas. HTTP usa middleware `/api` con Bearer; Electron envuelve handlers IPC y preload adjunta la credencial. Ambos transportes verifican usuario activo, expiración y permisos actuales desde SQL en cada operación; escrituras registran la identidad autenticada. La interfaz adjunta Bearer mediante `access.interceptor.ts`, verifica sesión al restaurar/navegar y oculta módulos no permitidos. Usuarios está dentro de Configuración y requiere Administrador. Las sesiones antiguas sin token requieren nuevo login. Se mantienen restricciones funcionales previas por rol de operaciones existentes.

@@ -1,7 +1,7 @@
 import { NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, signal } from '@angular/core';
-import { LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
+import { LucideLayoutDashboard, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
 import {
   ArcElement,
   BarController,
@@ -86,6 +86,7 @@ interface ThemeOption {
 }
 
 type SettingsTabId =
+  | 'users'
   | 'appearance'
   | 'menu'
   | 'tables'
@@ -1430,6 +1431,9 @@ interface LoginResponse {
     nombre: string;
     usuario: string;
     rol: string;
+    profile?: string;
+    permissions?: Record<string,string>;
+    sessionToken?: string;
   };
 }
 
@@ -2141,7 +2145,7 @@ const availablePages: Page[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
+  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideLayoutDashboard, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
   templateUrl: './app.html',
   styleUrls: ['./app.css', './yr-ui.css']
 })
@@ -3252,7 +3256,93 @@ export class App implements OnDestroy {
   protected readonly assembledOfferEditingId = signal<number | null>(null);
   protected readonly selectedAssembledOffer = signal<AssembledOffer | null>(null);
   protected readonly assembledOfferDraft = signal<AssembledOfferDraft>(this.createEmptyAssembledOfferDraft());
+  protected readonly financePanels=signal<Record<string,boolean>>({});
+  protected financePanelOpen(key:string):boolean{return !!this.financePanels()[key];}
+  protected toggleFinancePanel(key:string):void{this.financePanels.update(all=>({...all,[key]:!all[key]}));requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));}
+  protected readonly financeTableConfigs:Record<string,ModalTableConfig>={"cost-changes": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "category", "label": "Categoria"}, {"key": "previousCost", "label": "Costo anterior"}, {"key": "currentCost", "label": "Costo actual"}, {"key": "difference", "label": "Aumento"}, {"key": "variation", "label": "%"}, {"key": "difference", "label": "Cambio"}], "filterKey": "category"}, "cost-products": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "category", "label": "Categoria"}, {"key": "quantity", "label": "Movimiento"}, {"key": "monthlyRotation", "label": "Rotacion mensual"}, {"key": "sales", "label": "Venta"}, {"key": "cost", "label": "Costo"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "% ganancia"}], "filterKey": "category"}, "finance-movements": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "movementType", "label": "Tipo"}, {"key": "paymentMethod", "label": "Metodo"}, {"key": "target", "label": "Aplica a"}, {"key": "category", "label": "Categoria"}, {"key": "description", "label": "Descripcion"}, {"key": "amount", "label": "Monto"}, {"key": "userName", "label": "Usuario"}, {"key": "status", "label": "Estado"}], "filterKey": "status"}, "finance-cash": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "userName", "label": "Cajero"}, {"key": "initialAmount", "label": "Monto inicial"}, {"key": "finalAmount", "label": "Monto final"}, {"key": "turnBilling", "label": "Facturacion turno"}, {"key": "cashToPetty", "label": "Caja chica"}, {"key": "registerBalance", "label": "Queda registradora"}, {"key": "changeWallet", "label": "Billetera cambio"}, {"key": "pettyCashTotal", "label": "Total caja chica"}, {"key": "cashOut", "label": "Salidas"}, {"key": "reason", "label": "Motivo"}, {"key": "realCashTotal", "label": "Total real"}, {"key": "comments", "label": "Comentarios"}, {"key": "dividendReserve", "label": "Beneficio / dividendo"}, {"key": "fourteenthReserve", "label": "Catorceavo / aguinaldo"}], "filterKey": "userName"}, "finance-sold": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "quantity", "label": "Cantidad"}, {"key": "sales", "label": "Ventas"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "Margen"}], "filterKey": "category"}, "finance-profit": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "salePrice", "label": "Precio"}, {"key": "cost", "label": "Costo"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "Margen"}], "filterKey": "category"}, "finance-customers": {"columns": [{"key": "customerName", "label": "Cliente"}, {"key": "invoices", "label": "Facturas"}, {"key": "sales", "label": "Ventas"}, {"key": "utility", "label": "Utilidad"}, {"key": "lastSale", "label": "Ultima venta"}]}, "finance-kardex": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "document", "label": "Documento"}, {"key": "movementType", "label": "Movimiento"}, {"key": "productName", "label": "Producto"}, {"key": "entrada", "label": "Entrada"}, {"key": "salida", "label": "Salida"}, {"key": "existencia", "label": "Existencia"}, {"key": "unitCost", "label": "Costo unitario"}, {"key": "averageCost", "label": "Costo promedio"}, {"key": "userName", "label": "Usuario"}], "filterKey": "movementType"}};
+  protected financeTableRows(key:string):any[]{
+    switch(key){
+      case 'cost-changes':return this.costChangedProducts();
+      case 'cost-products':return this.filteredCostProductMovementRows();
+      case 'finance-movements':return this.financialMovements();
+      case 'finance-cash':return this.pettyCashRows();
+      case 'finance-sold':return this.salesProfitabilityAnalytics()?.products.topSold || [];
+      case 'finance-profit':return this.salesProfitabilityAnalytics()?.products.topProfitable || [];
+      case 'finance-customers':return (this.salesProfitabilityAnalytics()?.customers.topRevenue || []).map(row=>({...row,id:row.customerId}));
+      case 'finance-kardex':return this.filteredSalesProfitabilityKardexRows();
+      default:return [];
+    }
+  }
+  protected financeFilterOptions(key:string):string[]{const field=this.financeTableConfigs[key]?.filterKey;return field?[...new Set(this.financeTableRows(key).map(row=>String(row[field]??'')))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'es')):[];}
   protected readonly settingsModalOpen = signal(false);
+  protected readonly settingsContentCollapsed=signal(false);
+  protected readonly managedUsers=signal<any[]>([]);
+  protected readonly managedUsersLoading=signal(false);
+  protected readonly managedUsersSaving=signal(false);
+  protected readonly managedUsersError=signal('');
+  protected readonly managedUsersMessage=signal('');
+  protected readonly managedUserDraft=signal<any|null>(null);
+  protected readonly managedUserDelete=signal<any|null>(null);
+  protected readonly userAccessModules=[
+    {key:'dashboard',label:'Dashboard'},{key:'billing',label:'Facturación'},{key:'invoices',label:'Facturas'},
+    {key:'inventory',label:'Inventario'},{key:'purchases',label:'Compras'},{key:'credits',label:'Créditos'},
+    {key:'attendance',label:'Asistencia'},{key:'payroll',label:'Planillas'},{key:'costs',label:'Costos'},
+    {key:'petty-cash',label:'Caja chica'},{key:'financial-movements',label:'Finanzas'},
+    {key:'sales-profitability',label:'Ventas y rentabilidad'},{key:'history',label:'Histórico'},
+    {key:'system-health',label:'Salud del sistema'},{key:'settings',label:'Configuración'},{key:'users',label:'Usuarios'},
+  ];
+  protected readonly backupTableConfig:ModalTableConfig={columns:[{key:'createdAt',label:'Fecha'},{key:'size',label:'Tamaño'},{key:'type',label:'Tipo'},{key:'status',label:'Estado'},{key:'fileName',label:'Archivo'}],filterKey:'status',filterLabel:'Estado'};
+  protected readonly userTableConfig: ModalTableConfig={columns:[{key:'nombre',label:'Nombre'},{key:'usuario',label:'Usuario'},{key:'profile',label:'Perfil'},{key:'status',label:'Estado'}],filterKey:'status',filterLabel:'Estado'};
+  protected readonly managedUserRows=computed(()=>this.managedUsers().map(user=>({...user,status:user.activo?'Activo':'Inactivo'})));
+  protected canManageUsers():boolean{return this.currentUser()?.profile==='Administrador' || (!this.currentUser()?.permissions && /^(admin|administrador)$/i.test(this.currentUser()?.rol||''));}
+  protected async loadManagedUsers():Promise<void>{
+    if(!this.canManageUsers())return;
+    this.managedUsersLoading.set(true);this.managedUsersError.set('');
+    try {const result=this.desktopApi?await this.desktopApi.getManagedUsers():await firstValueFrom(this.http.get<{users:any[]}>('/api/users'));this.managedUsers.set(result.users);}
+    catch(error){this.managedUsersError.set(this.extractErrorMessage(error,'No se pudieron cargar los usuarios'));}
+    finally{this.managedUsersLoading.set(false);}
+  }
+  protected editManagedUser(user:any|null):void{
+    this.managedUsersError.set('');this.managedUsersMessage.set('');
+    this.managedUserDraft.set(user?{...user,permissions:{...user.permissions},password:''}:{nombre:'',usuario:'',profile:'Operador',activo:true,password:'',permissions:this.userDefaultPermissions('Operador')});
+    requestAnimationFrame(()=>document.querySelector<HTMLInputElement>('.settings-user-modal input')?.focus());
+  }
+  private userDefaultPermissions(profile:string):Record<string,string>{return Object.fromEntries(this.userAccessModules.map(m=>[m.key,profile==='Administrador'?'write':m.key==='users'?'none':m.key==='settings'?'read':profile==='Consulta'?'read':'write']));}
+  protected closeManagedUserEditor():void {
+    if(this.managedUsersSaving())return;
+    this.managedUserDraft.set(null);
+    this.managedUsersError.set('');
+  }
+  protected managedUserEditorKeydown(event:KeyboardEvent):void {
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.closeManagedUserEditor();return;}
+    if(event.key!=='Tab')return;
+    const elements=Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled)'));
+    const first=elements[0],last=elements[elements.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+  }
+  protected updateManagedUser(field:string,event:Event):void{
+    const target=event.target as HTMLInputElement,value=field==='activo'?target.checked:target.value;
+    this.managedUserDraft.update(draft=>({...draft,[field]:value,...(field==='profile'?{permissions:this.userDefaultPermissions(String(value))}:{})}));
+  }
+  protected setManagedUserAccess(key:string,level:'none'|'read'|'write'):void {
+    if(this.managedUsersSaving() || this.managedUserDraft()?.profile==='Administrador' || key==='users')return;
+    this.managedUserDraft.update(draft=>draft?{...draft,permissions:{...draft.permissions,[key]:level}}:draft);
+  }
+  protected updateUserAccess(key:string,event:Event):void{this.managedUserDraft.update(draft=>({...draft,permissions:{...draft.permissions,[key]:(event.target as HTMLSelectElement).value}}));}
+  protected async saveManagedUser():Promise<void>{
+    if(this.managedUsersSaving()||!this.managedUserDraft())return;
+    this.managedUsersSaving.set(true);this.managedUsersError.set('');
+    try{const draft=this.managedUserDraft();if(this.desktopApi)await this.desktopApi.saveManagedUser(draft);else await firstValueFrom(draft.id?this.http.put('/api/users/'+draft.id,draft):this.http.post('/api/users',draft));
+      this.managedUserDraft.set(null);this.managedUsersMessage.set('Usuario guardado');if(draft.id===this.currentUser()?.id && draft.password){this.logout();return;}await this.loadManagedUsers();await this.loadLoginUsers();
+    }catch(error){this.managedUsersError.set(this.extractErrorMessage(error,'No se pudo guardar el usuario'));}finally{this.managedUsersSaving.set(false);}
+  }
+  protected async deactivateManagedUser():Promise<void>{
+    const user=this.managedUserDelete();if(!user||this.managedUsersSaving())return;
+    this.managedUsersSaving.set(true);this.managedUsersError.set('');
+    try{if(this.desktopApi)await this.desktopApi.deleteManagedUser(user.id);else await firstValueFrom(this.http.delete('/api/users/'+user.id));this.managedUserDelete.set(null);this.managedUsersMessage.set('Usuario desactivado; historial conservado');await this.loadManagedUsers();await this.loadLoginUsers();}
+    catch(error){this.managedUsersError.set(this.extractErrorMessage(error,'No se pudo desactivar el usuario'));}finally{this.managedUsersSaving.set(false);}
+  }
   protected readonly activeSettingsTab = signal<SettingsTabId>('appearance');
   protected readonly themeMenuOpen = signal(false);
   protected readonly activeThemeId = signal<ThemeId>('black-green');
@@ -3499,6 +3589,7 @@ export class App implements OnDestroy {
     { id: 'coral-black', name: 'Coral black', tone: '#171616 / #F95C4B' },
   ];
   protected readonly settingsTabs: SettingsTab[] = [
+    { id: 'users', label: 'Usuarios' },
     { id: 'appearance', label: 'Apariencia' },
     { id: 'menu', label: 'Menu' },
     { id: 'tables', label: 'Tablas' },
@@ -7161,7 +7252,7 @@ export class App implements OnDestroy {
   protected readonly financialDayGroups = computed<FinancialDayGroup[]>(() => {
     const dayMap = new Map<string, FinancialMovement[]>();
 
-    for (const movement of this.financialMovements()) {
+    for (const movement of this.modalTables.pageRows('finance-movements',this.financialMovements(),this.financeTableConfigs['finance-movements'])) {
       const key = this.financialMovementDayKey(movement.date);
       dayMap.set(key, [...(dayMap.get(key) || []), movement]);
     }
@@ -7459,16 +7550,8 @@ export class App implements OnDestroy {
 
       this.loadLoginUsers();
 
-      if (savedUser) {
-        const restoredPage = this.restoreSavedActivePage();
-        this.currentUser.set(JSON.parse(savedUser) as LoginResponse['user']);
-        this.isAuthenticated.set(true);
-        this.loadCustomers();
-        if (restoredPage === 'billing') {
-          this.loadBillingProductsFromDatabase();
-        }
-        void this.preloadAuthenticatedModuleData();
-        this.activatePage(restoredPage, false);
+      if (savedUser && JSON.parse(savedUser)?.sessionToken) {
+        void this.restoreAccessSession(this.restoreSavedActivePage(),JSON.parse(savedUser));
       }
     } catch {
       this.activeThemeId.set('black-green');
@@ -8759,6 +8842,7 @@ export class App implements OnDestroy {
   // ESTE PROCEDIMIENTO ABRE EL MODAL DE CORTE ANTES DE CERRAR SESION.
   // CALCULA EL RESUMEN DEL DIA SIN INSERTAR Y PERMITE INGRESAR EL CONTEO FISICO DEL CAJERO.
   protected openLogoutCutModal(): void {
+    if(!this.canAccessModule('billing','write')){this.logout();return;}
     if (this.openingCutModalOpen()) {
       return;
     }
@@ -10810,7 +10894,15 @@ export class App implements OnDestroy {
   }
 
   protected setPage(page: Page): void {
+    if(this.currentUser()?.sessionToken){void this.navigateWithCurrentAccess(page);return;}
     this.activatePage(page, true);
+  }
+  private async navigateWithCurrentAccess(page:Page):Promise<void>{
+    try{
+      const response=this.desktopApi?await this.desktopApi.getAccessSession():await firstValueFrom(this.http.get<LoginResponse>('/api/auth/session'));
+      const user={...response.user,sessionToken:this.currentUser()?.sessionToken};this.currentUser.set(user);this.saveSession(user);
+      this.activatePage(this.canAccessModule(page)?page:this.firstAccessiblePage(),true);
+    }catch{this.logout();}
   }
 
   // PROCEDIMIENTO UBICADO EN src/app/app.ts
@@ -10818,14 +10910,16 @@ export class App implements OnDestroy {
   // TAMBIEN MANDA A LLAMAR loadCredits(), QUE CONSULTA dbo.VENTA_CREDITO
   // POR MEDIO DE /api/credits O electronAPI.getCredits().
   protected openCreditsPage(): void {
-    this.activatePage('credits', true);
+    this.setPage('credits');
   }
 
   protected togglePayrollNav(): void {
+    if(this.sidebarCollapsed()){this.setSidebarCollapsed(false);this.payrollNavCollapsed.set(false);return;}
     this.payrollNavCollapsed.update((collapsed) => !collapsed);
   }
 
   protected toggleFinanceNav(): void {
+    if(this.sidebarCollapsed()){this.setSidebarCollapsed(false);this.financeNavCollapsed.set(false);return;}
     this.financeNavCollapsed.update((collapsed) => !collapsed);
   }
 
@@ -10986,6 +11080,11 @@ export class App implements OnDestroy {
   }
 
   protected logout(): void {
+    if(this.currentUser()?.sessionToken){
+      const request=this.desktopApi?this.desktopApi.logoutAccessSession():firstValueFrom(this.http.post('/api/auth/logout',{}));
+      void request.catch(()=>{});
+    }
+    this.settingsModalOpen.set(false);
     this.userMenuOpen.set(false);
     this.selfAttendanceMarkModalOpen.set(false);
     this.currentUser.set(null);
@@ -11040,18 +11139,19 @@ export class App implements OnDestroy {
       const response = await this.requestLogin(usuario, pass);
       const today = this.todayDateKey();
       this.currentUser.set(response.user);
-      const shouldOpenOpeningCut = await this.shouldPromptOpeningCut(today);
+      this.saveSession(response.user);
+      const shouldOpenOpeningCut = this.canAccessModule('billing','write') ? await this.shouldPromptOpeningCut(today) : false;
       this.isAuthenticated.set(true);
       this.logoutCutModalOpen.set(false);
       this.logoutCutError.set('');
       this.logoutCutPreview.set(null);
       this.saveSession(response.user);
-      this.loadCustomers();
-      this.loadBillingProductsFromDatabase();
+      if(['billing','credits','invoices'].some(key=>this.canAccessModule(key)))void this.loadCustomers();
+      if(this.canAccessModule('billing'))this.loadBillingProductsFromDatabase();
       void this.preloadAuthenticatedModuleData();
-      this.expiringProductsModalOpen.set(true);
-      void this.loadSalesDropAlert(true);
-      this.activatePage('billing', false);
+      this.expiringProductsModalOpen.set(this.canAccessModule('billing'));
+      if(this.canAccessModule('dashboard'))void this.loadSalesDropAlert(true);
+      this.activatePage(this.firstAccessiblePage(), false);
       this.openingCutModalOpen.set(shouldOpenOpeningCut);
       this.loginLoading.set(false);
     } catch (error) {
@@ -13676,6 +13776,8 @@ export class App implements OnDestroy {
   }
 
   private resetAttendancePayrollPanels(page: Page): void {
+    if(['costs','petty-cash','financial-movements','sales-profitability'].includes(page)){this.financePanels.set({});this.expandedFinancialDayKeys.set([]);this.expandedFinancialTypeKeys.set([]);this.expandedFinancialPaymentKeys.set([]);}
+
     if (page === 'attendance') {
       this.attendanceSummaryCollapsed.set(true);
       this.attendanceScheduleCollapsed.set(true);
@@ -13693,7 +13795,24 @@ export class App implements OnDestroy {
     }
   }
 
+  private async restoreAccessSession(page:Page,saved:LoginResponse['user']):Promise<void>{
+    try{
+      const response=this.desktopApi?await this.desktopApi.getAccessSession():await firstValueFrom(this.http.get<LoginResponse>('/api/auth/session'));
+      const user={...response.user,sessionToken:saved.sessionToken};this.currentUser.set(user);this.saveSession(user);this.isAuthenticated.set(true);
+      this.activatePage(this.canAccessModule(page)?page:this.firstAccessiblePage(),false);
+    }catch{this.clearSession();this.currentUser.set(null);this.isAuthenticated.set(false);}
+  }
+  protected canAccessModule(module: string, level: 'read'|'write'='read'): boolean {
+    const permissions=this.currentUser()?.permissions;
+    if (!permissions) return true;
+    const key = module.startsWith('inventory-') ? 'inventory' : module==='payroll-generate' ? 'payroll' : module;
+    return permissions[key]==='write' || (level==='read' && permissions[key]==='read');
+  }
+  private firstAccessiblePage(): Page {
+    return availablePages.find(page=>this.canAccessModule(page)) || 'dashboard';
+  }
   private activatePage(page: Page, persist: boolean): void {
+    if (!this.canAccessModule(page)) return;
     this.closeInventoryTransientModals();
     this.resetAttendancePayrollPanels(page);
     this.activePage.set(page);
@@ -16040,6 +16159,8 @@ export class App implements OnDestroy {
   }
 
   protected openSettingsModal(): void {
+    if (!this.canAccessModule('settings')) return;
+    if(this.activeSettingsTab()==='users')void this.loadManagedUsers();
     this.themeMenuOpen.set(false);
     this.settingsModalOpen.set(true);
     if (this.activeSettingsTab() === 'backup') {
@@ -16048,11 +16169,15 @@ export class App implements OnDestroy {
   }
 
   protected closeSettingsModal(): void {
+    if(this.managedUsersSaving())return;
+    this.managedUserDraft.set(null);
     this.settingsModalOpen.set(false);
   }
 
   protected setSettingsTab(tabId: SettingsTabId): void {
     this.activeSettingsTab.set(tabId);
+    this.settingsContentCollapsed.set(false);
+    if(tabId==='users') void this.loadManagedUsers();
     if (tabId === 'backup') {
       void this.loadDatabaseBackups();
     }
@@ -16372,14 +16497,15 @@ export class App implements OnDestroy {
 
   protected showSidebarTooltipFromEvent(event: Event): void {
     const target = event.target instanceof Element ? event.target : null;
-    const item = target?.closest('.nav-item');
+    const item = target?.closest('.nav-item,.nav-module-title');
+    if(!this.sidebarCollapsed()){this.hideSidebarTooltip();return;}
 
     if (!(item instanceof HTMLElement)) {
       this.hideSidebarTooltip();
       return;
     }
 
-    const label = (item.textContent || '').replace(/\s+/g, ' ').trim();
+    const label = item.getAttribute('aria-label') || (item.textContent || '').replace(/\s+/g, ' ').trim();
 
     if (!label) {
       this.hideSidebarTooltip();
@@ -20579,6 +20705,13 @@ export class App implements OnDestroy {
   }
 
   private chartLinePalette(): Array<{ border: string; background: string }> {
+    if(['costs','petty-cash','financial-movements','sales-profitability'].includes(this.activePage()))return [
+      {border:'#087568',background:'rgba(8,117,104,.12)'},
+      {border:'#397cad',background:'rgba(57,124,173,.12)'},
+      {border:'#af771d',background:'rgba(175,119,29,.12)'},
+      {border:'#8b5ca6',background:'rgba(139,92,166,.12)'},
+      {border:'#b93845',background:'rgba(185,56,69,.12)'}
+    ];
     const imageThemePalettes: Partial<Record<ThemeId, Array<{ border: string; background: string }>>> = {
       'combo-mono': [
         { border: '#2f2f33', background: 'rgb(47 47 51 / 14%)' },
@@ -21156,7 +21289,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: 'rgb(203 213 225 / 72%)',
+              color: '#536a76',
               font: { size: 11, weight: 800 },
             },
             position: 'top',
@@ -21192,7 +21325,7 @@ export class App implements OnDestroy {
           x: {
             grid: { color: 'rgb(148 163 184 / 8%)' },
             ticks: {
-              color: 'rgb(203 213 225 / 70%)',
+              color: '#536a76',
               font: { size: 10, weight: 800 },
             },
           },
@@ -21200,7 +21333,7 @@ export class App implements OnDestroy {
             beginAtZero: true,
             grid: { color: 'rgb(148 163 184 / 10%)' },
             ticks: {
-              color: 'rgb(203 213 225 / 72%)',
+              color: '#536a76',
               callback: (value) => this.formatCompactCurrency(Number(value)),
               font: { size: 10, weight: 800 },
             },
@@ -21392,17 +21525,17 @@ export class App implements OnDestroy {
         responsive: true,
         scales: {
           x: {
-            grid: { color: 'rgb(148 163 184 / 12%)' },
+            grid: { color: 'rgba(83,106,118,.12)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: '#536a76',
               font: { size: 10, weight: 800 },
             },
           },
           y: {
             beginAtZero: true,
-            grid: { color: 'rgb(148 163 184 / 18%)' },
+            grid: { color: 'rgba(83,106,118,.18)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: '#536a76',
               callback: (value) => this.formatNumber(Number(value)),
               font: { size: 10, weight: 800 },
             },
@@ -21510,7 +21643,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: 'rgb(203 213 225 / 70%)',
+              color: '#536a76',
               font: { size: 11, weight: 800 },
               usePointStyle: false,
             },
@@ -21533,15 +21666,15 @@ export class App implements OnDestroy {
           x: {
             grid: { display: false },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: '#536a76',
               font: { size: 10, weight: 800 },
             },
           },
           y: {
             beginAtZero: true,
-            grid: { color: 'rgb(148 163 184 / 18%)' },
+            grid: { color: 'rgba(83,106,118,.18)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: '#536a76',
               callback: (value) => this.formatNumber(Number(value)),
               font: { size: 10, weight: 800 },
             },

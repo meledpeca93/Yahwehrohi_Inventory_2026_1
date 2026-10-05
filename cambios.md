@@ -681,8 +681,63 @@ No se modificaron endpoints, autenticación backend, SQL Server, stock, reglas d
 - Cálculos, selección de semana, datos y acciones conservados. Archivos: `src/app/app.ts`, `src/app/app.html`, pruebas de presentación de Asistencia/Planillas.
 - Validación: compilador Angular, seis pruebas (incluido reingreso tras expandir) y `git diff --check` correctos; aceptación visual pendiente. Escritorio sin reiniciar.
 
+## 064 — Configuración, Usuarios y accesos (05/10/2026)
+
+- Tema claro, títulos compactos, Lucide y control de contraer en Configuración; Usuarios y Respaldos con búsqueda, estado, ordenamiento, densidad, selección/CSV y paginación.
+- Usuarios permite alta, edición, reactivación y baja lógica con confirmación. Perfiles Administrador, Operador y Consulta y ajustes individuales por módulo, según diseño confirmado por el usuario.
+- Backend valida accesos en HTTP e IPC con sesiones de 12 horas; scrypt para nuevas contraseñas, auditoría sin secretos y protección del último administrador. Menú y navegación actualizan permisos; requiere login nuevo para sesiones legadas.
+- Migración aditiva 024 y esquema empaquetable, sin alterar referencias históricas. Documentación funcional, arquitectura y BD actualizada.
+- Validación: compilador Angular, diez pruebas backend, seis frontend y revisión de sintaxis/diff. Pendientes: prueba SQL real (conexión ESOCKET), revisión visual y aceptación; migración sin aplicar y escritorio sin reiniciar.
+
+## 065 — Configuración visible y Lucide (05/10/2026)
+
+- Corregido acceso base de Operador/Consulta a preferencias de Configuración (lectura). Usuarios sigue administrativo; permisos individuales explícitos y validación backend conservados.
+- Icono lateral Lucide Settings explícito debajo de Histórico, reemplaza imagen SVG CSS.
+- Validación: compilador Angular, pruebas de perfiles y usuarios; revisión visual pendiente. Sin reiniciar escritorio.
+
+## 066 — Pestaña Usuarios visible (05/10/2026)
+
+- Usuarios aparece siempre dentro de Configuración; muestra perfil actual y requisito administrativo si falta acceso. CRUD y consulta del directorio siguen protegidos.
+- Validación: compilación Angular y prueba de navegación sin solicitudes privilegiadas; revisión visual pendiente. Escritorio sin reiniciar.
+
+## 067 — Modal de edición de usuarios y permisos (05/10/2026)
+
+- Alta/edición y accesos en modal superpuesto; lista de usuarios conserva tamaño y estado. Cierre por botón, Cancelar, fondo o Escape; foco de teclado contenido, bloqueo durante guardado y errores dentro del formulario.
+- Validación: compilador Angular y diff; revisión visual pendiente. Backend y permisos conservados; escritorio sin reiniciar.
+
+## 068 — Diseño compacto del editor de usuarios (05/10/2026)
+
+- Cabecera con identidad/perfil y pie de acciones siempre visibles; datos de cuenta separados de permisos, estado alineado y ayuda contextual de contraseña.
+- Permisos en filas compactas con tres botones Lucide, leyenda, nombres accesibles y estado seleccionado. Admin y módulo Usuarios conservan restricciones; adaptación a móvil.
+- Validación: compilador Angular y diff correctos; revisión visual pendiente. No se reinició escritorio ni se modificó backend.
+
+## 069 — Finanzas y submódulos UI 2.0 (05/10/2026)
+
+- Costos, Caja chica, Finanzas y Ventas y rentabilidad con tema claro compartido, títulos compactos y controles Lucide; modales claros de alta, edición y baja.
+- Resumen de tarjetas y gráficos contraíble junto al título. Costos operativos, análisis de rentabilidad, ranking/productos/clientes y reportes controlados desde iconos de barra superior. Paneles/detalles cerrados al ingresar, sin reservar huecos; gráfico circular retirado.
+- Ocho tablas con búsqueda, filtros, ordenamiento, selección/CSV, densidad y páginas 10/25/50/100. Fuente completa de datos conservada; jerarquía financiera y acciones de registros existentes mantenidas.
+- Corregidos encabezados desalineados del historial de cambios de costo; contraste de ejes y paleta de gráficos ajustados al tema claro.
+- Validación: compilador Angular, 12 pruebas de presentación/ModalTableState y diff correctos. Revisión visual y aceptación pendientes; cálculos, backend y BD conservados, escritorio sin reiniciar.
+
+## 070 — Navegación lateral moderna (05/10/2026)
+
+- Iconos Lucide en todos los módulos, grupos y acciones del menú; etiquetas con acentos y tipografía consistente, identidad compacta y estado activo con indicador lateral.
+- Despliegues suaves con grid, controles aria-expanded/aria-controls e inert al cerrar; movimiento reducido respetado. Menú compacto mantiene grupos accesibles y permite abrirlos; tooltips por teclado y mouse.
+- Perfil y acciones de cuenta compactos; navegación, permisos y preferencia de ancho conservados.
+- Validación: compilador Angular, pruebas de comportamiento del menú y diff; revisión visual pendiente. Escritorio sin reiniciar.
+
+## 071 — Contraste del menú sobre blanco (05/10/2026)
+
+- Texto oscuro y seminegrita, iconos con mayor contraste y trazo reforzado; activo verde profundo, flechas y botón de contraer legibles. Alcance: menú claro de Inventory 2.0.
+- Validación: revisión de especificidad CSS, contraste de colores y diff correctos; aceptación visual pendiente. Navegación conservada, escritorio sin reiniciar.
+
+## 072 — Menú oscuro en todos los módulos (05/10/2026)
+
+- Fondo oscuro uniforme #1f2937 en menú lateral expandido/contraído, también en Facturación e Inventario. Texto, iconos, selección y menú de cuenta mantienen contraste claro.
+- Tema del contenido y navegación conservados. Validación: especificidad CSS y diff correctos; aceptación visual pendiente. Escritorio sin reiniciar.
+
 ## Próximo registro
 
-El siguiente cambio independiente se documentará como **064**.
+El siguiente cambio independiente se documentará como **073**.
 
 Validación del registro 006: Chrome aislado con 125 productos y 24 códigos armados simulados; comprobadas páginas de 10 y 25, búsqueda con un resultado, selección y cancelación del diálogo de inactivación. Ventanas de alta, inactivos, códigos armados y Kardex abiertas sin errores de ejecución. No se escribieron datos reales.

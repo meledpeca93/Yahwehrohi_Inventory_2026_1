@@ -130,3 +130,7 @@ Este archivo registra solo estructuras comprobadas en codigo o migraciones.
 - `dbo.MOVIMIENTO_FINANCIERO` se crea desde `ensureFinancialMovementsTable`.
 - `dbo.CAJA_CHICA_DIARIA` se crea desde `ensurePettyCashTable`.
 - `dbo.CORTE_DIARIO` se usa para cortes; `ensureDailyCutShiftColumns` agrega `FECHA_APERTURA` y `FECHA_CIERRE` si faltan.
+
+## Accesos y sesiones de usuario (05/10/2026)
+
+Migración aditiva `database/migrations/024_user_access.sql`, con copia empaquetable `server/modules/users/schema.sql`: `USUARIO_ACCESO` (ID_USUARIO FK, PERFIL, PERMISOS JSON, ACTUALIZADO_EN) y `USUARIO_SESION` (TOKEN_HASH SHA256, ID_USUARIO FK, VENCE_EN). Inicialización diferida e idempotente desde el servicio; no ejecutada durante esta tarea por ESOCKET. Se conserva `dbo.usuario` y referencias históricas; borrar equivale a activo=0. Nuevas contraseñas y cambios usan scrypt con salt aleatorio en `pass`; lectura admite credenciales legadas. Alta/edición/permisos/auditoría se ejecutan en transacción serializable; no se auditan contraseñas ni tokens. No se eliminan usuarios físicamente.

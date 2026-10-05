@@ -4,6 +4,9 @@ interface DesktopLoginResponse {
     nombre: string;
     usuario: string;
     rol: string;
+    profile?: string;
+    permissions?: Record<string,string>;
+    sessionToken?: string;
   };
 }
 
@@ -727,6 +730,11 @@ interface Window {
       message: string;
     }>;
     login: (credentials: { usuario: string; pass: string }) => Promise<DesktopLoginResponse>;
+    getManagedUsers: () => Promise<{users: any[]}>;
+    saveManagedUser: (payload: any) => Promise<{id:number}>;
+    deleteManagedUser: (id:number) => Promise<{id:number}>;
+    logoutAccessSession: () => Promise<{ok:boolean}>;
+    getAccessSession: () => Promise<DesktopLoginResponse>;
     getUsers: () => Promise<DesktopUsersResponse>;
     getAttendanceUsers: () => Promise<DesktopAttendanceUsersResponse>;
     saveAttendanceMark: (payload: {

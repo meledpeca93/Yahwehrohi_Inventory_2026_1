@@ -230,3 +230,39 @@ Horarios de planilla y Horas por usuario se muestran/ocultan desde botones de ic
 ### 05/10/2026 — Valores iniciales de Planillas y Asistencia
 
 Todos los paneles contraíbles y detalles jerárquicos de ambos módulos se restablecen cerrados al ingresar; tarjetas del modal de cálculo cerradas al abrir. SVG de ambos módulos unificados con directivas Lucide existentes, incluidos controles de densidad y notificaciones. Compilador Angular y seis pruebas correctos. Registro 063.
+
+### 05/10/2026 — Configuración y gestión de usuarios
+
+Configuración usa tema claro compartido, iconos Lucide, encabezado compacto y opciones contraíbles. Usuarios incorpora búsqueda, filtro de estado, ordenamiento, selección/CSV, densidad, paginación, alta, edición, reactivación y baja lógica. Perfiles Administrador, Operador y Consulta con ajustes por módulo (sin acceso, lectura o gestión). Autorización real en HTTP e IPC, sesiones de 12 horas y contraseñas nuevas con scrypt; menú y navegación reflejan permisos vigentes. Compilador Angular, diez pruebas backend y seis frontend correctos. SQL local no disponible (ESOCKET): integración real y revisión visual pendientes; no se aplicó migración ni se reinició escritorio. Registro 064.
+
+### 05/10/2026 — Acceso a Configuración
+
+Operador y Consulta incluyen acceso de lectura a Configuración para preferencias personales; Usuarios sigue administrativo y escrituras backend requieren gestión. Icono lateral explícito Lucide Settings debajo de Histórico; denegación individual explícita conservada. Registro 065.
+
+### 05/10/2026 — Usuarios visible en Configuración
+
+Pestaña Usuarios siempre visible dentro de Configuración. Cuentas sin perfil Administrador ven el requisito y su perfil actual; no se consulta el directorio ni se habilita CRUD. Registro 066.
+
+### 05/10/2026 — Edición de usuarios en modal
+
+Formulario de alta/edición y permisos en modal superpuesto con Lucide, cierre, Escape y foco de teclado contenido; listado mantiene su tamaño, filtros y paginación. Errores visibles dentro del modal y cierre bloqueado durante guardado. Registro 067.
+
+### 05/10/2026 — Editor de usuarios compacto
+
+Modal con cabecera y acciones fijas, datos de cuenta en panel lateral, estado alineado y matriz compacta de permisos con botones Lucide y leyenda. Contenido desplazable y diseño adaptable a móvil; permisos y guardado conservados. Validación Angular correcta; revisión visual pendiente. Registro 068.
+
+### 05/10/2026 — Finanzas UI 2.0
+
+Costos, Caja chica, Finanzas y Ventas y rentabilidad usan tema claro, títulos compactos, acciones/filtros Lucide y resumen de tarjetas/gráficos contraíble junto al título. Paneles auxiliares controlados desde barra superior; todos cerrados por defecto al ingresar. Ocho tablas con búsqueda, filtros, ordenamiento, selección/CSV, densidad y páginas 10/25/50/100 sobre datasets completos; movimientos conserva jerarquía con detalles cerrados. Modales de registro/edición/baja claros. Gráfico circular de Costos retirado; ejes/paleta de gráficos legibles. Cálculos/backend/BD conservados, escritorio sin reiniciar. Registro 069; revisión visual pendiente.
+
+### 05/10/2026 — Menú lateral moderno
+
+Navegación con Lucide uniforme, tipografía compacta, indicador activo y jerarquía de submódulos. Acordeones animados con inert/aria-controls; transiciones respetan movimiento reducido. En modo contraído los grupos siguen visibles y abren menú/submódulos juntos; tooltips accesibles por foco y mouse. Permisos y navegación conservados; escritorio sin reiniciar. Registro 070.
+
+### 05/10/2026 — Contraste del menú claro
+
+Texto e iconos del menú sobre fondo blanco usan tonos oscuros; activo verde profundo y fondo suave, bordes y flechas legibles. Trazo Lucide reforzado. Ajuste CSS, sin cambios de navegación ni reinicio. Registro 071.
+
+### 05/10/2026 — Menú oscuro uniforme
+
+Menú lateral mantiene fondo #1f2937 y contraste claro en todos los módulos, expandido/contraído, incluido punto de venta. Menú de cuenta coherente; contenido de módulos conserva su tema. Ajuste CSS y diff verificados; escritorio sin reiniciar. Registro 072.

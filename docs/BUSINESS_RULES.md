@@ -142,3 +142,7 @@
 
 - Programar un pedido exige proveedor, productos y fecha prevista; esta fecha es independiente de la fecha de compra. Sigue siendo un borrador local sin envío al proveedor ni ingreso de inventario.
 - La ficha de compra ingresada utiliza los documentos agrupados del historial real, no los valores del borrador. Los documentos anulados se distinguen como tales. El detalle expone los campos disponibles en el contrato de compras; no inventa adjuntos ni lotes ausentes del histórico.
+
+## Usuarios y permisos (05/10/2026)
+
+Administrador gestiona usuarios y tiene acceso completo. Operador inicia con gestión de módulos excepto Usuarios y lectura en Configuración; Consulta inicia con lectura excepto Usuarios. El administrador puede ajustar cada módulo por usuario a sin acceso, lectura o gestión; Usuarios sigue reservado al perfil Administrador. Cambiar de perfil en el formulario restablece sus valores base. Baja lógica conserva historial; puede reactivarse mediante edición. No se permite quitar el propio acceso administrativo ni dejar sin administrador activo. Cambiar contraseña o desactivar revoca sesiones; otros cambios se comprueban en la siguiente petición. Sesiones duran 12 horas; contraseña nueva entre 8 y 128 caracteres. Las restricciones anteriores por rol de ciertas operaciones se mantienen.

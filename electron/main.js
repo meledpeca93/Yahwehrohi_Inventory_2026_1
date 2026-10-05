@@ -268,6 +268,16 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'YahwehRohi-Inventory', 'browser', 'index.html'));
 }
 
+const userService=require('../server/modules/users/users.service');
+const {withIpcAccess}=require('../server/modules/users/ipc-authorization');
+const registerIpc=ipcMain.handle.bind(ipcMain);
+ipcMain.handle=(channel,handler)=>registerIpc(channel,withIpcAccess(channel,handler));
+ipcMain.handle('users:logout',async event=>{await userService.revokeSession(event.accessToken);return {ok:true};});
+ipcMain.handle('users:session',async event=>({user:event.authenticatedUser}));
+ipcMain.handle('users:list',async event=>({users:await userService.listUsers(event.authenticatedUser)}));
+ipcMain.handle('users:save',async(event,payload)=>({id:await userService.saveUser(event.authenticatedUser,payload.id||null,payload)}));
+ipcMain.handle('users:delete',async(event,id)=>({id:await userService.deleteUser(event.authenticatedUser,id)}));
+
 ipcMain.handle('db:health', async () => {
   try {
     await getPool();
@@ -349,7 +359,7 @@ ipcMain.handle('auth:login', async (_event, credentials) => {
     throw new Error('Credenciales invalidas o usuario inactivo');
   }
 
-  return { user };
+  return { user:await userService.createSession(user) };
 });
 
 ipcMain.handle('auth:users', async () => {
