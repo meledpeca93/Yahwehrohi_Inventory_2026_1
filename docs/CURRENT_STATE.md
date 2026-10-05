@@ -170,3 +170,63 @@ Registro 030: controles de contraer con iconos, filtros/agrupación/altura en un
 ### 26/09/2026 — Filtro Cliente y ordenamiento
 
 Facturas incorpora filtro por cliente y ordenamiento por columnas en ambas tablas. Los indicadores y PDF respetan Cliente; la ordenación mensual es independiente del cálculo de variaciones. Buscador reducido otro 25%. Ver registro 033.
+
+### 05/10/2026 — Selector de productos actualizado
+
+Ventana de selección de Compras alineada con Inventory 2.0: código separado, ordenamiento, densidad, selección/CSV y páginas 10/25/50/100 sin límite de 80 productos. Acción de agregar conservada. Compilador Angular y 14 pruebas correctos; revisión visual pendiente. Registro 047.
+
+### 05/10/2026 — Planillas UI 2.0
+
+Planillas y Generar planilla con tema claro, tarjetas compactas, resumen contraíble, controles e iconos comunes; ventanas de cálculo/edición modernizadas. Histórico mantiene empleado/mes/semana/día e incorpora búsqueda, ordenamiento, selección/CSV, densidad y páginas 10/25/50/100, sin modificar cálculos ni tarifas. Compilador Angular y nueve pruebas correctos. Build de desarrollo termina con código 134; revisión visual pendiente. Registro 048.
+
+### 05/10/2026 — Pago por tipo de hora en modal
+
+Planillas abre el desglose y tarifas mediante icono de información en las acciones superiores. Modal nativo con cierre por botón/Escape/fondo; contraste oscuro explícito en tarjetas. Cálculos conservados. Compilador Angular correcto; revisión visual pendiente. Registro 049.
+
+### 05/10/2026 — Filtros compactos de Planillas
+
+Semana y mes se presentan mediante iconos de calendario con tooltip y estado activo en la fila de acciones; opciones y eventos originales conservados. Registro 050.
+
+### 05/10/2026 — Contraer resumen completo de Planillas
+
+Tarjetas principales y gráfico de Tendencia de salarios comparten el control de contraer/expandir del título. Canvas conservado. Registro 051.
+
+### 05/10/2026 — Alineación del cálculo de Planilla
+
+Modal Calcular planilla con encabezados y filas de seis columnas compartidas, campos de horas y bono de 120 px y valores centrados. Sin cambios de cálculos. Registro 052.
+
+### 05/10/2026 — Resumen del cálculo contraíble
+
+Modal Calcular planilla permite contraer las cuatro tarjetas con una flecha junto al encabezado, conservando los datos y ampliando el detalle. Registro 054.
+
+### 05/10/2026 — Ranking y resúmenes de Planillas
+
+Sección Empleados y resúmenes contraíble en conjunto con control independiente; gráfico de pastel eliminado. Importes y ranking conservados. Registro 055.
+
+### 05/10/2026 — Controles de Planillas en barra superior
+
+Acciones y vistas se presentan como botones de icono en la barra superior, incluido el control de Empleados y resúmenes; encabezado independiente retirado. Registro 056.
+
+### 05/10/2026 — Título de Planillas
+
+Encabezado muestra solo Modulo de Planillas, con control de contraer tarjetas/tendencia siempre junto al título. Resto de iconos en la barra superior. Registro 057.
+
+### 05/10/2026 — Altura del encabezado de Planillas
+
+Página principal ajusta filas al contenido, con padding superior y separación de 12 px; evita estiramiento del encabezado cuando paneles están contraídos. Registro 058.
+
+### 05/10/2026 — Asistencia UI 2.0
+
+Modulo de Asistencia con tema claro y encabezado compacto. Tarjetas/tendencia contraíbles juntas; horarios y horas/estadísticas con controles independientes en barra de iconos. Registro conserva jerarquía y agrega búsqueda, ordenamiento, selección/CSV, densidad y páginas 10/25/50/100. Exportar resumen CSV funcional; gráfico circular retirado. Modales de marcas/horarios claros, cálculos y registros conservados. Compilador Angular y nueve pruebas correctos; revisión visual pendiente. Registro 060.
+
+### 05/10/2026 — Horas por usuario a ancho completo
+
+Estadísticas eliminado de Asistencia por solicitud del usuario. Horas por usuario ocupa el ancho disponible y conserva su control de contraer. Registro 061.
+
+### 05/10/2026 — Contraer paneles auxiliares de Asistencia
+
+Horarios de planilla y Horas por usuario se muestran/ocultan desde botones de icono resaltados en la barra superior, sin reservar espacio al contraer. Registro 062.
+
+### 05/10/2026 — Valores iniciales de Planillas y Asistencia
+
+Todos los paneles contraíbles y detalles jerárquicos de ambos módulos se restablecen cerrados al ingresar; tarjetas del modal de cálculo cerradas al abrir. SVG de ambos módulos unificados con directivas Lucide existentes, incluidos controles de densidad y notificaciones. Compilador Angular y seis pruebas correctos. Registro 063.

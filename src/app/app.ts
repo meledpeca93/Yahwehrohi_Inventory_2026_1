@@ -1,7 +1,7 @@
 import { NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, signal } from '@angular/core';
-import { LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
+import { LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
 import {
   ArcElement,
   BarController,
@@ -2141,7 +2141,7 @@ const availablePages: Page[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
+  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
   templateUrl: './app.html',
   styleUrls: ['./app.css', './yr-ui.css']
 })
@@ -3284,6 +3284,11 @@ export class App implements OnDestroy {
   protected readonly databaseBackupMessage = signal('');
   protected readonly databaseBackupError = signal('');
   protected readonly modalTables = new ModalTableState();
+  protected readonly purchasePickerTableConfig: ModalTableConfig = { columns: [
+    { key: 'sku', label: 'Código' }, { key: 'name', label: 'Producto' },
+    { key: 'category', label: 'Categoría' }, { key: 'stock', label: 'Stock' },
+    { key: 'unitCost', label: 'Costo' }, { key: 'salePrice', label: 'Precio' },
+  ] };
   protected readonly catalogExporting = signal(false);
   protected readonly modalSummaries = signal<Record<string, boolean>>({});
   protected toggleModalSummary(key: string): void { this.modalSummaries.update(all => ({ ...all, [key]: !all[key] })); }
@@ -4136,6 +4141,35 @@ export class App implements OnDestroy {
   protected readonly attendanceUsers = signal<AttendanceUser[]>([]);
   protected readonly attendanceExpandedUserIds = signal<number[]>([]);
   protected readonly attendanceExpandedWeekKeys = signal<string[]>([]);
+  protected readonly attendanceSummaryCollapsed = signal(true);
+  protected readonly attendanceScheduleCollapsed = signal(true);
+  protected readonly attendanceOverviewCollapsed = signal(true);
+  protected readonly attendanceTableConfig: ModalTableConfig = { columns: [
+    {key:'name',label:'Empleado'}, {key:'area',label:'Área'}, {key:'status',label:'Estado'},
+    {key:'hours',label:'Horas'}, {key:'rate',label:'Tarifa'},
+  ] };
+  protected exportAttendanceSummary(): void {
+    const rows = this.attendanceTableRows();
+    this.modalTables.patch('attendance-summary', { selected: new Set(rows.map(row => String(row.id))) });
+    this.modalTables.export('attendance-summary', rows, this.attendanceTableConfig);
+    this.modalTables.clear('attendance-summary');
+  }
+  protected readonly attendanceTableRows = computed(() => this.attendanceUserGroups().map(group => ({
+    ...group, id:group.user.id, name:group.user.name, role:group.user.role, area:group.user.area,
+    status:this.attendanceStatus(group.user), hours:this.currentWeekHours(group.user.id), rate:group.user.hourlyRate,
+  })));
+  protected readonly payrollSummaryCollapsed = signal(true);
+  protected readonly payrollOverviewCollapsed = signal(true);
+  protected readonly payrollGenerationSummaryCollapsed = signal(true);
+  protected readonly payrollHistoryConfig: ModalTableConfig = { columns: [
+    { key: 'name', label: 'Empleado' }, { key: 'role', label: 'Cargo' },
+    { key: 'accumulatedSubtotal', label: 'Subtotal histórico' },
+    { key: 'accumulatedBonus', label: 'Bonificación histórica' },
+    { key: 'accumulatedTotal', label: 'Gran total' },
+  ] };
+  protected readonly payrollHistoryRows = computed(() => this.payrollUserGroups().map(group => ({
+    ...group, id: group.user.id, name: group.user.name, role: group.user.role, area: group.user.area,
+  })));
   protected readonly payrollExpandedUserIds = signal<number[]>([]);
   protected readonly payrollExpandedMonthKeys = signal<string[]>([]);
   protected readonly payrollExpandedWeekKeys = signal<string[]>([]);
@@ -6122,8 +6156,7 @@ export class App implements OnDestroy {
         }
 
         return productA.name.localeCompare(productB.name);
-      })
-      .slice(0, 80);
+      });
   });
 
   protected readonly operationalCostTotal = computed(() =>
@@ -9523,6 +9556,7 @@ export class App implements OnDestroy {
   }
 
   protected openPurchaseProductPicker(): void {
+    this.modalTables.reset('purchasePicker');
     this.purchaseProductPickerOpen.set(true);
     this.purchaseProductSearch.set('');
     this.purchaseProductCategory.set('Todas');
@@ -9534,10 +9568,12 @@ export class App implements OnDestroy {
   }
 
   protected updatePurchaseProductSearch(event: Event): void {
+    this.modalTables.patch('purchasePicker', { page: 1 });
     this.purchaseProductSearch.set((event.target as HTMLInputElement).value);
   }
 
   protected updatePurchaseProductCategory(event: Event): void {
+    this.modalTables.patch('purchasePicker', { page: 1 });
     this.purchaseProductCategory.set((event.target as HTMLSelectElement).value);
   }
 
@@ -13639,8 +13675,27 @@ export class App implements OnDestroy {
     }
   }
 
+  private resetAttendancePayrollPanels(page: Page): void {
+    if (page === 'attendance') {
+      this.attendanceSummaryCollapsed.set(true);
+      this.attendanceScheduleCollapsed.set(true);
+      this.attendanceOverviewCollapsed.set(true);
+      this.attendanceExpandedUserIds.set([]);
+      this.attendanceExpandedWeekKeys.set([]);
+    }
+    if (page === 'payroll' || page === 'payroll-generate') {
+      this.payrollSummaryCollapsed.set(true);
+      this.payrollOverviewCollapsed.set(true);
+      this.payrollGenerationSummaryCollapsed.set(true);
+      this.payrollExpandedUserIds.set([]);
+      this.payrollExpandedMonthKeys.set([]);
+      this.payrollExpandedWeekKeys.set([]);
+    }
+  }
+
   private activatePage(page: Page, persist: boolean): void {
     this.closeInventoryTransientModals();
+    this.resetAttendancePayrollPanels(page);
     this.activePage.set(page);
 
     if (persist) {
@@ -14499,6 +14554,7 @@ export class App implements OnDestroy {
   }
 
   protected openPayrollImageModal(): void {
+    this.payrollGenerationSummaryCollapsed.set(true);
     this.selectedAttendanceWeek.set(this.nextPayrollWeekToGenerate());
     const sourceWeek = this.selectedImagePayrollSourceWeek();
 
@@ -20097,7 +20153,7 @@ export class App implements OnDestroy {
       backgroundColor: chartPalette[index]?.background || 'rgb(232 121 249 / 14%)',
       borderWidth: 2.4,
       pointBackgroundColor: chartPalette[index]?.border || '#e879f9',
-      pointBorderColor: '#0f172a',
+      pointBorderColor: '#ffffff',
       pointHoverRadius: 6,
       pointRadius: 4,
       tension: 0.38,
@@ -20125,7 +20181,7 @@ export class App implements OnDestroy {
       backgroundColor: chartPalette[index]?.background || 'rgb(34 211 238 / 14%)',
       borderWidth: 2.4,
       pointBackgroundColor: chartPalette[index]?.border || '#22d3ee',
-      pointBorderColor: '#0f172a',
+      pointBorderColor: '#ffffff',
       pointHoverRadius: 6,
       pointRadius: 4,
       tension: 0.38,
@@ -20996,6 +21052,7 @@ export class App implements OnDestroy {
     const formatTrendTick = (value: number): string =>
       valueType === 'hours' ? `${this.formatNumber(value)} H` : this.formatCompactCurrency(value);
 
+    const light = canvas === this.payrollTrendCanvas?.nativeElement || canvas === this.attendanceTrendCanvas?.nativeElement;
     return new Chart(canvas, {
       type: 'line',
       data: {
@@ -21018,7 +21075,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: 'rgb(203 213 225 / 70%)',
+              color: light ? '#536a76' : 'rgb(203 213 225 / 70%)',
               font: {
                 size: 11,
                 weight: 800,
@@ -21049,7 +21106,7 @@ export class App implements OnDestroy {
               drawTicks: false,
             },
             ticks: {
-              color: 'rgb(203 213 225 / 72%)',
+              color: light ? '#536a76' : 'rgb(203 213 225 / 72%)',
               font: {
                 size: 11,
                 weight: 700,
@@ -21065,7 +21122,7 @@ export class App implements OnDestroy {
               color: 'rgb(148 163 184 / 10%)',
             },
             ticks: {
-              color: 'rgb(203 213 225 / 72%)',
+              color: light ? '#536a76' : 'rgb(203 213 225 / 72%)',
               callback: (value) => formatTrendTick(Number(value)),
               font: {
                 size: 11,

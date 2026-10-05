@@ -1383,3 +1383,215 @@
 :host .app-shell .purchase-workspace .pw-planned-date > span { display: flex; align-items: center; gap: 8px; }
 :host .app-shell .purchase-workspace .pw-planned-date input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 :host .app-shell .purchase-workspace .pw-planned-date:focus-within { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
+
+/* Selector de productos para compras: controles compartidos de Inventory 2.0. */
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-picker-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-picker-filters label:first-child { flex: 0 1 432px; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-picker-filters label:nth-child(2) { flex: 0 1 180px; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-picker-footer { display: flex; justify-content: flex-end; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-picker-footer button { width: auto; min-width: 120px; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .yr-modal-table td[data-label="Producto"] { text-align: left; }
+:host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-add-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: normal; height: auto !important; }
+
+/* Planillas: superficies y controles de Inventory 2.0; detalle jerárquico conservado. */
+:host .app-shell .payroll-workspace.yr-ui { --bg: var(--yr-bg); --ink: var(--yr-text); --muted: var(--yr-text-muted); --line: var(--yr-border); --panel: var(--yr-surface); --panel-soft: var(--yr-surface-soft); --card-bg: var(--yr-surface); --field-bg: #fff; --primary: var(--yr-primary); background: var(--yr-bg); font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; gap: 16px; min-width: 0; }
+:host .app-shell .payroll-workspace.yr-ui > * { min-width: 0; }
+:host .app-shell .payroll-workspace.yr-ui :is(h1,h2,h3,th,.eyebrow) { text-transform: none; letter-spacing: normal; }
+:host .app-shell .payroll-workspace.yr-ui h1 { font-size: clamp(1.3rem,2vw,1.8rem); font-weight: 650; margin: 0; }
+:host .app-shell .payroll-workspace.yr-ui h2 { font-size: 1.05rem; font-weight: 650; color: var(--yr-text); }
+:host .app-shell .payroll-workspace.yr-ui :is(p,small,label) { color: var(--yr-text-muted); font-size: .82rem; font-weight: 500; }
+:host .app-shell .payroll-workspace.yr-ui .eyebrow { color: var(--yr-text-muted); font-size: .72rem; font-weight: 600; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-title { display: flex; align-items: center; gap: 12px; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-topbar { flex-wrap: wrap; }
+:host .app-shell .payroll-workspace.yr-ui :is(.primary-button,.ghost-button,.trend-period-tabs button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 8px 12px; border: 1px solid var(--yr-border); border-radius: 10px; background: var(--yr-surface); color: var(--yr-text); box-shadow: none; font: inherit; font-size: .82rem; font-weight: 600; }
+:host .app-shell .payroll-workspace.yr-ui .primary-button { background: var(--yr-primary); border-color: var(--yr-primary); color: #fff; }
+:host .app-shell .payroll-workspace.yr-ui :is(input,select) { min-width: 0; min-height: 40px; max-width: 100%; box-sizing: border-box; border: 1px solid var(--yr-border); border-radius: 9px; padding: 8px 10px; background: #fff; color: var(--yr-text); font: inherit; font-size: .85rem; font-weight: 500; box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui input[type=checkbox] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; accent-color: var(--yr-primary); }
+:host .app-shell .payroll-workspace.yr-ui select option { background: #fff; color: var(--yr-text); }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-card,.payroll-chart-card) { background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 16px; box-shadow: var(--yr-shadow-soft); }
+:host .app-shell .payroll-workspace.yr-ui .payroll-kpis[hidden] { display: none; }
+:host .app-shell .payroll-workspace.yr-ui .kpi-card { min-height: 0; padding: 16px 20px; gap: 8px; }
+:host .app-shell .payroll-workspace.yr-ui .kpi-card strong { color: var(--yr-text); font-size: clamp(1.4rem,2vw,1.9rem); font-weight: 650; }
+:host .app-shell .payroll-workspace.yr-ui :is(.kpi-card span,.payroll-bars span,.payroll-chart-card .analytics-heading p) { color: var(--yr-text-muted); font-weight: 500; }
+:host .app-shell .payroll-workspace.yr-ui .kpi-card:last-child { background: var(--yr-success-soft); }
+:host .app-shell .payroll-workspace.yr-ui .payroll-chart-shell { height: 280px; }
+:host .app-shell .payroll-workspace.yr-ui .trend-period-tabs { background: var(--yr-surface-soft); border: 1px solid var(--yr-border); border-radius: 12px; padding: 3px; }
+:host .app-shell .payroll-workspace.yr-ui .trend-period-tabs button.active { background: var(--yr-primary-soft); color: var(--yr-primary); border-color: var(--yr-primary); box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-periods article,.shift-total-grid article,.payroll-plan-week-preview article,.payroll-calculate-summary article) { background: var(--yr-surface-soft); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 12px; padding: 14px; box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-bar-track { background: var(--yr-surface-elevated); }
+:host .app-shell .payroll-workspace.yr-ui .payroll-bar-track span { background: var(--yr-primary); box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-plan-modal-hero,.payroll-plan-employee-card,.payroll-plan-employee-heading,.payroll-rates-card) { background: var(--yr-surface-soft); color: var(--yr-text); border-color: var(--yr-border); box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-user-row,.payroll-month-row,.payroll-week-row,.payroll-day-row,.editable-payroll-day-row,.payroll-plan-day-row,.payroll-plan-week-list button) { background: var(--yr-surface); color: var(--yr-text); border-color: var(--yr-border); box-shadow: none; font-size: .85rem; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-user-header,.payroll-day-header,.editable-payroll-day-header,.payroll-plan-days-header) { background: var(--yr-surface-soft); color: var(--yr-text-muted); border-color: var(--yr-border); font-size: .8rem; font-weight: 600; text-align: center; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-user-row,.payroll-month-row,.payroll-week-row) strong { color: var(--yr-text); font-weight: 600; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-month-group,.payroll-week-group,.payroll-user-group,.payroll-hierarchy) { border-color: var(--yr-border); background: var(--yr-surface); }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-rates-table,.generate-payroll-table) { width: 100%; border-collapse: collapse; background: var(--yr-surface); }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-rates-table,.generate-payroll-table) :is(th,td) { background: var(--yr-surface); color: var(--yr-text); border-color: var(--yr-border); padding: 10px; font-size: .85rem; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-rates-table,.generate-payroll-table) th { background: var(--yr-surface-soft); text-align: center; font-weight: 600; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 14px 0; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-tools input { flex: 0 1 432px; width: 432px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-density { display: flex; gap: 4px; margin-left: auto; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-density button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface); color: var(--yr-text-muted); }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-density button[aria-pressed=true] { background: var(--yr-primary-soft); border-color: var(--yr-primary); color: var(--yr-primary); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-history { --payroll-row-padding: 12px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-history[data-density=compact] { --payroll-row-padding: 5px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-history[data-density=spacious] { --payroll-row-padding: 20px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-history .payroll-user-header { display: grid; grid-template-columns: 36px minmax(0,1.5fr) repeat(3,minmax(0,1fr)); align-items: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-sort { background: transparent; color: var(--yr-text-muted); border: 0; padding: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-user-shell { display: grid; grid-template-columns: 36px minmax(0,1fr); align-items: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-user-shell > input { justify-self: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-history .payroll-user-row { width: 100%; min-height: 0; padding: var(--payroll-row-padding) 10px; display: grid; grid-template-columns: minmax(0,1.5fr) repeat(3,minmax(0,1fr)); text-align: center; align-items: center; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-user-main { text-align: left; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-selected .yr-payroll-user-shell { background: var(--yr-primary-soft); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-selected .payroll-user-row { background: transparent; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding-top: 14px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination label { display: flex; align-items: center; gap: 8px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination select { width: 72px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination nav { display: flex; gap: 6px; align-items: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination nav button { min-width: 32px; height: 32px; border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface); color: var(--yr-text); }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination > span { text-align: right; color: var(--yr-text-muted); font-size: .8rem; }
+:host .app-shell .payroll-workspace.yr-ui .yr-modal-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; font-size: .85rem; }
+@media (max-width: 900px) {
+ :host .app-shell .payroll-workspace.yr-ui .payroll-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-grid { grid-template-columns: minmax(0,1fr); }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-topbar .attendance-topbar-actions { width: 100%; }
+}
+@media (max-width: 600px) {
+ :host .app-shell .payroll-workspace.yr-ui { padding: 14px; }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-topbar .attendance-week-tabs-wrap { flex-wrap: wrap; width: 100%; }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-week-select { width: 100%; }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-kpis { grid-template-columns: minmax(0,1fr); }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-bars article { grid-template-columns: minmax(0,1fr); gap: 8px; }
+ :host .app-shell .payroll-workspace.yr-ui .yr-modal-pagination { grid-template-columns: minmax(0,1fr); justify-items: center; }
+ :host .app-shell .payroll-workspace.yr-ui .yr-payroll-history .payroll-user-header { display: flex; flex-wrap: wrap; }
+ :host .app-shell .payroll-workspace.yr-ui .yr-payroll-history .payroll-user-row { grid-template-columns: minmax(0,1fr); text-align: left; gap: 8px; }
+ :host .app-shell .payroll-workspace.yr-ui .payroll-day-table { overflow-x: auto; }
+ :host .app-shell .payroll-workspace.yr-ui :is(.payroll-day-header,.payroll-day-row) { min-width: 780px; }
+}
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-card,.payroll-user-row,.payroll-month-row,.payroll-week-row) { box-sizing: border-box; min-width: 0; }
+:host .app-shell .payroll-workspace.yr-ui :is(.payroll-user-header,.payroll-day-header,.editable-payroll-day-header,.payroll-plan-days-header) { text-transform: none; letter-spacing: normal; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-plan-modal-hero h2 { font-size: 1.35rem; line-height: 1.25; font-weight: 650; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-plan-close-button { background: var(--yr-surface); color: var(--yr-text); border-color: var(--yr-border); }
+:host .app-shell .payroll-workspace.yr-ui .payroll-week-edit-button { background: var(--yr-surface-soft); color: var(--yr-primary); border-color: var(--yr-border); box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-week-edit-button svg { fill: none; stroke: currentColor; stroke-width: 1.7; }
+
+/* Contraste explícito: las tarjetas antiguas heredaban texto blanco. */
+:host .app-shell .payroll-workspace.yr-ui .shift-total-grid article :is(span,strong) { color: var(--yr-text); }
+:host .app-shell .payroll-workspace.yr-ui .shift-total-grid article small { color: var(--yr-text-muted); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-info-button { border-radius: 10px; }
+:host .app-shell .payroll-workspace.yr-ui dialog.yr-payroll-hour-info { position: fixed; inset: 0; margin: auto; width: min(1080px,calc(100vw - 32px)); max-height: calc(100dvh - 40px); }
+:host .app-shell .payroll-workspace.yr-ui dialog.yr-payroll-hour-info:not([open]) { display: none; }
+:host .app-shell .payroll-workspace.yr-ui dialog.yr-payroll-hour-info::backdrop { background: #20343f66; backdrop-filter: blur(4px); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-hour-total { margin: 0; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-hour-info .shift-total-grid { margin-top: 0; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-hour-info .table-wrap { overflow-x: auto; }
+@media (max-width: 700px) {
+ :host .app-shell .payroll-workspace.yr-ui .yr-payroll-hour-info .shift-total-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 420px) {
+ :host .app-shell .payroll-workspace.yr-ui .yr-payroll-hour-info .shift-total-grid { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Selectores nativos de semana/mes con presentación de icono. */
+:host .app-shell .payroll-workspace.yr-ui .payroll-topbar .attendance-topbar-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-topbar .attendance-week-tabs-wrap { display: flex; width: auto; gap: 8px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-icon-filter { position: relative; display: inline-grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; margin: 0; border: 1px solid var(--yr-border); border-radius: 10px; background: var(--yr-surface); color: var(--yr-text-muted); box-sizing: border-box; cursor: pointer; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-icon-filter.is-active { background: var(--yr-primary-soft); border-color: var(--yr-primary); color: var(--yr-primary); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-icon-filter:focus-within { outline: 2px solid var(--yr-primary); outline-offset: 3px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-icon-filter select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-icon-filter svg { pointer-events: none; }
+
+:host .app-shell .payroll-workspace.yr-ui .payroll-trend-fullwidth[hidden] { display: none; }
+
+/* Cálculo de planilla: seis columnas compartidas, cuatro campos de horas iguales. */
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal :is(.editable-payroll-day-header,.editable-payroll-day-row) { display: grid; grid-template-columns: minmax(160px,1.4fr) repeat(4,minmax(120px,1fr)) minmax(120px,1fr); gap: 12px; align-items: center; text-align: center; box-sizing: border-box; padding: 12px 14px; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .editable-payroll-day-header { border: 1px solid transparent; border-top-color: var(--yr-border); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .editable-payroll-day-row > * { min-width: 0; justify-self: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .editable-payroll-day-row label { width: 120px; text-align: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .editable-payroll-day-row label small { text-transform: none; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal :is(.editable-payroll-day-row input,.payroll-week-bonus-input input) { width: 120px; max-width: 100%; min-height: 40px; box-sizing: border-box; text-align: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .payroll-week-bonus-input { justify-content: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .payroll-week-row { text-align: center; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .editable-payroll-day-table { overflow-x: auto; }
+@media (max-width: 1000px) {
+ :host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal :is(.editable-payroll-day-header,.editable-payroll-day-row) { min-width: 850px; }
+}
+
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal .payroll-calculate-summary[hidden] { display: none; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-generation-modal.yr-summary-collapsed .payroll-calculate-scroll { max-height: calc(100dvh - 220px); }
+
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-overview { display: grid; gap: 12px; min-width: 0; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-overview > .yr-payroll-title h2 { margin: 0; }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-overview .payroll-grid[hidden] { display: none; }
+
+:host .app-shell .payroll-workspace.yr-ui .payroll-topbar .payroll-action-buttons .yr-button-icon { width: 38px; height: 38px; padding: 0; border-radius: 10px; }
+:host .app-shell .payroll-workspace.yr-ui .payroll-action-buttons button[aria-pressed=true] { background: var(--yr-primary-soft); color: var(--yr-primary); border-color: var(--yr-primary); }
+:host .app-shell .payroll-workspace.yr-ui .yr-payroll-overview[hidden] { display: none; }
+
+/* Evitar que las filas del módulo se estiren al alto disponible al contraer paneles. */
+:host .app-shell .payroll-workspace.yr-ui.yr-payroll-main { align-content: start; grid-auto-rows: max-content; padding-top: 12px; padding-bottom: 16px; gap: 12px; }
+:host .app-shell .yr-payroll-main .payroll-topbar { min-height: 0; margin: 0; padding: 0; align-items: center; }
+:host .app-shell .yr-payroll-main .yr-payroll-title h1 { margin: 0; line-height: 1.2; }
+
+/* Asistencia comparte controles de Planillas y conserva la jerarquía de marcas. */
+:host .app-shell .yr-attendance-main { align-content: start; grid-auto-rows: max-content; padding-top: 12px; gap: 12px; }
+:host .app-shell .yr-attendance-main .attendance-topbar { padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; flex-wrap: wrap; }
+:host .app-shell .yr-attendance-main .attendance-topbar-actions { display: flex; align-items: center; gap: 8px; }
+:host .app-shell .yr-attendance-main .attendance-topbar-actions .yr-button-icon { width: 38px; height: 38px; padding: 0; border-radius: 10px; }
+:host .app-shell .yr-attendance-main :is(.attendance-card,.attendance-trend-card,.attendance-chart-card) { min-width: 0; box-sizing: border-box; background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 16px; box-shadow: var(--yr-shadow-soft); }
+:host .app-shell .yr-attendance-main :is(.attendance-kpis,.attendance-card,.attendance-grid)[hidden] { display: none; }
+:host .app-shell .yr-attendance-main .attendance-card :is(strong,span) { color: var(--yr-text); }
+:host .app-shell .yr-attendance-main .attendance-card :is(p,small) { color: var(--yr-text-muted); }
+:host .app-shell .yr-attendance-main .attendance-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+:host .app-shell .yr-attendance-main .attendance-kpis .kpi-card { min-height: 0; padding: 16px; border-left: 1px solid var(--yr-border); }
+:host .app-shell .yr-attendance-main .attendance-kpis .kpi-card:last-child { background: var(--yr-success-soft); }
+:host .app-shell .yr-attendance-main :is(.attendance-trend-card,.attendance-table-card,.attendance-chart-card,.attendance-summary-card) { padding: 20px; }
+:host .app-shell .yr-attendance-main .attendance-trend-shell { height: 280px; background: transparent; border-radius: 0; box-shadow: none; }
+:host .app-shell .yr-attendance-main .attendance-bar-track { background: var(--yr-surface-elevated); }
+:host .app-shell .yr-attendance-main .attendance-bar-track span { background: var(--yr-primary); box-shadow: none; }
+:host .app-shell .yr-attendance-main .attendance-mini-stats article { background: var(--yr-surface-soft); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 12px; }
+:host .app-shell .yr-attendance-main .attendance-hierarchy { --attendance-row-padding: 12px; min-width: 0; }
+:host .app-shell .yr-attendance-main .attendance-hierarchy[data-density=compact] { --attendance-row-padding: 5px; }
+:host .app-shell .yr-attendance-main .attendance-hierarchy[data-density=spacious] { --attendance-row-padding: 20px; }
+:host .app-shell .yr-attendance-main :is(.attendance-hierarchy-header,.attendance-user-row) { display: grid; grid-template-columns: 36px minmax(0,1.5fr) repeat(4,minmax(0,1fr)) 48px; gap: 10px; padding: 10px; text-align: center; }
+:host .app-shell .yr-attendance-main .attendance-hierarchy-header { background: var(--yr-surface-soft); color: var(--yr-text-muted); text-transform: none; letter-spacing: normal; font-weight: 600; }
+:host .app-shell .yr-attendance-main .attendance-user-group { background: var(--yr-surface); border-color: var(--yr-border); padding: 0; border-radius: 12px; }
+:host .app-shell .yr-attendance-main .attendance-user-row { padding: var(--attendance-row-padding) 10px; }
+:host .app-shell .yr-attendance-main .attendance-user-row > input { justify-self: center; }
+:host .app-shell .yr-attendance-main .attendance-user-toggle { display: contents; text-align: center; font: inherit; }
+:host .app-shell .yr-attendance-main .attendance-user-toggle:focus-visible { outline: none; }
+:host .app-shell .yr-attendance-main .attendance-user-toggle:focus-visible .attendance-cell { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
+:host .app-shell .yr-attendance-main .attendance-user-cell { text-align: left; }
+:host .app-shell .yr-attendance-main .yr-attendance-selected { background: var(--yr-primary-soft); }
+:host .app-shell .yr-attendance-main :is(.attendance-week-group,.attendance-week-row,.attendance-day-row,.attendance-mark-history-row) { background: var(--yr-surface); color: var(--yr-text); border-color: var(--yr-border); }
+:host .app-shell .yr-attendance-main :is(.attendance-day-header,.attendance-mark-history-head) { background: var(--yr-surface-soft); color: var(--yr-text-muted); text-transform: none; letter-spacing: normal; }
+:host .app-shell .yr-attendance-main .attendance-badge { background: var(--yr-success-soft); color: var(--yr-success); box-shadow: none; }
+:host .app-shell .yr-attendance-main .attendance-badge.late { background: var(--yr-warning-soft); color: var(--yr-warning); }
+:host .app-shell .yr-attendance-main .attendance-mark-title { background: transparent; padding: 0; }
+:host .app-shell .yr-attendance-main .attendance-mark-form input { width: 100%; text-align: center; }
+@media (max-width: 1000px) {
+ :host .app-shell .yr-attendance-main .attendance-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ :host .app-shell .yr-attendance-main .attendance-grid { display: grid; grid-template-columns: minmax(0,1fr); }
+ :host .app-shell .yr-attendance-main .attendance-schedule-grid article { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+ :host .app-shell .yr-attendance-main .attendance-kpis { grid-template-columns: minmax(0,1fr); }
+ :host .app-shell .yr-attendance-main .attendance-bars article { grid-template-columns: minmax(0,1fr); }
+ :host .app-shell .yr-attendance-main .attendance-hierarchy-header { display: flex; flex-wrap: wrap; }
+ :host .app-shell .yr-attendance-main .attendance-user-row { grid-template-columns: 36px minmax(0,1fr) 48px; }
+ :host .app-shell .yr-attendance-main .attendance-user-toggle .attendance-cell { grid-column: 2; }
+ :host .app-shell .yr-attendance-main .attendance-action-cell { grid-column: 3; grid-row: 1; }
+ :host .app-shell .yr-attendance-main .attendance-day-table { overflow-x: auto; }
+ :host .app-shell .yr-attendance-main :is(.attendance-day-header,.attendance-day-row) { min-width: 650px; }
+}
+:host .app-shell .yr-attendance-main :is(.attendance-chart-card,.attendance-summary-card) { min-height: 0; align-content: start; }
+:host .app-shell .yr-attendance-main .attendance-action-cell .yr-button-icon { width: 36px; height: 36px; padding: 0; border-radius: 9px; }
+:host .app-shell .yr-attendance-main .attendance-schedule-grid article { text-align: center; }
+:host .app-shell .yr-attendance-main .attendance-schedule-grid article > span:first-child { text-align: left; }
+:host .app-shell .yr-attendance-main .attendance-card .payroll-negative-diff { color: var(--yr-danger); }
+
+:host .app-shell .yr-attendance-main .attendance-grid { display: grid; grid-template-columns: minmax(0,1fr); }
+
+:host .app-shell .yr-attendance-main .attendance-topbar-actions button[aria-pressed=true] { background: var(--yr-primary-soft); color: var(--yr-primary); border-color: var(--yr-primary); }
+:host .app-shell .yr-attendance-main { grid-template-rows: none; align-items: start; }
+:host .app-shell .yr-attendance-main > :is(.attendance-schedule-card,.attendance-grid) { margin: 0; min-height: 0; }

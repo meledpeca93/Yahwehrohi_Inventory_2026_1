@@ -389,3 +389,71 @@ Altura ajustada al texto, con menor espacio vertical en las tres tarjetas princi
 ### 27/09/2026 — Fecha de entrega integrada
 
 Programar pedido usa un calendario directo y muestra la fecha elegida dentro del control. Registro 046.
+
+### 05/10/2026 — Selector de productos de Compras
+
+Tabla clara con código separado, ordenamiento, alturas, selección/CSV y paginación sobre el catálogo completo. Conserva el flujo de agregar productos. Compilador Angular y 14 pruebas correctos; revisión visual pendiente. Registro 047.
+
+### 05/10/2026 — Planillas UI 2.0
+
+Tema claro, resumen contraíble, tarjetas compactas y ventanas comunes. Histórico jerárquico con búsqueda, ordenamiento, densidad, selección/CSV y paginación; cálculos conservados. Compilador Angular y nueve pruebas correctos; revisión visual pendiente. Registro 048.
+
+### 05/10/2026 — Información de pago por hora
+
+Desglose y tarifas de Planillas movidos a modal accesible desde icono superior; corregido texto blanco heredado en tarjetas. Compilador Angular y diff correctos. Registro 049.
+
+### 05/10/2026 — Filtros de Planillas con iconos
+
+Semana y mes compactados en iconos de calendario junto a las acciones, conservando selectores nativos y filtros. Registro 050.
+
+### 05/10/2026 — Resumen y gráfico de Planillas contraíbles
+
+El control del resumen oculta/muestra tarjetas y Tendencia de salarios en conjunto, conservando el canvas. Registro 051.
+
+### 05/10/2026 — Campos del cálculo de Planilla alineados
+
+Editor diario de seis columnas con campos de horas/bono de ancho uniforme y contenido centrado. Registro 052.
+
+### 05/10/2026 — Etiquetas de horas simplificadas
+
+El modal Calcular planilla conserva títulos de tabla y elimina etiquetas visuales repetidas sobre los campos; nombres accesibles preservados. Registro 053.
+
+### 05/10/2026 — Tarjetas contraíbles del cálculo de Planilla
+
+Control junto al encabezado del modal para contraer/expandir las cuatro tarjetas y ampliar el detalle. Estado independiente del resumen principal. Registro 054.
+
+### 05/10/2026 — Empleados y resúmenes contraíbles
+
+Retirado gráfico de pastel; control independiente para contraer/expandir ranking y resúmenes en conjunto. Registro 055.
+
+### 05/10/2026 — Barra de Planillas con iconos
+
+Resumen principal, Modificar, Calcular y Empleados y resúmenes se controlan con iconos en la barra superior junto a filtros e información. Registro 056.
+
+### 05/10/2026 — Encabezado de Planillas simplificado
+
+Título único Modulo de Planillas y control del resumen principal junto al nombre. Registro 057.
+
+### 05/10/2026 — Espaciado compacto de Planillas
+
+Filas ajustadas al contenido y encabezado compacto para evitar espacio sobrante al contraer paneles. Registro 058.
+
+### 05/10/2026 — Histórico de Planillas sin subtítulo
+
+Retirado párrafo descriptivo bajo el título del histórico. Registro 059.
+
+### 05/10/2026 — Asistencia UI 2.0
+
+Tema claro, título/espacios compactos, iconos y paneles contraíbles. Registro jerárquico con búsqueda, ordenamiento, densidad, selección/CSV y paginación; gráfico circular retirado y resumen CSV funcional. Compilador Angular y nueve pruebas correctos. Registro 060.
+
+### 05/10/2026 — Asistencia sin Estadísticas
+
+Retirada tarjeta Estadísticas y ampliado Horas por usuario a ancho completo. Registro 061.
+
+### 05/10/2026 — Paneles de Asistencia sin huecos
+
+Horarios y Horas por usuario se contraen desde iconos con estado activo en la barra; paneles ocultos fuera del layout. Registro 062.
+
+### 05/10/2026 — Paneles cerrados e iconos Lucide
+
+Planillas/Asistencia restablecen paneles y detalles cerrados al ingresar; modal de cálculo con tarjetas cerradas al abrir. Iconos SVG del alcance convertidos a Lucide. Compilador Angular y seis pruebas correctos. Registro 063.

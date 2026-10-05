@@ -567,8 +567,122 @@ No se modificaron endpoints, autenticación backend, SQL Server, stock, reglas d
 - Sin desplegable ni botón adicional. Si ya hay proveedor y productos, programa el borrador local al elegir fecha; de lo contrario conserva la selección para completar el formulario.
 - Validación: compilador Angular y `git diff --check`; aceptación visual pendiente.
 
+## 047 — Selector de productos actualizado (05/10/2026)
+
+- Ventana Seleccionar productos de Compras alineada con Inventory 2.0: tabla clara, código separado a la izquierda, cabeceras centradas y ordenables, tres alturas de fila y acción Agregar con icono.
+- Selección independiente para exportación CSV; paginación centrada 10/25/50/100 con primera/última página. Retirado límite de 80 productos; búsqueda y categoría reinician la página.
+- Conserva agregar/agregar otro y los datos del borrador; adaptación móvil mediante estilos compartidos. Archivos: `src/app/app.html`, `src/app/app.ts`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y 14 pruebas de Compras/ModalTableState correctos; revisión visual y aceptación pendientes. Build de desarrollo terminó con código 134 en dos intentos; compilación de pruebas correcta. Sin reiniciar escritorio ni registrar compras reales.
+
+## 048 — Planillas alineado con Inventory 2.0 (05/10/2026)
+
+- Tema claro acotado a Planillas y Generar planilla, sin cambiar preferencias guardadas. Tarjetas compactas, resumen superior contraíble, acciones con SVG, filtros blancos, gráficos legibles y ventanas de cálculo/edición con superficies comunes.
+- Histórico por empleado con búsqueda de nombre/cargo/área, ordenamiento numérico y textual, selección independiente para CSV, alturas Compacta/Normal/Amplia y paginación 10/25/50/100 centrada. Conserva empleado → mes → semana → día y acciones de edición existentes.
+- Filtrar/paginar no altera totales ni bonos. No se modificaron tarifas, cálculos, servicios, backend ni BD. Generar planilla recibe estilos comunes; captura semanal conservada.
+- Archivos: `src/app/app.html`, `src/app/app.ts`, `src/app/yr-ui.css`, `src/app/payroll-presentation.spec.ts`.
+- Validación: compilador Angular y nueve pruebas de presentación/ModalTableState correctos; `git diff --check` correcto. Build de desarrollo termina con código 134, incluso con un worker y sin source maps. Revisión visual en navegador y aceptación pendientes. Sin reiniciar escritorio ni guardar planillas reales.
+
+## 049 — Pago por tipo de hora en modal (05/10/2026)
+
+- Se retira el bloque de la página de Planillas y se abre mediante icono de información junto a Modificar/Calcular planilla.
+- Modal nativo con desglose, base salarial y tabla de tarifas existentes; cierre por botón, Escape o clic en el fondo, con gestión nativa de foco.
+- Texto oscuro explícito en tarjetas para corregir el blanco heredado, también en Generar planilla. Corregida etiqueta Bonificaciones.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`. Sin cambios de cálculos, tarifas ni servicios.
+- Validación: compilador Angular y `git diff --check` correctos. Revisión visual y aceptación pendientes; escritorio sin reiniciar.
+
+## 050 — Filtros de Planillas con iconos (05/10/2026)
+
+- Semana y mes usan dos iconos de calendario en la fila de acciones superiores, con tooltip y estado activo cuando existe filtro.
+- Conservan selectores nativos, opciones, teclado, nombres accesibles y eventos originales; sin cambios de cálculos.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente. Escritorio sin reiniciar.
+
+## 051 — Contraer tarjetas y gráfico de Planillas juntos (05/10/2026)
+
+- El botón del resumen oculta/muestra también Tendencia de salarios, conservando el canvas y sus datos. Relación accesible del botón con ambas secciones.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente. Sin reiniciar escritorio.
+
+## 052 — Campos alineados en cálculo de Planilla (05/10/2026)
+
+- Encabezados y filas de días comparten seis columnas; cuatro campos de horas y bono semanal con ancho de 120 px y valores centrados.
+- Corregida interferencia de la cuadrícula general de ocho columnas sobre el editor de seis. Etiquetas y pago diario centrados; desplazamiento horizontal local en pantallas estrechas.
+- Alcance acotado al modal Calcular planilla; eventos y cálculos conservados. Archivos: `src/app/app.html`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente. Escritorio sin reiniciar.
+
+## 053 — Etiquetas de horas sin duplicación (05/10/2026)
+
+- Retiradas etiquetas Normal/Extra 1/Extra 2/Extra 3 sobre cada campo del modal Calcular planilla; títulos de la tabla conservados.
+- Campos mantienen nombres accesibles con tipo de hora y día. Sin cambios de valores, eventos ni cálculos.
+- Archivo: `src/app/app.html`. Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 054 — Tarjetas contraíbles en cálculo de Planilla (05/10/2026)
+
+- Flecha junto al encabezado del modal oculta/muestra las cuatro tarjetas de cálculo en conjunto, con estado independiente del resumen principal.
+- Amplía el espacio del detalle al contraer; valores y formulario conservados. Archivos: `src/app/app.ts`, `src/app/app.html`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente. Sin reiniciar escritorio.
+
+## 055 — Empleados y resúmenes contraíbles (05/10/2026)
+
+- Eliminado gráfico de pastel de Resúmenes. Se conservan importes semanal/acumulado, histórico y promedio por hora.
+- Control de flecha en encabezado Empleados y resúmenes oculta/muestra ambas tarjetas en conjunto, con estado independiente del resumen principal y del modal.
+- Archivos: `src/app/app.ts`, `src/app/app.html`, `src/app/yr-ui.css`. Sin cambios de cálculos.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente. Escritorio sin reiniciar.
+
+## 056 — Acciones de Planillas con iconos en barra superior (05/10/2026)
+
+- Control de Empleados y resúmenes trasladado a botón con icono en la barra superior; retirado encabezado independiente. Conserva contraer/expandir y estado activo.
+- Modificar, Calcular y resumen principal también usan botones de icono en la misma barra, junto a filtros e información; tooltips y nombres accesibles incluidos.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`. Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 057 — Encabezado simplificado de Planillas (05/10/2026)
+
+- Título único «Modulo de Planillas»; eliminados etiqueta superior y subtítulo descriptivo.
+- Botón de contraer tarjetas principales y tendencia vuelve junto al título; otras acciones permanecen en la barra superior.
+- Archivo: `src/app/app.html`. Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 058 — Encabezado compacto de Planillas (05/10/2026)
+
+- Filas de la página ajustadas al contenido en lugar de estirarse al alto disponible; elimina espacio excesivo alrededor del título al contraer los paneles.
+- Padding superior de 12 px y separación de 12 px entre bloques; encabezado sin márgenes ni padding extra.
+- Alcance acotado a la página principal de Planillas. Archivos: `src/app/app.html`, `src/app/yr-ui.css`.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 059 — Histórico de Planillas sin subtítulo (05/10/2026)
+
+- Eliminado texto descriptivo bajo Histórico de planillas por usuario; título y controles conservados.
+- Archivo: `src/app/app.html`. Validación: eliminación exacta del párrafo y `git diff --check` correctos.
+
+## 060 — Asistencia alineado con Inventory 2.0 (05/10/2026)
+
+- Tema claro, título único Modulo de Asistencia, encabezado compacto y filas ajustadas al contenido. Subtítulos de secciones retirados; tarjetas y tendencia comparten flecha junto al título.
+- Barra superior con semana en icono, exportación CSV funcional, editar horarios y controles independientes de horarios/horas y estadísticas. Gráfico circular retirado; indicadores de puntualidad conservados.
+- Registro por empleado con búsqueda, ordenamiento, alturas Compacta/Normal/Amplia, selección/CSV y paginación 10/25/50/100. Jerarquía usuario/semana/día y agregar marca conservados; acción con icono.
+- Modal de marcas y ventana de horarios usan estilos claros compartidos; fechas y horas centradas. CSV de resumen usa todas las filas sin alterar selección de la tabla.
+- Archivos: `src/app/app.html`, `src/app/app.ts`, `src/app/yr-ui.css`, `src/app/attendance-presentation.spec.ts`.
+- Validación: compilador Angular, nueve pruebas de presentación/ModalTableState y `git diff --check` correctos. Revisión visual y aceptación pendientes. No se cambiaron cálculos, reglas, backend ni BD; no se reinició escritorio ni se registraron marcas reales.
+
+## 061 — Asistencia sin sección Estadísticas (05/10/2026)
+
+- Eliminada tarjeta Estadísticas; Horas por usuario ocupa el ancho completo. Actualizada ayuda del botón que muestra/oculta este panel.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`. Cálculos y registros conservados.
+- Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 062 — Paneles auxiliares de Asistencia contraíbles sin huecos (05/10/2026)
+
+- Horarios de planilla y Horas por usuario se retiran del layout al contraer, mediante sus botones de icono existentes en la barra superior.
+- Botones resaltan cuando el panel está visible; filas sin altura reservada, márgenes ni altura mínima adicional. Datos y edición conservados.
+- Archivos: `src/app/app.html`, `src/app/yr-ui.css`. Validación: compilador Angular y `git diff --check` correctos; aceptación visual pendiente.
+
+## 063 — Paneles cerrados por defecto e iconos Lucide (05/10/2026)
+
+- Asistencia y Planillas inician y restablecen sus paneles contraíbles cerrados al ingresar, incluidos detalles por usuario/semana/mes. Tarjetas del modal Calcular planilla también cerradas al abrir.
+- Migrados SVG manuales de ambos módulos a directivas de `@lucide/angular`: navegación, filtros, acciones, densidad, edición y notificaciones; 27 elementos SVG del alcance verificados como Lucide. Sin dependencias nuevas.
+- Cálculos, selección de semana, datos y acciones conservados. Archivos: `src/app/app.ts`, `src/app/app.html`, pruebas de presentación de Asistencia/Planillas.
+- Validación: compilador Angular, seis pruebas (incluido reingreso tras expandir) y `git diff --check` correctos; aceptación visual pendiente. Escritorio sin reiniciar.
+
 ## Próximo registro
 
-El siguiente cambio independiente se documentará como **047**.
+El siguiente cambio independiente se documentará como **064**.
 
 Validación del registro 006: Chrome aislado con 125 productos y 24 códigos armados simulados; comprobadas páginas de 10 y 25, búsqueda con un resultado, selección y cancelación del diálogo de inactivación. Ventanas de alta, inactivos, códigos armados y Kardex abiertas sin errores de ejecución. No se escribieron datos reales.
