@@ -1,5 +1,5 @@
 @if (!isAuthenticated()) {
-  <main class="login-shell yr-ui">
+  <main class="login-shell yr-ui" [attr.data-theme]="activeThemeId()">
     <section class="login-card" aria-label="Inicio de sesion">
       <aside class="yr-login-story" aria-label="YahwehRohi Inventory">
         <div class="yr-wordmark"><span class="yr-monogram">YR</span><span>YahwehRohi<small>INVENTORY 2.0</small></span></div>
@@ -59,7 +59,7 @@
 <main
   class="app-shell"
   [class.yr-pos]="activePage() === 'billing' || activePage() === 'inventory-sheet' || activePage() === 'inventory-out-of-stock' || activePage() === 'invoices'"
-  [attr.data-theme]="(activePage() === 'billing' || activePage() === 'inventory-sheet' || activePage() === 'inventory-out-of-stock' || activePage() === 'invoices' || activePage() === 'credits' || activePage() === 'purchases' || activePage() === 'payroll' || activePage() === 'payroll-generate' || activePage() === 'attendance' || activePage() === 'costs' || activePage() === 'petty-cash' || activePage() === 'financial-movements' || activePage() === 'sales-profitability') ? 'yr-light' : activeThemeId()"
+  [attr.data-theme]="activeThemeId()"
   [attr.data-density]="interfaceDensity()"
   [class.sidebar-collapsed]="sidebarCollapsed()"
 >
@@ -94,7 +94,7 @@
         type="button"
         [class.active]="activePage() === 'dashboard'"
         (click)="setPage('dashboard')"
-       aria-label="Dashboard" [attr.aria-current]="activePage() === 'dashboard' ? 'page' : null"><span class="nav-icon"><svg lucideLayoutDashboard aria-hidden="true"></svg></span><span class="nav-label">Dashboard</span></button>
+       aria-label="Dashboard" [attr.aria-current]="activePage() === 'dashboard' ? 'page' : null"><span class="nav-icon"><svg lucideGauge aria-hidden="true"></svg></span><span class="nav-label">Dashboard</span></button>
       <button [hidden]="!canAccessModule('billing')"
         class="nav-item"
 
@@ -305,7 +305,18 @@
       <input type="search" placeholder="Buscar…" aria-label="Buscar en la tabla" [value]="modalTables.state(key).search" (input)="modalTables.input(key,'search',$event)" />
       @if(financeTableConfigs[key].filterKey){<select aria-label="Filtrar tabla" [value]="modalTables.state(key).filter" (change)="modalTables.input(key,'filter',$event)"><option value="">Todos</option>@for(value of financeFilterOptions(key);track value){<option [value]="value">{{ value }}</option>}</select>}
       <div class="yr-modal-density">@for(density of modalTables.densities;track density.value){<button class="yr-button yr-button-icon" type="button" [class.active]="modalTables.state(key).density===density.value" [attr.aria-label]="density.label" [title]="density.label" (click)="modalTables.patch(key,{density:density.value})">@switch(density.value){@case('compact'){<svg lucideRows4 class="yr-icon" aria-hidden="true"></svg>}@case('normal'){<svg lucideRows3 class="yr-icon" aria-hidden="true"></svg>}@default{<svg lucideRows2 class="yr-icon" aria-hidden="true"></svg>}}</button>}</div>
+      <ng-container [ngTemplateOutlet]="tableColumnChooser" [ngTemplateOutletContext]="{$implicit:key}" />
     </div>
+  </ng-template>
+  <ng-template #tableColumnChooser let-key>
+      <div class="finance-column-chooser">
+        <button class="yr-button yr-button-icon" type="button" aria-label="Configurar columnas" title="Configurar columnas" aria-haspopup="dialog" [attr.aria-controls]="'finance-columns-' + key" (click)="openFinanceColumns(key,$event)"><svg lucideSettings class="yr-icon" aria-hidden="true"></svg></button>
+        <div class="finance-column-panel" popover="auto" [id]="'finance-columns-' + key" role="dialog" aria-label="Columnas visibles"><header><strong>Columnas visibles</strong><button class="yr-button" type="button" (click)="resetFinanceColumns(key)">Restablecer</button></header>
+          @for(column of financeColumnDefinitions[key];track column;let index=$index){
+            <label><input type="checkbox" [checked]="financeColumnVisible(key,index+1)" [disabled]="financeColumnVisible(key,index+1) && financeVisibleColumnCount(key) === 1" (change)="toggleFinanceColumn(key,column)" /><span>{{ column }}</span></label>
+          }
+        </div>
+      </div>
   </ng-template>
   <ng-template #financeTablePager let-key>
     <div class="yr-modal-footer finance-table-pager">@if(modalTables.selectedRows(key,financeTableRows(key)).length){<button class="yr-button" type="button" (click)="modalTables.export(key,financeTableRows(key),financeTableConfigs[key])"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>CSV ({{ modalTables.selectedRows(key,financeTableRows(key)).length }})</button>}<label>Mostrar <select aria-label="Filas por página" [value]="modalTables.state(key).size" (change)="modalTables.input(key,'size',$event)">@for(size of [10,25,50,100];track size){<option [value]="size">{{ size }}</option>}</select></label><div class="yr-modal-pagination"><button class="yr-button" type="button" aria-label="Primera página" [disabled]="modalTables.current(key,financeTableRows(key),financeTableConfigs[key])===1" (click)="modalTables.go(key,1,financeTableRows(key),financeTableConfigs[key])"><svg lucideChevronsLeft class="yr-icon" aria-hidden="true"></svg></button>
@@ -709,7 +720,7 @@
   @if (activityNotificationsOpen()) {
     <div class="activity-notification-backdrop" role="presentation" (click)="closeActivityNotifications()">
       <section
-        class="activity-notification-panel"
+        class="activity-notification-panel" [class.dashboard-modal]="activePage() === 'dashboard'" [class.yr-ui]="activePage() === 'dashboard'"
         role="dialog"
         aria-modal="true"
         aria-label="Notificaciones de actividad"
@@ -717,7 +728,7 @@
       >
         <header class="activity-notification-header">
           <h2>Notificaciones</h2>
-          <button type="button" aria-label="Cerrar notificaciones" (click)="closeActivityNotifications()">X</button>
+          <button type="button" aria-label="Cerrar notificaciones" (click)="closeActivityNotifications()"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
         </header>
 
         <div class="activity-notification-list">
@@ -767,7 +778,7 @@
         aria-modal="true"
         aria-label="Corte de cierre de sesion"
         (click)="$event.stopPropagation()"
-      >
+       [class.dashboard-modal]="activePage() === 'dashboard'">
         <div class="analytics-heading">
           <div>
             <p class="eyebrow">{{ logoutCutFromHistory() ? 'Corte historico' : 'Cierre de sesion' }}</p>
@@ -858,7 +869,7 @@
         aria-modal="true"
         aria-label="Inicio de caja"
         (click)="$event.stopPropagation()"
-      >
+       [class.dashboard-modal]="activePage() === 'dashboard'">
         <div class="analytics-heading">
           <div>
             <p class="eyebrow">Inicio de sesion</p>
@@ -2668,14 +2679,20 @@
     </section>
   } @else if (activePage() === 'dashboard') {
     <!-- PAGINA: DASHBOARD | FUNCION PRINCIPAL: MOSTRAR INDICADORES GENERALES, TARJETAS Y GRAFICOS DE TENDENCIA. -->
-    <section class="dashboard-workspace">
+    <section class="dashboard-workspace dashboard-ui yr-ui">
       <header class="dashboard-topbar">
         <div>
-          <h1>Dashboard</h1>
-          <p>Resumen integral de inventario, compras, ventas y costos</p>
+          <div class="dashboard-title"><h1>Dashboard</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" aria-controls="dashboard-kpis" [attr.aria-expanded]="!dashboardSummaryCollapsed()" (click)="toggleDashboardSummary()">@if(dashboardSummaryCollapsed()){<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}</button></div>
         </div>
 
         <div class="dashboard-actions">
+          <button class="yr-button yr-button-icon dashboard-theme-button" type="button"
+            [attr.title]="activeThemeId() === 'yr-dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+            [attr.aria-label]="activeThemeId() === 'yr-dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+            (click)="setTheme(activeThemeId() === 'yr-dark' ? 'yr-light' : 'yr-dark')">
+            @if(activeThemeId() === 'yr-dark'){<svg lucideSun class="yr-icon" aria-hidden="true"></svg>}
+            @else{<svg lucideMoon class="yr-icon" aria-hidden="true"></svg>}
+          </button>
           <button
             class="system-update-button"
             type="button"
@@ -2684,13 +2701,8 @@
             title="Actualizar sistema"
             aria-label="Actualizar sistema"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-              <path d="M20.2 6.8A8.5 8.5 0 0 0 4.6 7.9" />
-              <path d="M20.2 3.2v3.6h-3.6" />
-              <path d="M3.8 17.2a8.5 8.5 0 0 0 15.6-1.1" />
-              <path d="M3.8 20.8v-3.6h3.6" />
-            </svg>
-            <span>{{ systemUpdateLoading() ? 'Actualizando...' : 'Actualizar' }}</span>
+            <svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg>
+            <span class="sr-only">Actualizar sistema</span>
           </button>
           <button
             class="price-change-alert-button"
@@ -2700,7 +2712,7 @@
             title="Ver productos con cambio de precio"
             aria-label="Ver productos con cambio de precio"
           >
-            <span>Cambios precio</span>
+            <svg lucideCreditCard class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Cambios de precio</span>
             <strong>{{ priceChangeAlertCount() }}</strong>
           </button>
           <button
@@ -2711,10 +2723,7 @@
             title="Notificaciones de actividad"
             aria-label="Notificaciones de actividad"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-              <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-            </svg>
+            <svg lucideBell class="yr-icon" aria-hidden="true"></svg>
             <strong>{{ activityNotificationsCount() }}</strong>
           </button>
           <button
@@ -2727,22 +2736,19 @@
             [attr.aria-label]="'Ventas. ' + salesDropAlertComparisonTooltip()"
             (click)="openSalesDropAlertModal()"
           >
-            <span>Ventas</span>
+            <svg lucideChartColumn class="yr-icon" aria-hidden="true"></svg><span class="sr-only">Ventas</span>
             <strong>
               {{ salesDropMissingPercentage() | number: '1.0-2' }}%
             </strong>
           </button>
-          <div class="user-pill">
-            <span>MP</span>
-            <strong>{{ currentUser()?.nombre || 'Melvin Pena' }}</strong>
-          </div>
+
           @if (systemUpdateMessage()) {
             <small class="system-update-message">{{ systemUpdateMessage() }}</small>
           }
         </div>
       </header>
 
-      <section class="dashboard-kpis" aria-label="Indicadores principales">
+      <section id="dashboard-kpis" [hidden]="dashboardSummaryCollapsed()" class="dashboard-kpis" aria-label="Indicadores principales">
         <article class="analytics-card kpi-card">
           <span>Valor total de inventario</span>
           <strong>{{ inventoryRetailValue() | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong>
@@ -2920,11 +2926,11 @@
         </article>
       </section>
 
-      <section class="dashboard-trend-grid" aria-label="Graficos de tendencia">
-        <article class="analytics-card trend-card ticket-trend-card">
+      <section class="dashboard-trend-grid dashboard-financial-grid" aria-label="Graficos de tendencia">
+        <article class="analytics-card trend-card ticket-trend-card dashboard-premium sales-premium">
           <div class="analytics-heading">
             <div>
-              <h2>Tendencia de ventas</h2>
+              <h2>Ventas</h2>
               <p>Ventas reales por forma de pago</p>
             </div>
             <div class="trend-period-tabs" aria-label="Selector de periodo de ventas">
@@ -2957,9 +2963,10 @@
                 Año
               </button>
             </div>
+            <button class="premium-icon-button chart-download-button" type="button" title="Descargar imagen" aria-label="Descargar gráfico de ventas como imagen" (click)="downloadDashboardChart('sales')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg></button>
           </div>
 
-          <div class="chartjs-trend-shell">
+          <div class="premium-metric"><strong>{{ dashboardSalesTrendTotal() | currency:'HNL':'symbol-narrow':'1.2-2' }}</strong><span>Total del período · {{ salesTrendData().length }} intervalos</span></div><div class="chartjs-trend-shell">
             <canvas #salesTrendCanvas aria-label="Tendencia de ventas por forma de pago"></canvas>
             @if (salesTrendData().length === 0) {
               <span class="chart-empty-label">Sin ventas registradas</span>
@@ -2967,11 +2974,11 @@
           </div>
         </article>
 
-        <article class="analytics-card trend-card">
+        <article class="analytics-card trend-card dashboard-premium purchases-premium">
           <div class="analytics-heading">
             <div>
-              <h2>Tendencia de compras</h2>
-              <p>Vista basada en las compras registradas en la base de datos.</p>
+              <h2>Compras</h2>
+              <p>Compras registradas</p>
             </div>
             <div class="trend-period-tabs purchase-year-tabs" aria-label="Selector de periodo de compras del dashboard">
               <button
@@ -3003,24 +3010,21 @@
                 Año
               </button>
             </div>
+            <button class="premium-icon-button chart-download-button" type="button" title="Descargar imagen" aria-label="Descargar gráfico de compras como imagen" (click)="downloadDashboardChart('purchases')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg></button>
           </div>
 
-          <div class="chartjs-trend-shell purchase-chart-shell">
+          <div class="premium-metric"><strong>{{ dashboardPurchasesTrendTotal() | currency:'HNL':'symbol-narrow':'1.2-2' }}</strong><span>Total del período · {{ purchasesTrendData().length }} intervalos</span></div><div class="chartjs-trend-shell purchase-chart-shell">
             <canvas #purchasesTrendCanvas aria-label="Tendencia de compras del dashboard"></canvas>
             @if (purchasesTrendData().length === 0) {
               <span class="chart-empty-label">Sin compras registradas</span>
             }
           </div>
         </article>
-      </section>
-
-      <!-- DASHBOARD: GRAFICOS DE MODULOS | FUNCION: RESUMIR PLANILLA, ASISTENCIAS, INVENTARIO, COSTOS E HISTORICO CON DATOS YA CARGADOS EN SUS MODULOS. -->
-      <section class="dashboard-module-charts" aria-label="Graficos por modulo">
-        <article class="analytics-card dashboard-module-chart-card">
+      <article class="analytics-card dashboard-module-chart-card dashboard-premium salary-premium">
           <div class="analytics-heading">
             <div>
-              <h2>Planilla</h2>
-              <p>Pago acumulado por usuario segun periodo.</p>
+              <h2>Salarios</h2>
+              <p>Pago calculado por usuario</p>
             </div>
             <div class="trend-period-tabs purchase-year-tabs" aria-label="Selector de periodo de planilla del dashboard">
               <button
@@ -3045,97 +3049,54 @@
                 Año
               </button>
             </div>
-            <strong>{{ dashboardPayrollTotal() | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</strong>
+
           </div>
-          <div class="dashboard-module-chart-shell">
-            <canvas #dashboardPayrollChartCanvas aria-label="Grafico de planilla acumulada por usuario"></canvas>
+          <div class="premium-metric"><strong>{{ dashboardPayrollTotal() | currency:'HNL':'symbol-narrow':'1.2-2' }}</strong><span>Salarios calculados · {{ payrollTrendPeriod() === 'year' ? 'Por año' : payrollTrendPeriod() === 'month' ? 'Por mes' : 'Por semana' }}</span></div><div class="dashboard-module-chart-shell">
+            <canvas #dashboardPayrollChartCanvas aria-label="Salarios calculados por usuario y período"></canvas>
             @if (dashboardPayrollChartSeries().labels.length === 0) {
               <span class="module-chart-empty">Sin planilla generada</span>
             }
           </div>
         </article>
-
-        <article class="analytics-card dashboard-module-chart-card">
-          <div class="analytics-heading">
-            <div>
-              <h2>Asistencias</h2>
-              <p>Estado actual de marcas.</p>
-            </div>
-            <strong>{{ attendanceRecords() | number }}</strong>
-          </div>
-          <div class="dashboard-module-chart-shell pie-chart-shell">
-            <canvas #dashboardAttendanceChartCanvas aria-label="Grafico tipo pastel de asistencias"></canvas>
-            @if (dashboardAttendanceChartRows().length === 0) {
-              <span class="module-chart-empty">Sin asistencias cargadas</span>
+        @if(canAccessModule('credits')){
+        <article class="analytics-card dashboard-premium dashboard-credit-ranking">
+          <div class="analytics-heading"><div><h2>Clientes con crédito</h2><p>Saldo pendiente por cliente</p></div><button class="premium-icon-button" type="button" [class.active]="dashboardCreditSort() === 'balance'" [attr.aria-pressed]="dashboardCreditSort() === 'balance'" [title]="dashboardCreditSort() === 'balance' ? 'Mayor saldo primero · Cambiar a nombre' : 'Por nombre · Cambiar a mayor saldo'" aria-label="Alternar orden por mayor saldo o nombre" (click)="dashboardCreditSort.set(dashboardCreditSort() === 'balance' ? 'name' : 'balance')"><svg lucideArrowDownWideNarrow class="yr-icon" aria-hidden="true"></svg></button><button class="premium-icon-button" type="button" title="Actualizar créditos" aria-label="Actualizar créditos" [disabled]="creditLoading()" (click)="loadCredits()"><svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg></button></div>
+          <div class="premium-metric">
+            @if (creditLoading() || creditError()) {
+              <strong>—</strong><span>{{ creditLoading() ? 'Consultando saldos…' : 'Saldo no disponible' }}</span>
+            } @else {
+              <strong>{{ dashboardCreditBalance() | currency:'HNL':'symbol-narrow':'1.2-2' }}</strong><span>{{ dashboardCreditCustomers().length }} clientes con saldo</span>
             }
           </div>
-        </article>
-
-        <article class="analytics-card dashboard-module-chart-card">
-          <div class="analytics-heading">
-            <div>
-              <h2>Inventarios</h2>
-              <p>Distribucion por estado de stock.</p>
-            </div>
-            <strong>{{ registeredProductsCount() | number }}</strong>
-          </div>
-          <div class="dashboard-module-chart-shell">
-            <canvas #dashboardInventoryChartCanvas aria-label="Grafico de linea de tendencia de inventarios"></canvas>
-            @if (dashboardInventoryChartRows().length === 0) {
-              <span class="module-chart-empty">Sin inventario cargado</span>
+          <div class="credit-ranking-tools"><label><svg lucideSearch class="yr-icon" aria-hidden="true"></svg><input type="search" placeholder="Buscar cliente" aria-label="Buscar cliente con crédito" [value]="dashboardCreditSearch()" (input)="dashboardCreditSearch.set($any($event.target).value)" /></label></div>
+          <div class="credit-ranking-list" [attr.aria-busy]="creditLoading()">
+            @if(creditLoading()){<p role="status" class="premium-empty">Cargando clientes…</p>}@else if(creditError()){<p role="alert" class="premium-empty">{{ creditError() }}</p>}@else{
+              @for(customer of dashboardCreditRows();track customer.id;let index=$index){
+                <div class="credit-ranking-row"><span class="credit-ranking-avatar" [class.credit-avatar-mint]="index%3===1" [class.credit-avatar-gold]="index%3===2" aria-hidden="true">{{ creditInitials(customer.name) }}</span><div class="credit-ranking-person"><strong>{{ customer.name }}</strong><div><span class="credit-ranking-tag">{{ customer.invoiceCount }} {{ customer.invoiceCount===1 ? 'factura' : 'facturas' }}</span><small>Saldo pendiente</small></div></div><strong class="credit-ranking-amount">{{ customer.balance | currency:'HNL':'symbol-narrow':'1.2-2' }}</strong></div>
+              }@empty{<p class="premium-empty">{{ dashboardCreditSearch() ? 'No hay clientes que coincidan.' : 'No hay clientes con saldo pendiente.' }}</p>}
             }
           </div>
+          <footer class="credit-ranking-footer"><span>Hasta 8 clientes · {{ dashboardCreditSort() === 'name' ? 'Por nombre' : 'Mayor saldo primero' }}</span><button class="premium-link" type="button" (click)="openCreditsPage()">Ver cartera<svg lucideChevronRight class="yr-icon" aria-hidden="true"></svg></button></footer>
         </article>
-
-        <article class="analytics-card dashboard-module-chart-card">
-          <div class="analytics-heading">
-            <div>
-              <h2>Costos</h2>
-              <p>Categorias con mayor costo de inventario.</p>
-            </div>
-            <strong>{{ monthlyFixedCostEstimate() | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</strong>
-          </div>
-          <div class="dashboard-module-chart-shell">
-            <canvas #dashboardCostsChartCanvas aria-label="Grafico de barras de costos por categoria"></canvas>
-            @if (dashboardCostChartRows().length === 0) {
-              <span class="module-chart-empty">Sin costos calculados</span>
-            }
-          </div>
-        </article>
-
-        <article class="analytics-card dashboard-module-chart-card">
-          <div class="analytics-heading">
-            <div>
-              <h2>Historico</h2>
-              <p>Movimientos por usuario.</p>
-            </div>
-            <strong>{{ auditHistory().length | number }}</strong>
-          </div>
-          <div class="dashboard-module-chart-shell">
-            <canvas #dashboardHistoryChartCanvas aria-label="Grafico de linea de tendencia del historico"></canvas>
-            @if (dashboardHistoryChartRows().length === 0) {
-              <span class="module-chart-empty">Sin movimientos registrados</span>
-            }
-          </div>
-        </article>
-      </section>
+        }
+</section>
 
       @if (priceChangeAlertModalOpen() && priceChangeAlertMode() === 'manual') {
         <div class="customer-modal-backdrop price-change-alert-backdrop" role="presentation" (click)="closePriceChangeAlertsModal()">
           <section
-            class="customer-modal expiring-alerts-modal price-change-alert-modal"
+            class="customer-modal expiring-alerts-modal price-change-alert-modal dashboard-modal yr-ui"
             role="dialog"
             aria-modal="true"
             aria-label="Alertas de cambio de precio"
             (click)="$event.stopPropagation()"
-          >
+           [class.dashboard-modal]="activePage() === 'dashboard'">
             <header class="customer-modal-header expiring-alerts-header">
               <div>
                 <p class="eyebrow">Alertas</p>
                 <h2 class="customer-modal-title expiring-alerts-title">{{ priceChangeAlertTitle() }}</h2>
                 <p>Consulta manual de productos modificados en la semana o mes.</p>
               </div>
-              <button class="customer-modal-close" type="button" (click)="closePriceChangeAlertsModal()">x</button>
+              <button class="customer-modal-close" type="button" (click)="closePriceChangeAlertsModal()" aria-label="Cerrar cambios de precio"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
             </header>
 
             <div class="price-change-period-tabs trend-period-tabs">
@@ -3427,6 +3388,7 @@
             <div><span>Efectivo</span><strong>{{ latestMonth.cashTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></div>
             <div><span>Crédito</span><strong>{{ latestMonth.creditTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></div>
             <div class="total"><span>Total vendido</span><strong>{{ latestMonth.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</strong></div>
+            <button class="premium-icon-button chart-download-button" type="button" title="Descargar imagen" aria-label="Descargar gráfico de salarios como imagen" (click)="downloadDashboardChart('salary')"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg></button>
           </div>
         }
         <div class="invoice-filter-bar invoice-monthly-toolbar" aria-label="Filtros de facturación mensual">
@@ -3542,7 +3504,7 @@
             aria-modal="true"
             aria-label="Detalle de factura"
             (click)="$event.stopPropagation()"
-          >
+           [class.dashboard-modal]="activePage() === 'dashboard'">
             @if (invoiceDetailInvoice(); as invoice) {
               <button class="invoice-detail-close-button" type="button" aria-label="Cerrar" title="Cerrar" (click)="closeInvoiceDetailModal()">
                 ×
@@ -6701,38 +6663,38 @@
         <div class="table-wrap">
           <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'cost-changes'}" /><table [attr.data-density]="modalTables.state('cost-changes').density" class="yr-modal-table invoice-master-table">
             <thead>
-              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','productName')">Producto {{ modalTables.sortLabel('cost-changes','productName') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','category')">Categoria {{ modalTables.sortLabel('cost-changes','category') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','previousCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','previousCost')">Costo anterior {{ modalTables.sortLabel('cost-changes','previousCost') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','currentCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','currentCost')">Costo actual {{ modalTables.sortLabel('cost-changes','currentCost') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Aumento {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','variation')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','variation')">% {{ modalTables.sortLabel('cost-changes','variation') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Cambio {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
+              <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('cost-changes',0)"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','productName')" [hidden]="!financeColumnVisible('cost-changes',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','productName')">Producto {{ modalTables.sortLabel('cost-changes','productName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','category')" [hidden]="!financeColumnVisible('cost-changes',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','category')">Categoria {{ modalTables.sortLabel('cost-changes','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','previousCost')" [hidden]="!financeColumnVisible('cost-changes',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','previousCost')">Costo anterior {{ modalTables.sortLabel('cost-changes','previousCost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','currentCost')" [hidden]="!financeColumnVisible('cost-changes',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','currentCost')">Costo actual {{ modalTables.sortLabel('cost-changes','currentCost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')" [hidden]="!financeColumnVisible('cost-changes',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Aumento {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','variation')" [hidden]="!financeColumnVisible('cost-changes',6)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','variation')">% {{ modalTables.sortLabel('cost-changes','variation') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-changes','difference')" [hidden]="!financeColumnVisible('cost-changes',7)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-changes','difference')">Cambio {{ modalTables.sortLabel('cost-changes','difference') }}</button></th>
               </tr>
             </thead>
             <tbody>
               @if (purchaseLoading()) {
                 <tr>
-                  <td colspan="8" class="table-feedback-row">Calculando cambios de costo...</td>
+                  <td class="table-feedback-row" [hidden]="financeColumnSpan('cost-changes',0,8) === 0" [attr.colspan]="financeColumnSpan('cost-changes',0,8)">Calculando cambios de costo...</td>
                 </tr>
               } @else if (costChangedProducts().length === 0) {
                 <tr>
-                  <td colspan="8" class="table-feedback-row">No hay cambios de costo detectados en compras recientes.</td>
+                  <td class="table-feedback-row" [hidden]="financeColumnSpan('cost-changes',0,8) === 0" [attr.colspan]="financeColumnSpan('cost-changes',0,8)">No hay cambios de costo detectados en compras recientes.</td>
                 </tr>
               } @else {
                 @for (item of modalTables.pageRows('cost-changes',financeTableRows('cost-changes'),financeTableConfigs['cost-changes']); track item.productId) {
-                  <tr [class.yr-modal-selected]="modalTables.selected('cost-changes',item)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-changes',item)" (change)="modalTables.toggle('cost-changes',item)" /></td>
-                    <td>
+                  <tr [class.yr-modal-selected]="modalTables.selected('cost-changes',item)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('cost-changes',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-changes',item)" (change)="modalTables.toggle('cost-changes',item)" /></td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',1)">
                       <strong>{{ item.productName }}</strong>
                       <span>{{ item.lastDate ? (item.lastDate | date: 'dd/MM/yyyy') : '-' }}</span>
                     </td>
-                    <td>{{ item.category }}</td>
-                    <td>{{ item.previousCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                    <td>{{ item.currentCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                    <td>{{ item.difference | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                    <td>{{ item.variation | percent: '1.1-2' }}</td>
-                    <td>{{ item.difference >= 0 ? 'Aumento' : 'Reduccion' }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',2)">{{ item.category }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',3)">{{ item.previousCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',4)">{{ item.currentCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',5)">{{ item.difference | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',6)">{{ item.variation | percent: '1.1-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('cost-changes',7)">{{ item.difference >= 0 ? 'Aumento' : 'Reduccion' }}</td>
                   </tr>
                 }
               }
@@ -6760,31 +6722,31 @@
         <div class="table-wrap">
           <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'cost-products'}" /><table [attr.data-density]="modalTables.state('cost-products').density" class="yr-modal-table invoice-master-table">
             <thead>
-              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','productName')">Producto {{ modalTables.sortLabel('cost-products','productName') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','category')">Categoria {{ modalTables.sortLabel('cost-products','category') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','quantity')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','quantity')">Movimiento {{ modalTables.sortLabel('cost-products','quantity') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','monthlyRotation')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','monthlyRotation')">Rotacion mensual {{ modalTables.sortLabel('cost-products','monthlyRotation') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','sales')">Venta {{ modalTables.sortLabel('cost-products','sales') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','cost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','cost')">Costo {{ modalTables.sortLabel('cost-products','cost') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','utility')">Utilidad {{ modalTables.sortLabel('cost-products','utility') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','margin')">% ganancia {{ modalTables.sortLabel('cost-products','margin') }}</button></th>
+              <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('cost-products',0)"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','productName')" [hidden]="!financeColumnVisible('cost-products',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','productName')">Producto {{ modalTables.sortLabel('cost-products','productName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','category')" [hidden]="!financeColumnVisible('cost-products',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','category')">Categoria {{ modalTables.sortLabel('cost-products','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','quantity')" [hidden]="!financeColumnVisible('cost-products',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','quantity')">Movimiento {{ modalTables.sortLabel('cost-products','quantity') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','monthlyRotation')" [hidden]="!financeColumnVisible('cost-products',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','monthlyRotation')">Rotacion mensual {{ modalTables.sortLabel('cost-products','monthlyRotation') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','sales')" [hidden]="!financeColumnVisible('cost-products',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','sales')">Venta {{ modalTables.sortLabel('cost-products','sales') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','cost')" [hidden]="!financeColumnVisible('cost-products',6)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','cost')">Costo {{ modalTables.sortLabel('cost-products','cost') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','utility')" [hidden]="!financeColumnVisible('cost-products',7)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','utility')">Utilidad {{ modalTables.sortLabel('cost-products','utility') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('cost-products','margin')" [hidden]="!financeColumnVisible('cost-products',8)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('cost-products','margin')">% ganancia {{ modalTables.sortLabel('cost-products','margin') }}</button></th>
               </tr>
             </thead>
             <tbody>
               @for (product of modalTables.pageRows('cost-products',financeTableRows('cost-products'),financeTableConfigs['cost-products']); track product.productId) {
-                <tr [class.yr-modal-selected]="modalTables.selected('cost-products',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-products',product)" (change)="modalTables.toggle('cost-products',product)" /></td>
-                  <td>
+                <tr [class.yr-modal-selected]="modalTables.selected('cost-products',product)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('cost-products',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('cost-products',product)" (change)="modalTables.toggle('cost-products',product)" /></td>
+                  <td [hidden]="!financeColumnVisible('cost-products',1)">
                     <strong>{{ product.productName }}</strong>
                     <span>{{ product.sku }}</span>
                   </td>
-                  <td>{{ product.category }}</td>
-                  <td>{{ product.quantity | number: '1.0-2' }}</td>
-                  <td>{{ product.monthlyRotation | number: '1.0-2' }}</td>
-                  <td>{{ product.sales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                  <td>{{ product.cost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                  <td>{{ product.utility | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                  <td>
+                  <td [hidden]="!financeColumnVisible('cost-products',2)">{{ product.category }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',3)">{{ product.quantity | number: '1.0-2' }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',4)">{{ product.monthlyRotation | number: '1.0-2' }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',5)">{{ product.sales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',6)">{{ product.cost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',7)">{{ product.utility | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td [hidden]="!financeColumnVisible('cost-products',8)">
                     <span [class]="costMarginClass(product.margin)">
                       {{ product.margin | percent: '1.0-1' }}
                     </span>
@@ -6792,7 +6754,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="9" class="table-feedback-row">
+                  <td class="table-feedback-row" [hidden]="financeColumnSpan('cost-products',0,9) === 0" [attr.colspan]="financeColumnSpan('cost-products',0,9)">
                     {{ costAnalysisLoading() ? 'Cargando detalle de ventas...' : 'No hay ventas con detalle para el periodo seleccionado.' }}
                   </td>
                 </tr>
@@ -6879,22 +6841,22 @@
         <div class="table-wrap">
           <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-movements'}" /><table [attr.data-density]="modalTables.state('finance-movements').density" class="yr-modal-table invoice-master-table financial-table">
             <thead>
-              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','date')">Fecha {{ modalTables.sortLabel('finance-movements','date') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','movementType')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','movementType')">Tipo {{ modalTables.sortLabel('finance-movements','movementType') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','paymentMethod')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','paymentMethod')">Metodo {{ modalTables.sortLabel('finance-movements','paymentMethod') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','target')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','target')">Aplica a {{ modalTables.sortLabel('finance-movements','target') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','category')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','category')">Categoria {{ modalTables.sortLabel('finance-movements','category') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','description')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','description')">Descripcion {{ modalTables.sortLabel('finance-movements','description') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','amount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','amount')">Monto {{ modalTables.sortLabel('finance-movements','amount') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','userName')">Usuario {{ modalTables.sortLabel('finance-movements','userName') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','status')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','status')">Estado {{ modalTables.sortLabel('finance-movements','status') }}</button></th>
+              <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-movements',0)"><span class="sr-only">Selección</span></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','date')" [hidden]="!financeColumnVisible('finance-movements',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','date')">Fecha {{ modalTables.sortLabel('finance-movements','date') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','movementType')" [hidden]="!financeColumnVisible('finance-movements',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','movementType')">Tipo {{ modalTables.sortLabel('finance-movements','movementType') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','paymentMethod')" [hidden]="!financeColumnVisible('finance-movements',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','paymentMethod')">Metodo {{ modalTables.sortLabel('finance-movements','paymentMethod') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','target')" [hidden]="!financeColumnVisible('finance-movements',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','target')">Aplica a {{ modalTables.sortLabel('finance-movements','target') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','category')" [hidden]="!financeColumnVisible('finance-movements',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','category')">Categoria {{ modalTables.sortLabel('finance-movements','category') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','description')" [hidden]="!financeColumnVisible('finance-movements',6)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','description')">Descripcion {{ modalTables.sortLabel('finance-movements','description') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','amount')" [hidden]="!financeColumnVisible('finance-movements',7)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','amount')">Monto {{ modalTables.sortLabel('finance-movements','amount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','userName')" [hidden]="!financeColumnVisible('finance-movements',8)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','userName')">Usuario {{ modalTables.sortLabel('finance-movements','userName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-movements','status')" [hidden]="!financeColumnVisible('finance-movements',9)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-movements','status')">Estado {{ modalTables.sortLabel('finance-movements','status') }}</button></th>
               </tr>
             </thead>
             <tbody>
               @for (dayGroup of financialDayGroups(); track dayGroup.key) {
                 <tr class="invoice-day-group-row financial-day-group-row">
-                  <td colspan="4">
+                  <td [hidden]="financeColumnSpan('finance-movements',0,4) === 0" [attr.colspan]="financeColumnSpan('finance-movements',0,4)">
                     <button
                       class="invoice-collapse-button"
                       type="button"
@@ -6905,12 +6867,12 @@
                     </button>
                     <strong>{{ dayGroup.label }}</strong>
                   </td>
-                  <td colspan="2">{{ dayGroup.count | number }} movimientos</td>
-                  <td>
+                  <td [hidden]="financeColumnSpan('finance-movements',4,2) === 0" [attr.colspan]="financeColumnSpan('finance-movements',4,2)">{{ dayGroup.count | number }} movimientos</td>
+                  <td [hidden]="!financeColumnVisible('finance-movements',6)">
                     <span class="financial-day-balance">Neto</span>
                   </td>
-                  <td class="invoice-total-cell">{{ dayGroup.netTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                  <td colspan="2">
+                  <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-movements',7)">{{ dayGroup.netTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                  <td [hidden]="financeColumnSpan('finance-movements',8,2) === 0" [attr.colspan]="financeColumnSpan('finance-movements',8,2)">
                     E: {{ dayGroup.entriesTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}
                     · S: {{ dayGroup.outputsTotal | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}
                   </td>
@@ -6919,7 +6881,7 @@
                 @if (isFinancialDayExpanded(dayGroup.key)) {
                   @for (typeGroup of dayGroup.movementGroups; track typeGroup.key) {
                     <tr class="financial-type-group-row">
-                      <td colspan="4">
+                      <td [hidden]="financeColumnSpan('finance-movements',0,4) === 0" [attr.colspan]="financeColumnSpan('finance-movements',0,4)">
                         <button
                           class="invoice-collapse-button"
                           type="button"
@@ -6932,15 +6894,15 @@
                           {{ typeGroup.label }}
                         </span>
                       </td>
-                      <td colspan="3">{{ typeGroup.count | number }} registros</td>
-                      <td class="invoice-total-cell">{{ typeGroup.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td colspan="2">{{ typeGroup.paymentGroups.length | number }} metodo(s)</td>
+                      <td [hidden]="financeColumnSpan('finance-movements',4,3) === 0" [attr.colspan]="financeColumnSpan('finance-movements',4,3)">{{ typeGroup.count | number }} registros</td>
+                      <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-movements',7)">{{ typeGroup.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="financeColumnSpan('finance-movements',8,2) === 0" [attr.colspan]="financeColumnSpan('finance-movements',8,2)">{{ typeGroup.paymentGroups.length | number }} metodo(s)</td>
                     </tr>
 
                     @if (isFinancialTypeExpanded(typeGroup.key)) {
                       @for (paymentGroup of typeGroup.paymentGroups; track paymentGroup.key) {
                         <tr class="invoice-payment-group-row financial-payment-group-row">
-                          <td colspan="4">
+                          <td [hidden]="financeColumnSpan('finance-movements',0,4) === 0" [attr.colspan]="financeColumnSpan('finance-movements',0,4)">
                             <button
                               class="invoice-collapse-button"
                               type="button"
@@ -6953,27 +6915,27 @@
                               {{ paymentGroup.label }}
                             </span>
                           </td>
-                          <td colspan="3">{{ paymentGroup.count | number }} movimientos</td>
-                          <td class="invoice-total-cell">{{ paymentGroup.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                          <td colspan="2">{{ financialTargetLabel(paymentGroup.movements[0].target) }}</td>
+                          <td [hidden]="financeColumnSpan('finance-movements',4,3) === 0" [attr.colspan]="financeColumnSpan('finance-movements',4,3)">{{ paymentGroup.count | number }} movimientos</td>
+                          <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-movements',7)">{{ paymentGroup.total | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                          <td [hidden]="financeColumnSpan('finance-movements',8,2) === 0" [attr.colspan]="financeColumnSpan('finance-movements',8,2)">{{ financialTargetLabel(paymentGroup.movements[0].target) }}</td>
                         </tr>
 
                         @if (isFinancialPaymentExpanded(paymentGroup.key)) {
                           @for (movement of paymentGroup.movements; track movement.id) {
-                            <tr [class.yr-modal-selected]="modalTables.selected('finance-movements',movement)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-movements',movement)" (change)="modalTables.toggle('finance-movements',movement)" /></td>
-                              <td>{{ formatTableDateTime(movement.date) }}</td>
-                              <td>
+                            <tr [class.yr-modal-selected]="modalTables.selected('finance-movements',movement)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-movements',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-movements',movement)" (change)="modalTables.toggle('finance-movements',movement)" /></td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',1)">{{ formatTableDateTime(movement.date) }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',2)">
                                 <span class="financial-pill" [class.out]="movement.movementType === 'salida'">
                                   {{ financialMovementTypeLabel(movement.movementType) }}
                                 </span>
                               </td>
-                              <td>{{ financialPaymentMethodLabel(movement.paymentMethod) }}</td>
-                              <td>{{ financialTargetLabel(movement.target) }}</td>
-                              <td>{{ movement.category || '-' }}</td>
-                              <td>{{ movement.description || '-' }}</td>
-                              <td class="invoice-total-cell">{{ movement.amount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                              <td>{{ movement.userName }}</td>
-                              <td>{{ movement.status }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',3)">{{ financialPaymentMethodLabel(movement.paymentMethod) }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',4)">{{ financialTargetLabel(movement.target) }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',5)">{{ movement.category || '-' }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',6)">{{ movement.description || '-' }}</td>
+                              <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-movements',7)">{{ movement.amount | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',8)">{{ movement.userName }}</td>
+                              <td [hidden]="!financeColumnVisible('finance-movements',9)">{{ movement.status }}</td>
                             </tr>
                           }
                         }
@@ -6983,7 +6945,7 @@
                 }
               } @empty {
                 <tr>
-                  <td colspan="10" class="table-feedback-row">
+                  <td class="table-feedback-row" [hidden]="financeColumnSpan('finance-movements',0,10) === 0" [attr.colspan]="financeColumnSpan('finance-movements',0,10)">
                     {{ financialMovementsLoading() ? 'Cargando movimientos financieros...' : 'No hay movimientos en el periodo seleccionado.' }}
                   </td>
                 </tr>
@@ -7195,29 +7157,29 @@
         <div class="table-wrap">
           <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-cash'}" /><table [attr.data-density]="modalTables.state('finance-cash').density" class="yr-modal-table invoice-master-table petty-cash-table">
             <thead>
-              <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                <th>Acciones</th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','date')">Fecha {{ modalTables.sortLabel('finance-cash','date') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','userName')">Cajero {{ modalTables.sortLabel('finance-cash','userName') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','initialAmount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','initialAmount')">Monto inicial {{ modalTables.sortLabel('finance-cash','initialAmount') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','finalAmount')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','finalAmount')">Monto final {{ modalTables.sortLabel('finance-cash','finalAmount') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','turnBilling')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','turnBilling')">Facturacion turno {{ modalTables.sortLabel('finance-cash','turnBilling') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashToPetty')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashToPetty')">Caja chica {{ modalTables.sortLabel('finance-cash','cashToPetty') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','registerBalance')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','registerBalance')">Queda registradora {{ modalTables.sortLabel('finance-cash','registerBalance') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','changeWallet')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','changeWallet')">Billetera cambio {{ modalTables.sortLabel('finance-cash','changeWallet') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','pettyCashTotal')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','pettyCashTotal')">Total caja chica {{ modalTables.sortLabel('finance-cash','pettyCashTotal') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashOut')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashOut')">Salidas {{ modalTables.sortLabel('finance-cash','cashOut') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','reason')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','reason')">Motivo {{ modalTables.sortLabel('finance-cash','reason') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','realCashTotal')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','realCashTotal')">Total real {{ modalTables.sortLabel('finance-cash','realCashTotal') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','comments')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','comments')">Comentarios {{ modalTables.sortLabel('finance-cash','comments') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','dividendReserve')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','dividendReserve')">Beneficio / dividendo {{ modalTables.sortLabel('finance-cash','dividendReserve') }}</button></th>
-                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','fourteenthReserve')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','fourteenthReserve')">Catorceavo / aguinaldo {{ modalTables.sortLabel('finance-cash','fourteenthReserve') }}</button></th>
+              <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-cash',0)"><span class="sr-only">Selección</span></th>
+                <th [hidden]="!financeColumnVisible('finance-cash',1)">Acciones</th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','date')" [hidden]="!financeColumnVisible('finance-cash',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','date')">Fecha {{ modalTables.sortLabel('finance-cash','date') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','userName')" [hidden]="!financeColumnVisible('finance-cash',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','userName')">Cajero {{ modalTables.sortLabel('finance-cash','userName') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','initialAmount')" [hidden]="!financeColumnVisible('finance-cash',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','initialAmount')">Monto inicial {{ modalTables.sortLabel('finance-cash','initialAmount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','finalAmount')" [hidden]="!financeColumnVisible('finance-cash',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','finalAmount')">Monto final {{ modalTables.sortLabel('finance-cash','finalAmount') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','turnBilling')" [hidden]="!financeColumnVisible('finance-cash',6)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','turnBilling')">Facturacion turno {{ modalTables.sortLabel('finance-cash','turnBilling') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashToPetty')" [hidden]="!financeColumnVisible('finance-cash',7)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashToPetty')">Caja chica {{ modalTables.sortLabel('finance-cash','cashToPetty') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','registerBalance')" [hidden]="!financeColumnVisible('finance-cash',8)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','registerBalance')">Queda registradora {{ modalTables.sortLabel('finance-cash','registerBalance') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','changeWallet')" [hidden]="!financeColumnVisible('finance-cash',9)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','changeWallet')">Billetera cambio {{ modalTables.sortLabel('finance-cash','changeWallet') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','pettyCashTotal')" [hidden]="!financeColumnVisible('finance-cash',10)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','pettyCashTotal')">Total caja chica {{ modalTables.sortLabel('finance-cash','pettyCashTotal') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','cashOut')" [hidden]="!financeColumnVisible('finance-cash',11)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','cashOut')">Salidas {{ modalTables.sortLabel('finance-cash','cashOut') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','reason')" [hidden]="!financeColumnVisible('finance-cash',12)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','reason')">Motivo {{ modalTables.sortLabel('finance-cash','reason') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','realCashTotal')" [hidden]="!financeColumnVisible('finance-cash',13)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','realCashTotal')">Total real {{ modalTables.sortLabel('finance-cash','realCashTotal') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','comments')" [hidden]="!financeColumnVisible('finance-cash',14)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','comments')">Comentarios {{ modalTables.sortLabel('finance-cash','comments') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','dividendReserve')" [hidden]="!financeColumnVisible('finance-cash',15)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','dividendReserve')">Beneficio / dividendo {{ modalTables.sortLabel('finance-cash','dividendReserve') }}</button></th>
+                <th [attr.aria-sort]="modalTables.ariaSort('finance-cash','fourteenthReserve')" [hidden]="!financeColumnVisible('finance-cash',16)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-cash','fourteenthReserve')">Catorceavo / aguinaldo {{ modalTables.sortLabel('finance-cash','fourteenthReserve') }}</button></th>
               </tr>
             </thead>
             <tbody>
               @for (row of modalTables.pageRows('finance-cash',financeTableRows('finance-cash'),financeTableConfigs['finance-cash']); track row.id) {
-                <tr [class.yr-modal-selected]="modalTables.selected('finance-cash',row)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-cash',row)" (change)="modalTables.toggle('finance-cash',row)" /></td>
-                  <td>
+                <tr [class.yr-modal-selected]="modalTables.selected('finance-cash',row)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-cash',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-cash',row)" (change)="modalTables.toggle('finance-cash',row)" /></td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',1)">
                     <div class="petty-cash-row-actions">
                       <button type="button" class="edit" (click)="editPettyCashRow(row)" title="Editar" aria-label="Editar"><svg lucidePencil class="yr-icon" aria-hidden="true"></svg></button>
                       @if (row.source !== 'base') {
@@ -7227,25 +7189,25 @@
                       }
                     </div>
                   </td>
-                  <td>{{ row.date || '-' }}</td>
-                  <td>{{ row.userName }}</td>
-                  <td>{{ row.initialAmount | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.finalAmount | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.turnBilling | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td class="invoice-total-cell">{{ row.cashToPetty | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.registerBalance | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.changeWallet | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td class="invoice-total-cell">{{ row.pettyCashTotal | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.cashOut | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.reason || '-' }}</td>
-                  <td>{{ row.realCashTotal | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.comments || '-' }}</td>
-                  <td>{{ row.dividendReserve | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
-                  <td>{{ row.fourteenthReserve | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',2)">{{ row.date || '-' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',3)">{{ row.userName }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',4)">{{ row.initialAmount | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',5)">{{ row.finalAmount | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',6)">{{ row.turnBilling | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-cash',7)">{{ row.cashToPetty | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',8)">{{ row.registerBalance | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',9)">{{ row.changeWallet | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td class="invoice-total-cell" [hidden]="!financeColumnVisible('finance-cash',10)">{{ row.pettyCashTotal | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',11)">{{ row.cashOut | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',12)">{{ row.reason || '-' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',13)">{{ row.realCashTotal | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',14)">{{ row.comments || '-' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',15)">{{ row.dividendReserve | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
+                  <td [hidden]="!financeColumnVisible('finance-cash',16)">{{ row.fourteenthReserve | currency: 'HNL' : 'symbol-narrow' : '1.0-0' }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="17" class="table-feedback-row">
+                  <td class="table-feedback-row" [hidden]="financeColumnSpan('finance-cash',0,17) === 0" [attr.colspan]="financeColumnSpan('finance-cash',0,17)">
                     {{ pettyCashLoading() ? 'Cargando historico de caja chica...' : 'No hay cortes diarios registrados.' }}
                   </td>
                 </tr>
@@ -7680,25 +7642,25 @@
             <div class="table-wrap">
               <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-sold'}" /><table [attr.data-density]="modalTables.state('finance-sold').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','productName')">Producto {{ modalTables.sortLabel('finance-sold','productName') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','quantity')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','quantity')">Cantidad {{ modalTables.sortLabel('finance-sold','quantity') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','sales')">Ventas {{ modalTables.sortLabel('finance-sold','sales') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','utility')">Utilidad {{ modalTables.sortLabel('finance-sold','utility') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','margin')">Margen {{ modalTables.sortLabel('finance-sold','margin') }}</button></th>
+                  <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-sold',0)"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','productName')" [hidden]="!financeColumnVisible('finance-sold',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','productName')">Producto {{ modalTables.sortLabel('finance-sold','productName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','quantity')" [hidden]="!financeColumnVisible('finance-sold',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','quantity')">Cantidad {{ modalTables.sortLabel('finance-sold','quantity') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','sales')" [hidden]="!financeColumnVisible('finance-sold',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','sales')">Ventas {{ modalTables.sortLabel('finance-sold','sales') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','utility')" [hidden]="!financeColumnVisible('finance-sold',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','utility')">Utilidad {{ modalTables.sortLabel('finance-sold','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-sold','margin')" [hidden]="!financeColumnVisible('finance-sold',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-sold','margin')">Margen {{ modalTables.sortLabel('finance-sold','margin') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (product of modalTables.pageRows('finance-sold',financeTableRows('finance-sold'),financeTableConfigs['finance-sold']); track product.productId) {
-                    <tr [class.yr-modal-selected]="modalTables.selected('finance-sold',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-sold',product)" (change)="modalTables.toggle('finance-sold',product)" /></td>
-                      <td><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
-                      <td>{{ product.quantity || 0 | number: '1.0-2' }}</td>
-                      <td>{{ product.sales || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ product.utility || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ (product.margin || 0) | percent: '1.1-2' }}</td>
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-sold',product)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-sold',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-sold',product)" (change)="modalTables.toggle('finance-sold',product)" /></td>
+                      <td [hidden]="!financeColumnVisible('finance-sold',1)"><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
+                      <td [hidden]="!financeColumnVisible('finance-sold',2)">{{ product.quantity || 0 | number: '1.0-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-sold',3)">{{ product.sales || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-sold',4)">{{ product.utility || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-sold',5)">{{ (product.margin || 0) | percent: '1.1-2' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="6" class="table-feedback-row">Sin ventas de productos.</td></tr>
+                    <tr><td class="table-feedback-row" [hidden]="financeColumnSpan('finance-sold',0,6) === 0" [attr.colspan]="financeColumnSpan('finance-sold',0,6)">Sin ventas de productos.</td></tr>
                   }
                 </tbody>
               </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-sold'}" />
@@ -7716,25 +7678,25 @@
             <div class="table-wrap">
               <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-profit'}" /><table [attr.data-density]="modalTables.state('finance-profit').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','productName')">Producto {{ modalTables.sortLabel('finance-profit','productName') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','salePrice')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','salePrice')">Precio {{ modalTables.sortLabel('finance-profit','salePrice') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','cost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','cost')">Costo {{ modalTables.sortLabel('finance-profit','cost') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','utility')">Utilidad {{ modalTables.sortLabel('finance-profit','utility') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','margin')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','margin')">Margen {{ modalTables.sortLabel('finance-profit','margin') }}</button></th>
+                  <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-profit',0)"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','productName')" [hidden]="!financeColumnVisible('finance-profit',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','productName')">Producto {{ modalTables.sortLabel('finance-profit','productName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','salePrice')" [hidden]="!financeColumnVisible('finance-profit',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','salePrice')">Precio {{ modalTables.sortLabel('finance-profit','salePrice') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','cost')" [hidden]="!financeColumnVisible('finance-profit',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','cost')">Costo {{ modalTables.sortLabel('finance-profit','cost') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','utility')" [hidden]="!financeColumnVisible('finance-profit',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','utility')">Utilidad {{ modalTables.sortLabel('finance-profit','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-profit','margin')" [hidden]="!financeColumnVisible('finance-profit',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-profit','margin')">Margen {{ modalTables.sortLabel('finance-profit','margin') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (product of modalTables.pageRows('finance-profit',financeTableRows('finance-profit'),financeTableConfigs['finance-profit']); track product.productId) {
-                    <tr [class.yr-modal-selected]="modalTables.selected('finance-profit',product)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-profit',product)" (change)="modalTables.toggle('finance-profit',product)" /></td>
-                      <td><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
-                      <td>{{ product.salePrice || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ product.cost || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ product.utility || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ (product.margin || 0) | percent: '1.1-2' }}</td>
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-profit',product)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-profit',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-profit',product)" (change)="modalTables.toggle('finance-profit',product)" /></td>
+                      <td [hidden]="!financeColumnVisible('finance-profit',1)"><strong>{{ product.productName }}</strong><span>{{ product.category }}</span></td>
+                      <td [hidden]="!financeColumnVisible('finance-profit',2)">{{ product.salePrice || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-profit',3)">{{ product.cost || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-profit',4)">{{ product.utility || 0 | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-profit',5)">{{ (product.margin || 0) | percent: '1.1-2' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="6" class="table-feedback-row">Sin utilidad por producto.</td></tr>
+                    <tr><td class="table-feedback-row" [hidden]="financeColumnSpan('finance-profit',0,6) === 0" [attr.colspan]="financeColumnSpan('finance-profit',0,6)">Sin utilidad por producto.</td></tr>
                   }
                 </tbody>
               </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-profit'}" />
@@ -7752,25 +7714,25 @@
             <div class="table-wrap">
               <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-customers'}" /><table [attr.data-density]="modalTables.state('finance-customers').density" class="yr-modal-table invoice-master-table">
                 <thead>
-                  <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','customerName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','customerName')">Cliente {{ modalTables.sortLabel('finance-customers','customerName') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','invoices')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','invoices')">Facturas {{ modalTables.sortLabel('finance-customers','invoices') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','sales')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','sales')">Ventas {{ modalTables.sortLabel('finance-customers','sales') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','utility')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','utility')">Utilidad {{ modalTables.sortLabel('finance-customers','utility') }}</button></th>
-                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','lastSale')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','lastSale')">Ultima venta {{ modalTables.sortLabel('finance-customers','lastSale') }}</button></th>
+                  <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-customers',0)"><span class="sr-only">Selección</span></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','customerName')" [hidden]="!financeColumnVisible('finance-customers',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','customerName')">Cliente {{ modalTables.sortLabel('finance-customers','customerName') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','invoices')" [hidden]="!financeColumnVisible('finance-customers',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','invoices')">Facturas {{ modalTables.sortLabel('finance-customers','invoices') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','sales')" [hidden]="!financeColumnVisible('finance-customers',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','sales')">Ventas {{ modalTables.sortLabel('finance-customers','sales') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','utility')" [hidden]="!financeColumnVisible('finance-customers',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','utility')">Utilidad {{ modalTables.sortLabel('finance-customers','utility') }}</button></th>
+                    <th [attr.aria-sort]="modalTables.ariaSort('finance-customers','lastSale')" [hidden]="!financeColumnVisible('finance-customers',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-customers','lastSale')">Ultima venta {{ modalTables.sortLabel('finance-customers','lastSale') }}</button></th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (customer of modalTables.pageRows('finance-customers',financeTableRows('finance-customers'),financeTableConfigs['finance-customers']); track customer.customerId) {
-                    <tr [class.yr-modal-selected]="modalTables.selected('finance-customers',customer)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-customers',customer)" (change)="modalTables.toggle('finance-customers',customer)" /></td>
-                      <td><strong>{{ customer.customerName }}</strong></td>
-                      <td>{{ customer.invoices }}</td>
-                      <td>{{ customer.sales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ customer.utility | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                      <td>{{ customer.lastSale | date: 'short' }}</td>
+                    <tr [class.yr-modal-selected]="modalTables.selected('finance-customers',customer)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-customers',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-customers',customer)" (change)="modalTables.toggle('finance-customers',customer)" /></td>
+                      <td [hidden]="!financeColumnVisible('finance-customers',1)"><strong>{{ customer.customerName }}</strong></td>
+                      <td [hidden]="!financeColumnVisible('finance-customers',2)">{{ customer.invoices }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-customers',3)">{{ customer.sales | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-customers',4)">{{ customer.utility | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                      <td [hidden]="!financeColumnVisible('finance-customers',5)">{{ customer.lastSale | date: 'short' }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="6" class="table-feedback-row">Sin clientes con ventas.</td></tr>
+                    <tr><td class="table-feedback-row" [hidden]="financeColumnSpan('finance-customers',0,6) === 0" [attr.colspan]="financeColumnSpan('finance-customers',0,6)">Sin clientes con ventas.</td></tr>
                   }
                 </tbody>
               </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-customers'}" />
@@ -7837,53 +7799,57 @@
             </div>
           </div>
 
+          <div class="finance-kardex-toolbar">
           <div class="profitability-kardex-filters">
-            <input type="search" placeholder="Producto o documento" [value]="salesProfitabilityKardexProductFilter()" (input)="updateSalesProfitabilityKardexProductFilter($event)" />
-            <select [value]="salesProfitabilityKardexCategoryFilter()" (change)="updateSalesProfitabilityKardexCategoryFilter($event)">
+            <input aria-label="Buscar producto o documento" type="search" placeholder="Producto o documento" [value]="salesProfitabilityKardexProductFilter()" (input)="updateSalesProfitabilityKardexProductFilter($event)" />
+            <select aria-label="Categoría" [value]="salesProfitabilityKardexCategoryFilter()" (change)="updateSalesProfitabilityKardexCategoryFilter($event)">
               @for (category of salesProfitabilityKardexCategories(); track category) {
                 <option [value]="category">{{ category }}</option>
               }
             </select>
-            <select [value]="salesProfitabilityKardexWarehouseFilter()" (change)="updateSalesProfitabilityKardexWarehouseFilter($event)">
+            <select aria-label="Almacén" [value]="salesProfitabilityKardexWarehouseFilter()" (change)="updateSalesProfitabilityKardexWarehouseFilter($event)">
               @for (warehouse of salesProfitabilityKardexWarehouses(); track warehouse) {
                 <option [value]="warehouse">{{ warehouse }}</option>
               }
             </select>
-            <input type="date" [value]="salesProfitabilityKardexDateFilter()" (input)="updateSalesProfitabilityKardexDateFilter($event)" />
+            <input aria-label="Fecha del movimiento" type="date" [value]="salesProfitabilityKardexDateFilter()" (input)="updateSalesProfitabilityKardexDateFilter($event)" />
+          </div>
+
+          <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-kardex'}" />
           </div>
 
           <div class="table-wrap">
-            <ng-container [ngTemplateOutlet]="financeTableTools" [ngTemplateOutletContext]="{$implicit:'finance-kardex'}" /><table [attr.data-density]="modalTables.state('finance-kardex').density" class="yr-modal-table invoice-master-table">
+            <table [attr.data-density]="modalTables.state('finance-kardex').density" class="yr-modal-table invoice-master-table">
               <thead>
-                <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','date')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','date')">Fecha {{ modalTables.sortLabel('finance-kardex','date') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','document')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','document')">Documento {{ modalTables.sortLabel('finance-kardex','document') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','movementType')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','movementType')">Movimiento {{ modalTables.sortLabel('finance-kardex','movementType') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','productName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','productName')">Producto {{ modalTables.sortLabel('finance-kardex','productName') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','entrada')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','entrada')">Entrada {{ modalTables.sortLabel('finance-kardex','entrada') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','salida')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','salida')">Salida {{ modalTables.sortLabel('finance-kardex','salida') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','existencia')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','existencia')">Existencia {{ modalTables.sortLabel('finance-kardex','existencia') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','unitCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','unitCost')">Costo unitario {{ modalTables.sortLabel('finance-kardex','unitCost') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','averageCost')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','averageCost')">Costo promedio {{ modalTables.sortLabel('finance-kardex','averageCost') }}</button></th>
-                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','userName')"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','userName')">Usuario {{ modalTables.sortLabel('finance-kardex','userName') }}</button></th>
+                <tr><th class="yr-modal-check" [hidden]="!financeColumnVisible('finance-kardex',0)"><span class="sr-only">Selección</span></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','date')" [hidden]="!financeColumnVisible('finance-kardex',1)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','date')">Fecha {{ modalTables.sortLabel('finance-kardex','date') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','document')" [hidden]="!financeColumnVisible('finance-kardex',2)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','document')">Documento {{ modalTables.sortLabel('finance-kardex','document') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','movementType')" [hidden]="!financeColumnVisible('finance-kardex',3)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','movementType')">Movimiento {{ modalTables.sortLabel('finance-kardex','movementType') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','productName')" [hidden]="!financeColumnVisible('finance-kardex',4)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','productName')">Producto {{ modalTables.sortLabel('finance-kardex','productName') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','entrada')" [hidden]="!financeColumnVisible('finance-kardex',5)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','entrada')">Entrada {{ modalTables.sortLabel('finance-kardex','entrada') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','salida')" [hidden]="!financeColumnVisible('finance-kardex',6)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','salida')">Salida {{ modalTables.sortLabel('finance-kardex','salida') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','existencia')" [hidden]="!financeColumnVisible('finance-kardex',7)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','existencia')">Existencia {{ modalTables.sortLabel('finance-kardex','existencia') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','unitCost')" [hidden]="!financeColumnVisible('finance-kardex',8)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','unitCost')">Costo unitario {{ modalTables.sortLabel('finance-kardex','unitCost') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','averageCost')" [hidden]="!financeColumnVisible('finance-kardex',9)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','averageCost')">Costo promedio {{ modalTables.sortLabel('finance-kardex','averageCost') }}</button></th>
+                  <th [attr.aria-sort]="modalTables.ariaSort('finance-kardex','userName')" [hidden]="!financeColumnVisible('finance-kardex',10)"><button class="yr-modal-sort" type="button" (click)="modalTables.sort('finance-kardex','userName')">Usuario {{ modalTables.sortLabel('finance-kardex','userName') }}</button></th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of modalTables.pageRows('finance-kardex',financeTableRows('finance-kardex'),financeTableConfigs['finance-kardex']); track row.id) {
-                  <tr [class.yr-modal-selected]="modalTables.selected('finance-kardex',row)"><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-kardex',row)" (change)="modalTables.toggle('finance-kardex',row)" /></td>
-                    <td>{{ row.date | date: 'short' }}</td>
-                    <td>{{ row.document }}</td>
-                    <td>{{ row.movementType }}</td>
-                    <td><strong>{{ row.productName }}</strong><span>{{ row.category }} - {{ row.warehouse }}</span></td>
-                    <td>{{ row.entrada | number: '1.0-2' }}</td>
-                    <td>{{ row.salida | number: '1.0-2' }}</td>
-                    <td>{{ row.existencia | number: '1.0-2' }}</td>
-                    <td>{{ row.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                    <td>{{ row.averageCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
-                    <td>{{ row.userName }}</td>
+                  <tr [class.yr-modal-selected]="modalTables.selected('finance-kardex',row)"><td class="yr-modal-check" [hidden]="!financeColumnVisible('finance-kardex',0)"><input type="checkbox" aria-label="Seleccionar registro" [checked]="modalTables.selected('finance-kardex',row)" (change)="modalTables.toggle('finance-kardex',row)" /></td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',1)">{{ row.date | date: 'short' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',2)">{{ row.document }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',3)">{{ row.movementType }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',4)"><strong>{{ row.productName }}</strong><span>{{ row.category }} - {{ row.warehouse }}</span></td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',5)">{{ row.entrada | number: '1.0-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',6)">{{ row.salida | number: '1.0-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',7)">{{ row.existencia | number: '1.0-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',8)">{{ row.unitCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',9)">{{ row.averageCost | currency: 'HNL' : 'symbol-narrow' : '1.2-2' }}</td>
+                    <td [hidden]="!financeColumnVisible('finance-kardex',10)">{{ row.userName }}</td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="11" class="table-feedback-row">Sin movimientos para los filtros aplicados.</td></tr>
+                  <tr><td class="table-feedback-row" [hidden]="financeColumnSpan('finance-kardex',0,11) === 0" [attr.colspan]="financeColumnSpan('finance-kardex',0,11)">Sin movimientos para los filtros aplicados.</td></tr>
                 }
               </tbody>
             </table><ng-container [ngTemplateOutlet]="financeTablePager" [ngTemplateOutletContext]="{$implicit:'finance-kardex'}" />
@@ -7914,20 +7880,11 @@
       }
     </section>
   } @else if (activePage() === 'system-health') {
-    <section class="dashboard-workspace system-health-workspace">
-      <header class="dashboard-topbar system-health-topbar">
-        <div>
-          <p class="eyebrow">Salud del sistema</p>
-          <h1>Diagnostico operativo</h1>
-          <p>Conexion, inventario, ventas, facturacion, archivos y mantenimiento en un solo panel.</p>
-        </div>
+    <section class="dashboard-workspace system-health-workspace yr-ui">
+      <header class="dashboard-topbar system-health-topbar"><h1>Salud del sistema</h1>
         <div class="system-health-topbar-actions">
-          <button class="ghost-button" type="button" [disabled]="!systemHealth()" (click)="exportSystemHealthReport()">
-            Exportar diagnostico
-          </button>
-          <button class="ghost-button" type="button" [disabled]="systemHealthLoading()" (click)="loadSystemHealth()">
-            {{ systemHealthLoading() ? 'Diagnosticando...' : 'Actualizar diagnostico' }}
-          </button>
+          <button class="yr-button yr-button-icon" type="button" title="Exportar diagnóstico" aria-label="Exportar diagnóstico" [disabled]="!systemHealth()" (click)="exportSystemHealthReport()"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg></button>
+          <button class="yr-button yr-button-icon" type="button" title="Actualizar diagnóstico" aria-label="Actualizar diagnóstico" [disabled]="systemHealthLoading()" (click)="loadSystemHealth()"><svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg></button>
           <span [class]="systemHealthStatusClass()">{{ systemHealthStatusLabel() }}</span>
         </div>
       </header>
@@ -8146,17 +8103,13 @@
     </section>
   } @else if (activePage() === 'history') {
     <!-- PAGINA: HISTORICO | FUNCION PRINCIPAL: CONSULTAR MOVIMIENTOS Y CAMBIOS HISTORICOS DEL SISTEMA. -->
-  <section class="workspace history-workspace">
+  <section class="workspace history-workspace history-ui finance-ui yr-ui">
     <header class="topbar history-topbar">
-      <div>
-        <p class="eyebrow">Historico</p>
-        <h1>Movimientos del sistema y base de datos</h1>
-        <p>Auditoria operativa de registros creados, modificados y eliminados.</p>
-      </div>
-      <button class="ghost-button history-refresh-button" type="button" (click)="loadAuditHistory()">Actualizar</button>
+      <div class="history-title"><h1>Módulo de histórico</h1><button class="yr-button yr-button-icon" type="button" title="Mostrar u ocultar resumen" aria-label="Mostrar u ocultar resumen" [attr.aria-expanded]="!historySummaryCollapsed()" (click)="toggleHistorySummary()">@if(historySummaryCollapsed()){<svg lucideChevronDown class="yr-icon" aria-hidden="true"></svg>}@else{<svg lucideChevronUp class="yr-icon" aria-hidden="true"></svg>}</button></div>
+      <button class="yr-button yr-button-icon history-refresh-button" type="button" title="Actualizar histórico" aria-label="Actualizar histórico" [disabled]="auditHistoryLoading()" (click)="loadAuditHistory()"><svg lucideRotateCcw class="yr-icon" aria-hidden="true"></svg></button>
     </header>
 
-    <section class="history-summary-grid" aria-label="Resumen historico">
+    <section class="history-summary-grid" [hidden]="historySummaryCollapsed()" aria-label="Resumen historico">
       <article class="history-summary-card">
         <span>Movimientos BD</span>
         <strong>{{ auditHistory().length }}</strong>
@@ -8188,7 +8141,7 @@
       </article>
     </section>
 
-    <section class="history-panel history-trend-panel">
+    <section class="history-panel history-trend-panel" [hidden]="historySummaryCollapsed()">
       <div class="history-panel-heading">
         <div>
           <p class="eyebrow">Tendencia</p>
@@ -8220,84 +8173,36 @@
         <p class="login-error history-error">{{ auditHistoryError() }}</p>
       }
 
-      <section
-        class="history-table-toolbar"
-        aria-label="Filtros de tabla historica"
-        style="display:flex;align-items:center;gap:22px;min-height:62px;padding:0 22px;border-bottom:1px solid #e5edf5;background:#fff;"
-      >
-        <svg style="width:18px;height:18px;color:#64748b;fill:currentColor;" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 5h16l-6 7v5l-4 2v-7z" />
-        </svg>
-        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
-          <span>Accion</span>
-          <select style="height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryActionFilter()" (change)="updateAuditHistoryActionFilter($event)">
-            <option value="all">Todos</option>
-            <option value="insert">Creacion</option>
-            <option value="update">Actualizacion</option>
-            <option value="delete">Eliminacion</option>
-            <option value="movement">Movimiento</option>
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
-          <span>Tabla</span>
-          <select style="height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryTableFilter()" (change)="updateAuditHistoryTableFilter($event)">
-            <option value="all">Todos</option>
-            @for (tableName of auditHistoryTables(); track tableName) {
-              <option [value]="tableName">{{ tableName }}</option>
-            }
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:.78rem;font-weight:800;">
-          <span>Nombre</span>
-          <input style="width:230px;height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" type="search" [value]="auditHistorySearchFilter()" (input)="updateAuditHistorySearchFilter($event)" />
-        </label>
-        <button style="display:grid;width:44px;height:38px;place-items:center;border:0;background:#2da0da;color:#fff;" type="button" aria-label="Buscar en historico">
-          <svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m16 16 4 4" />
-          </svg>
-        </button>
-        <label style="display:flex;align-items:center;gap:10px;margin-left:auto;color:#64748b;font-size:.78rem;font-weight:800;">
-          <span>Mostrar</span>
-          <select style="width:78px;height:38px;border:1px solid #d9e1ea;border-radius:0;background:#fff;color:#334155;padding:0 12px;font-weight:800;" [value]="auditHistoryPageSize()" (change)="updateAuditHistoryPageSize($event)">
-            <option value="8">8</option>
-            <option value="15">15</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-          </select>
-        </label>
+      <section class="history-table-toolbar" aria-label="Filtros del histórico">
+        <input type="search" placeholder="Buscar usuario, tabla o registro…" aria-label="Buscar en histórico" [value]="auditHistorySearchFilter()" (input)="updateAuditHistorySearchFilter($event)" />
+        <select aria-label="Filtrar por acción" [value]="auditHistoryActionFilter()" (change)="updateAuditHistoryActionFilter($event)"><option value="all">Todas las acciones</option><option value="insert">Creación</option><option value="update">Actualización</option><option value="delete">Eliminación</option><option value="movement">Movimiento</option></select>
+        <select aria-label="Filtrar por tabla" [value]="auditHistoryTableFilter()" (change)="updateAuditHistoryTableFilter($event)"><option value="all">Todas las tablas</option>@for(tableName of auditHistoryTables();track tableName){<option [value]="tableName">{{ tableName }}</option>}</select>
+        <div class="yr-modal-density">@for(density of modalTables.densities;track density.value){<button class="yr-button yr-button-icon" type="button" [class.active]="modalTables.state('history').density===density.value" [title]="density.label" [attr.aria-label]="density.label" (click)="modalTables.patch('history',{density:density.value})">@switch(density.value){@case('compact'){<svg lucideRows4 class="yr-icon" aria-hidden="true"></svg>}@case('normal'){<svg lucideRows3 class="yr-icon" aria-hidden="true"></svg>}@default{<svg lucideRows2 class="yr-icon" aria-hidden="true"></svg>}}</button>}</div>
+        <ng-container [ngTemplateOutlet]="tableColumnChooser" [ngTemplateOutletContext]="{$implicit:'history'}" />
       </section>
 
       <div class="history-table-wrap">
-        <table class="history-audit-table">
-          <colgroup>
-            <col class="history-col-date" />
-            <col class="history-col-action" />
-            <col class="history-col-table" />
-            <col class="history-col-record" />
-            <col class="history-col-user" />
-            <col class="history-col-previous" />
-            <col class="history-col-current" />
-          </colgroup>
+        <table class="history-audit-table" [attr.data-density]="modalTables.state('history').density">
           <thead>
-            <tr>
-              <th (click)="setAuditHistorySort('date')">Fecha <span>{{ auditHistorySortLabel('date') }}</span></th>
-              <th (click)="setAuditHistorySort('action')">Accion <span>{{ auditHistorySortLabel('action') }}</span></th>
-              <th (click)="setAuditHistorySort('table')">Tabla <span>{{ auditHistorySortLabel('table') }}</span></th>
-              <th (click)="setAuditHistorySort('record')">Registro <span>{{ auditHistorySortLabel('record') }}</span></th>
-              <th (click)="setAuditHistorySort('user')">Usuario <span>{{ auditHistorySortLabel('user') }}</span></th>
-              <th (click)="setAuditHistorySort('previousStock')">Stock anterior <span>{{ auditHistorySortLabel('previousStock') }}</span></th>
-              <th (click)="setAuditHistorySort('currentStock')">Stock nuevo <span>{{ auditHistorySortLabel('currentStock') }}</span></th>
+            <tr><th class="yr-modal-check"><span class="sr-only">Selección</span></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'date' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',1)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('date')">Fecha <span>{{ auditHistorySortLabel('date') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'action' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',2)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('action')">Accion <span>{{ auditHistorySortLabel('action') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'table' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',3)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('table')">Tabla <span>{{ auditHistorySortLabel('table') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'record' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',4)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('record')">Registro <span>{{ auditHistorySortLabel('record') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'user' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',5)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('user')">Usuario <span>{{ auditHistorySortLabel('user') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'previousStock' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',6)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('previousStock')">Stock anterior <span>{{ auditHistorySortLabel('previousStock') }}</span></button></th>
+              <th [attr.aria-sort]="auditHistorySortKey() === 'currentStock' ? (auditHistorySortDirection() === 'asc' ? 'ascending' : 'descending') : 'none'" [hidden]="!financeColumnVisible('history',7)"><button class="yr-modal-sort" type="button" (click)="setAuditHistorySort('currentStock')">Stock nuevo <span>{{ auditHistorySortLabel('currentStock') }}</span></button></th>
             </tr>
           </thead>
           <tbody>
             @for (item of visibleAuditHistory(); track item.id) {
               <tr
                 class="history-audit-row"
+                [class.yr-modal-selected]="modalTables.selected('history',item)"
                 title="Doble clic para ver el detalle completo del log"
                 (dblclick)="openAuditLogDetail(item)"
-              >
-                <td class="history-date-cell">
+              ><td class="yr-modal-check"><input type="checkbox" aria-label="Seleccionar movimiento" [checked]="modalTables.selected('history',item)" (change)="modalTables.toggle('history',item)" /></td>
+                <td class="history-date-cell" [hidden]="!financeColumnVisible('history',1)">
                   <strong>{{ formatAuditDate(item.date) }}</strong>
                   <span>{{ formatAuditTime(item.date) }}</span>
                 </td>
@@ -8306,7 +8211,7 @@
                   [class.insert]="auditActionClass(item.action) === 'insert'"
                   [class.update]="auditActionClass(item.action) === 'update'"
                   [class.delete]="auditActionClass(item.action) === 'delete'"
-                >
+                 [hidden]="!financeColumnVisible('history',2)">
                   <span
                     class="history-action-badge"
                     [class.insert]="auditActionClass(item.action) === 'insert'"
@@ -8316,26 +8221,26 @@
                     {{ item.action }}
                   </span>
                 </td>
-                <td class="history-table-name">
+                <td class="history-table-name" [hidden]="!financeColumnVisible('history',3)">
                   <strong>{{ item.tableName }}</strong>
                 </td>
-                <td>
+                <td [hidden]="!financeColumnVisible('history',4)">
                   <span class="history-key">{{ item.recordKey || 'Sin clave' }}</span>
                 </td>
-                <td>
+                <td [hidden]="!financeColumnVisible('history',5)">
                   <strong>{{ item.user }}</strong>
                   @if (item.userId) {
                     <span class="history-user-id">ID {{ item.userId }}</span>
                   }
                 </td>
-                <td class="history-data-cell previous">
+                <td class="history-data-cell previous" [hidden]="!financeColumnVisible('history',6)">
                   @if (auditStockDataPart(item.previousData); as stockPart) {
                     <span class="history-stock-value" [title]="stockPart.raw">{{ stockPart.value }}</span>
                   } @else {
                     <em>Sin stock</em>
                   }
                 </td>
-                <td class="history-data-cell current">
+                <td class="history-data-cell current" [hidden]="!financeColumnVisible('history',7)">
                   @if (auditStockDataPart(item.newData); as stockPart) {
                     <span class="history-stock-value" [title]="stockPart.raw">{{ stockPart.value }}</span>
                   } @else {
@@ -8345,7 +8250,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="history-empty-state">
+                <td [attr.colspan]="financeVisibleColumnCount('history') + 1" class="history-empty-state">
                   No hay movimientos de auditoria para mostrar con los filtros actuales.
                 </td>
               </tr>
@@ -8353,33 +8258,18 @@
           </tbody>
         </table>
       </div>
-      <footer
-        class="history-table-footer"
-        style="display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:0 22px;color:#64748b;font-size:.86rem;font-weight:800;"
-      >
+      <footer class="history-table-footer">
+        @if(modalTables.selectedRows('history',auditHistory()).length){<button class="yr-button" type="button" (click)="modalTables.export('history',filteredAuditHistory(),historyTableConfig)"><svg lucideDownload class="yr-icon" aria-hidden="true"></svg>CSV ({{ modalTables.selectedRows('history',auditHistory()).length }})</button>}
+        <label>Mostrar <select aria-label="Filas por página" [value]="auditHistoryPageSize()" (change)="updateAuditHistoryPageSize($event)">@for(size of [10,25,50,100];track size){<option [value]="size">{{ size }}</option>}</select></label>
+        <nav aria-label="Paginación del histórico"><button class="yr-button yr-button-icon" type="button" aria-label="Primera página" [disabled]="auditHistoryPageIndex()===0" (click)="setAuditHistoryPage(0)"><svg lucideChevronsLeft class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" type="button" aria-label="Página anterior" [disabled]="auditHistoryPageIndex()===0" (click)="previousAuditHistoryPage()"><svg lucideChevronLeft class="yr-icon" aria-hidden="true"></svg></button><strong>{{ auditHistoryPageIndex()+1 }} / {{ auditHistoryPageCount() }}</strong><button class="yr-button yr-button-icon" type="button" aria-label="Página siguiente" [disabled]="auditHistoryPageIndex()>=auditHistoryPageCount()-1" (click)="nextAuditHistoryPage()"><svg lucideChevronRight class="yr-icon" aria-hidden="true"></svg></button><button class="yr-button yr-button-icon" type="button" aria-label="Última página" [disabled]="auditHistoryPageIndex()>=auditHistoryPageCount()-1" (click)="setAuditHistoryPage(auditHistoryPageCount()-1)"><svg lucideChevronsRight class="yr-icon" aria-hidden="true"></svg></button></nav>
         <span>{{ auditHistoryPaginationLabel() }}</span>
-        <nav style="display:flex;align-items:center;gap:8px;" aria-label="Paginacion del historico">
-          <button style="min-width:34px;min-height:34px;border:0;background:transparent;color:#64748b;font-weight:800;" type="button" [disabled]="auditHistoryPageIndex() === 0" (click)="previousAuditHistoryPage()">Anterior</button>
-          @for (page of auditHistoryPageNumbers(); track page) {
-            <button
-              style="min-width:34px;min-height:34px;border:0;font-weight:800;"
-              type="button"
-              [style.background]="auditHistoryPageIndex() === page ? '#1d9bf0' : 'transparent'"
-              [style.color]="auditHistoryPageIndex() === page ? '#fff' : '#64748b'"
-              (click)="setAuditHistoryPage(page)"
-            >
-              {{ page + 1 }}
-            </button>
-          }
-          <button style="min-width:34px;min-height:34px;border:0;background:transparent;color:#64748b;font-weight:800;" type="button" [disabled]="auditHistoryPageIndex() >= auditHistoryPageCount() - 1" (click)="nextAuditHistoryPage()">Siguiente</button>
-        </nav>
       </footer>
     </section>
 
     @if (selectedAuditHistoryRecord(); as logRecord) {
       <div class="customer-modal-backdrop history-log-detail-backdrop" role="presentation" (click)="closeAuditLogDetail()">
         <section
-          class="customer-modal history-log-detail-modal"
+          class="customer-modal history-log-detail-modal finance-modal yr-ui"
           role="dialog"
           aria-modal="true"
           aria-label="Detalle completo del log"
@@ -8391,7 +8281,7 @@
               <h2 class="customer-modal-title">{{ logRecord.action }}</h2>
               <p>{{ logRecord.tableName }} - {{ formatAuditDateTime(logRecord.date) }}</p>
             </div>
-            <button class="product-catalog-close" type="button" aria-label="Cerrar detalle" title="Cerrar" (click)="closeAuditLogDetail()">X</button>
+            <button class="product-catalog-close" type="button" aria-label="Cerrar detalle" title="Cerrar" (click)="closeAuditLogDetail()"><svg lucideX class="yr-icon" aria-hidden="true"></svg></button>
           </header>
 
           <section class="history-log-detail-summary" aria-label="Resumen del log">
@@ -9592,7 +9482,7 @@
     @if (salesDropAlertModalOpen()) {
       <div class="customer-modal-backdrop" role="presentation" (click)="closeSalesDropAlertModal()">
         <section
-          class="customer-modal yr-billing-modal expiring-alerts-modal sales-drop-alerts-modal"
+          class="customer-modal yr-billing-modal expiring-alerts-modal sales-drop-alerts-modal" [class.dashboard-modal]="activePage() === 'dashboard'" [class.yr-ui]="activePage() === 'dashboard'"
           style="width:min(96vw, 1120px); max-height:min(82vh, 720px);"
           role="dialog"
           aria-modal="true"
@@ -9601,7 +9491,7 @@
         >
           <header class="customer-modal-header expiring-alerts-header">
             <div>
-              <h2 class="customer-modal-title expiring-alerts-title">Caida de ventas</h2>
+              <div class="dashboard-title"><h2 class="customer-modal-title expiring-alerts-title">Caída de ventas</h2>@if(activePage()==='dashboard'){<ng-container [ngTemplateOutlet]="modalSummaryToggle" [ngTemplateOutletContext]="{$implicit:'dashboard-sales-alert'}" />}</div>
             </div>
             <button class="customer-modal-close" type="button" aria-label="Cerrar ventana" title="Cerrar" (click)="closeSalesDropAlertModal()">×</button>
           </header>
@@ -9610,7 +9500,7 @@
             <p class="login-error">{{ salesDropAlertError() }}</p>
           }
 
-          <div class="expiring-alerts-cards-row sales-drop-cards-row">
+          <div id="yr-summary-dashboard-sales-alert" [hidden]="activePage() === 'dashboard' && modalSummaries()['dashboard-sales-alert']" class="expiring-alerts-cards-row sales-drop-cards-row">
             <div class="expiring-alerts-summary sales-drop-summary" [class.sales-drop-summary-alert]="salesDropAlert().shouldAlert">
               <span>Estado</span>
               <strong>{{ salesDropAlertSeverityLabel() }}</strong>
@@ -9692,7 +9582,7 @@
           aria-modal="true"
           aria-label="Alertas de cambio de precio"
           (click)="$event.stopPropagation()"
-        >
+         [class.dashboard-modal]="activePage() === 'dashboard'">
           <header class="customer-modal-header expiring-alerts-header">
             <div>
               <h2 class="customer-modal-title expiring-alerts-title">{{ priceChangeAlertTitle() }}</h2>
@@ -9850,7 +9740,7 @@
     @if (dailySalesModalOpen()) {
       <div class="customer-modal-backdrop" role="presentation" (click)="closeDailySalesModal()">
         <section
-          class="customer-modal yr-billing-modal daily-sales-modal"
+          class="customer-modal yr-billing-modal daily-sales-modal" [class.dashboard-modal]="activePage() === 'dashboard'" [class.yr-ui]="activePage() === 'dashboard'"
           role="dialog"
           aria-modal="true"
           aria-label="Ventas del día"
@@ -9973,7 +9863,7 @@
           aria-modal="true"
           aria-label="Detalle de factura"
           (click)="$event.stopPropagation()"
-        >
+         [class.dashboard-modal]="activePage() === 'dashboard'">
           @if (invoiceDetailInvoice(); as invoice) {
             <button class="invoice-detail-close-button" type="button" aria-label="Cerrar" title="Cerrar" (click)="closeInvoiceDetailModal()">
               ×
@@ -10094,7 +9984,7 @@
           aria-modal="true"
           aria-label="Corte diario"
           (click)="$event.stopPropagation()"
-        >
+         [class.dashboard-modal]="activePage() === 'dashboard'">
           <div class="analytics-heading cut-modal-header">
             <div>
               <h2 class="daily-sales-title">Corte del día</h2>
@@ -10554,16 +10444,14 @@
   @if (expandedChartPreview(); as chartPreview) {
     <div class="customer-modal-backdrop expanded-chart-backdrop" role="presentation" (click)="closeExpandedChart()">
       <section
-        class="customer-modal expanded-chart-modal"
+        class="customer-modal expanded-chart-modal" [class.dashboard-modal]="activePage() === 'dashboard'" [class.yr-ui]="activePage() === 'dashboard'"
         role="dialog"
         aria-modal="true"
         aria-label="Grafico ampliado"
         (click)="$event.stopPropagation()"
       >
         <button class="modal-close-button expanded-chart-close" type="button" aria-label="Cerrar" (click)="closeExpandedChart()">
-          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-            <path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4-6.3-6.3-6.3 6.3-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3 1.4 1.4Z" />
-          </svg>
+          <svg lucideX class="yr-icon" aria-hidden="true"></svg>
         </button>
 
         <header class="expanded-chart-header">
@@ -10572,7 +10460,7 @@
             <h2>{{ chartPreview.title }}</h2>
           </div>
           <button class="daily-sales-button expanded-chart-download" type="button" (click)="downloadExpandedChart()">
-            Descargar imagen
+            <svg lucideDownload class="yr-icon" aria-hidden="true"></svg>Descargar imagen
           </button>
         </header>
 

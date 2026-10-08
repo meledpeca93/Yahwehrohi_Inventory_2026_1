@@ -1,5 +1,53 @@
 # Changelog Codex
 
+## 2026-10-08 — Cambio 086
+
+- Corregida omisión de apertura de caja al restaurar sesión. Logout de salida se espera antes de cerrar escritorio; registros reales intactos. Pruebas focalizadas de sesión/caja y compilación Angular; revisión operativa pendiente.
+
+## 2026-10-08 — Cambio 085
+
+- Dashboard: botón de tema Lucide Luna/Sol, conectado a la preferencia persistente y actualización de gráficos existentes.
+
+## 2026-10-08 — Cambio 084
+
+- Corregido bloqueo de gráficos por evaluación de opciones internas de Chart.js; tema y diseño usan configuración original. Cinco pruebas aprobadas con regresión de Chart.js real/contexto simulado. Revisión visual pendiente.
+
+## 2026-10-07 — Cambio 082
+
+- Salud del sistema: encabezado compacto. Histórico: tarjetas/gráfica colapsables, tema compartido, Actualizar Lucide y tabla con filtros compactos, columnas, densidad, selección/CSV y paginación con iconos. Compilación/pruebas focalizadas; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 081
+
+- Finanzas: filtros compactos, engranaje Lucide y preferencias de columnas en ocho tablas; grupos alineados y popover sin recorte. Compilación/pruebas focalizadas; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 080
+
+- Tema oscuro completado en superficies, campos, tablas, botones y ventanas compartidas; calendario/login y gráficos adaptados. Corregida cartera de Créditos con fondos blancos y texto claro. Compilación/pruebas focalizadas y revisión CSS; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 079
+
+- Dos temas persistentes (Claro/Oscuro); Dashboard/ventanas/gráficas/PNG adaptados y menú Dashboard con Gauge Lucide. Migración de temas anteriores al claro. Compilación y pruebas focalizadas; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 078
+
+- Dashboard: botones uniformes de 46 px, iconos de 22 px y contadores sin alterar tamaño; ayuda de ventas sobre los gráficos mediante capa del encabezado. Revisión CSS/diff; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 077
+
+- Notificaciones: corregidos textos pálidos del Dashboard claro y mejorado contraste del panel oscuro; retirados colores forzados que impedían aplicar el tema. Revisión CSS/contraste; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 076
+
+- Ranking de créditos: orden mayor saldo/nombre mediante botón Lucide junto a Actualizar; eliminado selector. Compilación Angular; revisión visual pendiente.
+
+## 2026-10-07 — Cambio 075
+
+- Dashboard: cuatro paneles financieros fijos, tema claro, eliminación de gráficos auxiliares y descarga PNG directa con Lucide/fondo blanco. Solo indicadores colapsables; créditos consultados al entrar con permiso. Validación Angular/pruebas focalizadas y revisión visual pendiente.
+
+## 2026-10-07 — Cambio 074
+
+- Dashboard: diseño oscuro luminoso para ventas/compras/salarios y ranking de clientes con crédito; búsqueda/orden, estados de carga/error y permiso de módulo. PNG con fondo oscuro. Compilación y pruebas focalizadas; revisión visual pendiente.
+
 ## 2026-09-22
 
 - Detalle de factura: tema claro y tabla con búsqueda, estado, ordenamiento, selección y paginación 10/25/50; conserva PDF, anulación y totales. Cambio 005.
@@ -493,3 +541,11 @@ Texto e iconos del menú sobre fondo blanco usan tonos oscuros; activo verde pro
 ### 05/10/2026 — Menú oscuro uniforme
 
 Menú lateral mantiene fondo #1f2937 y contraste claro en todos los módulos, expandido/contraído, incluido punto de venta. Menú de cuenta coherente; contenido de módulos conserva su tema. Ajuste CSS y diff verificados; escritorio sin reiniciar. Registro 072.
+
+### 07/10/2026 — Dashboard UI 2.0
+
+Dashboard usa tema claro, título compacto, controles Lucide y paneles de resumen/tendencias y gráficos por módulo cerrados al ingresar. Ventanas de alertas, notificaciones, ventas, detalles y gráficos ampliados comparten presentación clara al abrir desde Dashboard. Resúmenes de Ventas del día y Caída de ventas cerrados al abrir; cálculos/eventos/consultas conservados. Paleta y etiquetas de gráficos ajustadas; menú oscuro conservado. Registro 073, revisión visual pendiente; escritorio sin reiniciar.
+
+## 2026-10-07 — Cambio 083
+
+- Compactado Kardex de Ventas y rentabilidad: totales horizontales junto al título y barra adaptable de filtros/herramientas. Datos y lógica conservados; revisión visual pendiente.

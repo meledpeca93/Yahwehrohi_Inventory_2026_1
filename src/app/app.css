@@ -2866,7 +2866,7 @@ button {
   border: 0;
   border-radius: 7px;
   background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-  color: #0f172a;
+  color: var(--ink);
   font-size: 0.72rem;
   font-weight: 1000;
 }
@@ -3820,7 +3820,7 @@ button {
   padding: 0 12px;
   border-radius: 999px;
   background: rgb(15 23 42 / 8%);
-  color: #334155;
+  color: var(--ink);
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -4161,7 +4161,7 @@ button {
 
 .credit-history-collapse h3 {
   margin: 0;
-  color: #0f172a;
+  color: var(--ink);
   font-size: 1rem;
 }
 
@@ -4199,12 +4199,12 @@ button {
     linear-gradient(135deg, rgb(34 197 94 / 12%), rgb(20 184 166 / 7%)),
     #ffffff;
   padding: 12px 14px;
-  color: #0f172a;
+  color: var(--ink);
 }
 
 .credit-history-year-summary span,
 .credit-history-year-summary strong {
-  color: #0f172a;
+  color: var(--ink);
   font-weight: 900;
 }
 
@@ -4222,8 +4222,8 @@ button {
   min-height: 32px;
   border-radius: 8px;
   border: 1px solid rgb(15 23 42 / 10%);
-  background: #e2e8f0;
-  color: #334155;
+  background: var(--panel-soft);
+  color: var(--ink);
   padding: 0 12px;
   font-size: 0.68rem;
   font-weight: 1000;
@@ -4233,7 +4233,7 @@ button {
 .credit-history-payment-header {
   grid-template-columns: minmax(0, 1fr) 130px 110px 96px;
   min-height: 28px;
-  background: #edf2f7;
+  background: var(--panel-soft);
   font-size: 0.64rem;
 }
 
@@ -4247,8 +4247,8 @@ button {
   min-height: 42px;
   border: 1px solid rgb(15 23 42 / 10%);
   border-radius: 8px;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--panel);
+  color: var(--ink);
   padding: 0 12px;
   text-align: left;
 }
@@ -4289,7 +4289,7 @@ button {
 .credit-history-week > button strong,
 .credit-history-week-payments div span,
 .credit-history-week-payments div strong {
-  color: #0f172a;
+  color: var(--ink);
 }
 
 .credit-history-months,
@@ -4317,16 +4317,16 @@ button {
 }
 
 .credit-history-months article > button {
-  background: #ffffff;
+  background: var(--panel);
 }
 
 .credit-history-week > button {
-  background: #f8fafc;
+  background: var(--panel-soft);
 }
 
 .credit-history-week-payments div {
   min-height: 36px;
-  background: #ffffff;
+  background: var(--panel);
 }
 .credit-history-collapse small { color: #475569; font-weight: 800; }
 
@@ -4381,8 +4381,8 @@ button {
   width: 100%;
   border: 1px solid rgb(15 23 42 / 10%);
   border-radius: 8px;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--panel);
+  color: var(--ink);
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -4414,7 +4414,7 @@ button {
 }
 
 .general-credit-history-day > button small {
-  color: #64748b;
+  color: var(--muted);
   font-size: 0.74rem;
 }
 
@@ -4435,7 +4435,7 @@ button {
 .general-credit-history-day > button strong,
 .general-credit-history-customer > button strong,
 .general-credit-history-payment-row strong {
-  color: #0f172a;
+  color: var(--ink);
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
@@ -4480,8 +4480,8 @@ button {
   padding: 8px 10px;
   border: 1px solid rgb(15 23 42 / 8%);
   border-radius: 8px;
-  background: #ffffff;
-  color: #334155;
+  background: var(--panel);
+  color: var(--ink);
   font-size: 0.8rem;
 }
 
@@ -4505,14 +4505,14 @@ button {
 .credit-history-table-wrap th {
   position: sticky;
   top: 0;
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--panel-soft);
+  color: var(--ink);
 }
 
 .credit-history-table-wrap th,
 .credit-history-table-wrap td {
   border-bottom: 1px solid rgb(148 163 184 / 14%);
-  color: #0f172a;
+  color: var(--ink);
   padding: 10px 12px;
 }
 
@@ -7549,7 +7549,7 @@ button {
 .inactive-action-col{width:7%}
 .inactive-search-button,.reactivate-product-button{align-self:end;min-width:112px}
 .reactivate-product-button{min-height:38px;border-radius:8px;font-size:.76rem}
-.inventory-status.inactive{border-color:rgb(249 115 22 / 42%);background:rgb(249 115 22 / 13%);color:#fdba74}
+.inventory-status.inactive{border-color:rgb(249 115 22 / 42%);background:rgb(249 115 22 / 13%);color: #fdba74}
 .quick-inventory-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .quick-inventory-modal-header h2{margin:0;color:var(--ink);font-size:1.55rem;letter-spacing:0}
 .quick-inventory-modal-header p:not(.eyebrow){margin:4px 0 0;color:var(--muted);font-size:.86rem;font-weight:700}
@@ -7577,7 +7577,7 @@ button {
 .assembled-offer-status-programado{background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff}
 .assembled-offer-status-vencido,.assembled-offer-status-inactivo,.assembled-offer-status-sin-stock{background:linear-gradient(135deg,#b91c1c,#f97316);color:#fff}
 .assembled-offer-image-thumb{position:relative;display:grid;width:56px;height:56px;overflow:hidden;place-items:center;border:1px solid var(--line);border-radius:8px;background:var(--visual-bg);color:var(--ink);font-size:.8rem;font-weight:1000}
-.assembled-offer-image-thumb.has-image{background:#fff}
+.assembled-offer-image-thumb.has-image{background: var(--panel)}
 .assembled-offer-image-thumb img{width:100%;height:100%;object-fit:contain;padding:4px}
 .assembled-offer-image-thumb.offer-ribbon::after{content:"OFERTA";position:absolute;top:6px;right:-31px;z-index:2;width:104px;transform:rotate(34deg);background:linear-gradient(135deg,#ef4444 0%,#dc2626 56%,#991b1b 100%);color:#fff;padding:2px 0;font-size:.48rem;font-weight:1000;text-align:center;box-shadow:0 8px 18px rgb(220 38 38 / 24%)}
 .assembled-offer-component-list{display:grid;gap:4px;min-width:220px}
@@ -8502,7 +8502,7 @@ button {
   [data-theme="crm-dark"]
 ) .inventory-row-actions button:nth-child(1) {
   background: linear-gradient(135deg, #bfdbfe 0%, #67e8f9 100%);
-  color: #0f172a;
+  color: var(--ink);
 }
 
 .app-shell:is(
@@ -8623,7 +8623,7 @@ button {
 }
 
 .inventory-product-thumb.has-image {
-  background: #ffffff;
+  background: var(--panel);
 }
 
 .inventory-product-thumb img {
@@ -12504,7 +12504,7 @@ select {
 }
 
 .product-visual.has-image {
-  background: #ffffff;
+  background: var(--panel);
 }
 
 .product-visual img {
@@ -12602,7 +12602,7 @@ td strong,
   border: 0;
   border-radius: 7px;
   background: rgb(255 255 255 / 92%);
-  color: #0f172a;
+  color: var(--ink);
   padding: 0 5px;
   text-align: center;
   font-size: 0.78rem;
@@ -14001,7 +14001,7 @@ td strong,
 .activity-notification-copy span,
 .activity-notification-copy small,
 .activity-notification-item time {
-  color: #e5e7eb !important;
+  color: #f1f5f9;
 }
 
 .activity-notification-copy strong {
@@ -14012,7 +14012,7 @@ td strong,
 .activity-notification-copy span,
 .activity-notification-copy small,
 .activity-notification-item time {
-  color: #aeb7c5 !important;
+  color: #d1d9e4;
   font-size: 0.78rem;
   line-height: 1.25;
 }
@@ -14257,7 +14257,7 @@ td strong,
   max-height: min(56vh, 540px);
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #f8fafc;
+  background: var(--panel-soft);
 }
 
 .expiring-alerts-modal .expiring-alerts-table {
@@ -14265,7 +14265,7 @@ td strong,
   min-width: 940px !important;
   border-collapse: collapse;
   table-layout: auto;
-  background: #ffffff;
+  background: var(--panel);
 }
 
 .expiring-alerts-modal .expiring-alerts-table th,
@@ -14274,7 +14274,7 @@ td strong,
   border-bottom: 1px solid rgb(226 232 240 / 92%);
   text-align: left;
   font-size: 0.78rem;
-  color: #0f172a !important;
+  color: var(--ink) !important;
   white-space: normal;
   line-height: 1.2;
   vertical-align: middle;
@@ -14284,8 +14284,8 @@ td strong,
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #fff1f2;
-  color: #991b1b !important;
+  background: var(--yr-danger-soft, #fff1f2);
+  color: var(--yr-danger, #991b1b) !important;
   font-size: 0.7rem;
   font-weight: 1000;
   letter-spacing: 0.04em;
@@ -14293,7 +14293,7 @@ td strong,
 }
 
 .expiring-alerts-modal .expiring-alerts-table tbody tr:hover td {
-  background: #fff7f7;
+  background: var(--yr-danger-soft, #fff7f7);
 }
 
 .expiring-days-pill {

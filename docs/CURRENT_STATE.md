@@ -2,6 +2,28 @@
 
 ## Implementado
 
+- Caja/sesión (086): restaurar sesión consulta si el usuario tiene turno abierto antes de entrar; sin turno solicita dinero inicial. Salida con corte espera logout antes de cerrar Electron. Sin cambios de BD ni cierre automático de turnos pendientes. Validación con datos simulados; revisión operativa pendiente.
+
+- Dashboard (085): botón Luna/Sol Lucide alterna Claro/Oscuro desde la barra y persiste mediante el cambio de tema compartido con Configuración. Revisión visual pendiente.
+
+- Gráficos (084): corregido error al copiar opciones resueltas de Chart.js en diseño Dashboard/plugin de tema. Configuración original conserva estilos/datos; cinco pruebas aprobadas, incluida actualización real con canvas simulado. Revisión visual pendiente.
+
+- Ventas y rentabilidad (083): Kardex compacto, totales horizontales y filtros/herramientas en barra adaptable. Conserva tema y operaciones de tabla. Revisión visual pendiente.
+
+- Salud/Historico (082): encabezado de diagnóstico compacto; Histórico con resumen/tendencia cerrados por defecto y tabla modernizada (filtros, columnas, densidad, selección/CSV, páginas 10/25/50/100). Tema compartido y Actualizar Lucide. Revisión visual pendiente.
+
+- Finanzas (081): filtros compactos en cuatro submódulos y engranaje de columnas visibles en ocho tablas. Preferencias locales por tabla, Restablecer y mínimo de una columna; grupos financieros adaptan colspans. Claro/oscuro conservados. Revisión visual pendiente.
+
+- Tema compartido (080): superficies/campos/tablas/botones modernizados usan variables de tema en todos los módulos, con alias para pantallas anteriores. Calendario e inicio de sesión adaptados; plugin común de ejes/leyendas/tooltips y paleta oscura. Revisión visual de todas las rutas pendiente.
+
+- Temas (079): solo Claro/Oscuro seleccionables en Configuración, con persistencia. Dashboard y ventanas usan el tema, incluyendo paleta de gráficas/PNG; icono Gauge de Lucide y menú oscuro. Temas antiguos migran al claro actual. Revisión visual pendiente.
+
+- Barra del Dashboard (078): botones uniformes al tamaño de Notificaciones y mensaje de ventas visible sobre gráficos al colapsar indicadores. Revisión visual pendiente.
+
+- Notificaciones (077): títulos, detalle, usuario y fecha legibles en Dashboard claro; contraste reforzado en panel oscuro. Revisión visual pendiente.
+
+- Dashboard (075): ventas, compras, salarios y ranking de créditos fijos con tema claro, líneas suaves y degradados. Eliminados gráficos de asistencias/histórico/inventario/costos; solo indicadores superiores colapsables. Descarga PNG directa con Lucide y fondo blanco. Créditos cargados al entrar con permiso y estados explícitos. Orden saldo/nombre mediante botón Lucide junto a Actualizar (076). Períodos/datos reales conservados; revisión visual pendiente.
+
 - Compras: Recepción rápida predeterminada, Seguimiento por proveedor como segunda vista y acceso al historial anterior. Reutiliza productos, costos, lotes, OCR de imágenes y registro existente; confirmación separada antes de ingresar. Borradores locales explícitos por usuario/navegador, no compartidos, con etapas manuales y recuperación. Registro 039; resumen real, paneles contraíbles e iconos en registro 040. Fecha prevista local, estados explícitos y ficha de compras ingresadas con PDF en registro 043. Pedidos compartidos, recepciones parciales vinculadas y PDF OCR siguen pendientes.
 
 - Créditos: vista centrada en clientes con búsqueda, prioridad por saldo/tiempo sin abonar, ficha de facturas pendientes y abonos, PDF y preparación del abono existente. Historial completo por cliente con concurrencia máxima de cuatro y protección ante respuestas anteriores; fallos visibles como desconocidos. No hay vencimientos en el contrato actual: antigüedad y ausencia de pagos no se presentan como mora. Registro 036.
@@ -266,3 +288,7 @@ Texto e iconos del menú sobre fondo blanco usan tonos oscuros; activo verde pro
 ### 05/10/2026 — Menú oscuro uniforme
 
 Menú lateral mantiene fondo #1f2937 y contraste claro en todos los módulos, expandido/contraído, incluido punto de venta. Menú de cuenta coherente; contenido de módulos conserva su tema. Ajuste CSS y diff verificados; escritorio sin reiniciar. Registro 072.
+
+### 07/10/2026 — Dashboard UI 2.0
+
+Dashboard usa tema claro, título compacto, controles Lucide y paneles de resumen/tendencias y gráficos por módulo cerrados al ingresar. Ventanas de alertas, notificaciones, ventas, detalles y gráficos ampliados comparten presentación clara al abrir desde Dashboard. Resúmenes de Ventas del día y Caída de ventas cerrados al abrir; cálculos/eventos/consultas conservados. Paleta y etiquetas de gráficos ajustadas; menú oscuro conservado. Registro 073, revisión visual pendiente; escritorio sin reiniciar.

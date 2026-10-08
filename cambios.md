@@ -736,8 +736,96 @@ No se modificaron endpoints, autenticación backend, SQL Server, stock, reglas d
 - Fondo oscuro uniforme #1f2937 en menú lateral expandido/contraído, también en Facturación e Inventario. Texto, iconos, selección y menú de cuenta mantienen contraste claro.
 - Tema del contenido y navegación conservados. Validación: especificidad CSS y diff correctos; aceptación visual pendiente. Escritorio sin reiniciar.
 
+## 073 — Dashboard y ventanas UI 2.0 (07/10/2026)
+
+- Tema claro compartido, encabezado compacto y acciones Lucide. Tarjetas/tendencias contraíbles junto al título y gráficos por módulo desde barra; ambos cerrados por defecto al ingresar.
+- Ventanas de cambios de precio, actividad, caída de ventas, ventas/detalles y gráfico ampliado adaptadas al tema claro. Resúmenes de ventas y alerta de ventas cerrados al abrir desde Dashboard.
+- Paleta/etiquetas de gráficos legibles en claro; diseño adaptable y menú oscuro conservado.
+- Validación: compilación Angular, cuatro pruebas de presentación del Dashboard y diff correctos. Revisión visual y aceptación pendientes; cálculos, backend y BD conservados, escritorio sin reiniciar.
+
+## 074 — Gráficas financieras y ranking de créditos del Dashboard (07/10/2026)
+
+- Ventas, compras y salarios reunidos en tarjetas oscuras con textura de puntos, tipografía ligera, líneas suaves luminosas, degradados y tooltips legibles; conservan períodos, valores y formatos monetarios reales. PNG ampliado/exportado conserva fondo oscuro.
+- Clientes con crédito como ranking con iniciales, etiquetas de facturas y saldo pendiente, búsqueda, orden por saldo/nombre y acceso a cartera; consulta al desplegar y solo con permiso de créditos. Carga/error no se muestran como saldo cero. No representa mora.
+- Mantiene paneles cerrados al ingresar, menú oscuro, controles Lucide y diseño adaptable; consultas y cálculos de negocio conservados.
+- Validación: compilación Angular y ocho pruebas focalizadas de presentación/datos/diseño aprobadas. Revisión visual y aceptación pendientes; escritorio sin reiniciar y BD sin cambios.
+
+## 075 — Dashboard fijo con tema claro (07/10/2026)
+
+- Eliminados los gráficos de asistencias, histórico, inventario y costos y su botón de despliegue. Ventas, compras, salarios y ranking de créditos permanecen visibles al entrar; el colapso junto al título controla solo los indicadores superiores.
+- Las cuatro tarjetas adoptan tema claro, texto de alto contraste y acentos verde/lila/dorado, conservando líneas suaves y degradados.
+- Descarga directa PNG mediante botón Lucide Download en ventas/compras/salarios; imagen con fondo blanco. Créditos se consultan al entrar si el usuario tiene permiso, con carga/error explícitos.
+- Validación: compilación Angular y nueve pruebas focalizadas aprobadas; revisión visual y aceptación pendientes. Escritorio sin reiniciar, backend/BD conservados.
+
+## 076 — Orden de clientes como botón (07/10/2026)
+
+- Selector de orden del ranking de créditos sustituido por botón Lucide junto a Actualizar. Alterna mayor saldo/nombre; estado activo, tooltip y leyenda indican el orden. Búsqueda conservada.
+- Validación: compilación Angular; revisión visual y aceptación pendientes.
+
+## 077 — Contraste de notificaciones (07/10/2026)
+
+- Corregidos colores claros heredados con `!important` sobre el fondo blanco del Dashboard: títulos/acciones oscuros y detalle/usuario/fecha gris oscuro; contraste mejorado también en panel oscuro.
+- Validación: revisión de especificidad CSS y contraste; revisión visual y aceptación pendientes. Sin cambios funcionales ni reinicio del escritorio.
+
+## 078 — Botones y ayuda de la barra del Dashboard (07/10/2026)
+
+- Botones de barra y colapso uniformes de 46 × 46 px, igual que Notificaciones, con iconos de 22 px. Contador de precios como insignia y porcentaje de ventas accesible sin ensanchar el botón.
+- Encabezado en capa superior para que la ayuda de ventas no quede detrás de los gráficos al colapsar los indicadores.
+- Validación: revisión CSS de dimensiones/especificidad/capas y diff; revisión visual y aceptación pendientes. Sin reinicio de escritorio.
+
+## 079 — Temas claro/oscuro e icono del Dashboard (07/10/2026)
+
+- Configuración ofrece únicamente Claro y Oscuro de Inventory 2.0. Elección persistida; temas retirados migran al claro actual, y Oscuro se restaura al iniciar.
+- Dashboard y ventanas comparten superficies/textos/bordes del tema; gráficas adaptan series, ejes, leyendas, tooltip y PNG al tema. Menú lateral oscuro conservado.
+- Icono del menú Dashboard sustituido por Gauge de Lucide, indicador estándar de panel de control.
+- Validación: compilación Angular y doce pruebas focalizadas de temas/gráficas/datos aprobadas; revisión visual y aceptación pendientes. Backend/BD conservados y escritorio sin reiniciar.
+
+## 080 — Tema compartido en pantallas y ventanas (07/10/2026)
+
+- Sustituidos fondos blancos fijos por superficies del tema en Créditos, Facturación, Facturas, Inventario, Compras, Planillas, Configuración y ventanas compartidas. Campos, tablas, estados hover/selección y botones principales adaptan fondo/texto juntos.
+- Calendario compartido e inicio de sesión respetan la elección guardada. Alias de colores aplicados a Histórico y Salud del sistema; menú oscuro conservado.
+- Paleta oscura compartida y actualización de ejes/leyendas/tooltips de gráficos según variables del tema, conservando datos y formato de moneda.
+- Validación: compilación Angular, catorce pruebas focalizadas aprobadas y revisión de colores/especificidad CSS. Revisión visual de todas las rutas y aceptación pendientes. Sin reinicio de escritorio ni cambios de BD/backend.
+
+## 081 — Filtros compactos y columnas de Finanzas (07/10/2026)
+
+- Filtros de búsqueda/categoría/estado y Kardex con ancho compacto y filas adaptables; selectores de períodos por icono quedan en 40 px sin mínimos heredados anchos.
+- Engranaje Lucide en las ocho tablas de Costos, Caja chica, Finanzas y Ventas y rentabilidad. Panel de columnas con checkboxes, Restablecer y persistencia local independiente por tabla; conserva al menos una columna de datos.
+- Encabezados y celdas ocultan las mismas columnas; colspans de grupos financieros y mensajes se ajustan a columnas visibles. Popover nativo evita recortes por contenedores de tablas y admite cierre fuera/Escape.
+- Validación: compilación Angular y siete pruebas focalizadas aprobadas de filtros, columnas/persistencia/grupos y datos. Revisión visual y aceptación pendientes. Sin reinicio de escritorio ni cambios de backend/BD.
+
+## 082 — Salud compacta e Histórico UI 2.0 (07/10/2026)
+
+- Salud del sistema: encabezado compacto con un título, acciones Lucide y estado; filas del contenedor no estiran el encabezado a media pantalla.
+- Histórico: título principal compacto, resumen y tendencia colapsados inicialmente con control junto al título; Actualizar y cierre del detalle usan Lucide. Resumen, tabla y detalle comparten tema claro/oscuro.
+- Tabla con filtros compactos en vivo, densidad, engranaje de columnas (preferencias independientes), selección/CSV, ordenamiento accesible y paginación 10/25/50/100 con iconos. Se conservan filtros, detalle por doble clic y datos originales.
+- Validación: compilación Angular correcta y nueve pruebas focalizadas de presentación/datos/columnas aprobadas. Revisión visual y aceptación pendientes. Sin reinicio de escritorio ni cambios de BD/backend.
+
+## 083 — Kardex compacto en Ventas y rentabilidad (07/10/2026)
+
+- Totales de existencia, costo y valor de venta en una fila junto al título; se elimina el espacio vertical generado por su apilamiento.
+- Filtros y herramientas de tabla comparten una barra adaptable, con tamaños compactos y etiquetas accesibles. Se conservan búsquedas, filtros, densidad, columnas y paginación.
+- Temas claro/oscuro conservados. Validación: compilación Angular; revisión visual y aceptación pendientes. Sin reiniciar escritorio ni modificar datos.
+
+## 084 — Corrección del renderizado de gráficos (08/10/2026)
+
+- Reproducido el error `name.startsWith is not a function` con Chart.js real: copiar opciones resueltas evaluaba descriptores internos y detenía el gráfico.
+- Diseño del Dashboard y plugin de tema operan sobre opciones originales de configuración; conservan datos, formato y temas.
+- Validación: cinco pruebas aprobadas, incluida creación/actualizaciones repetidas con Chart.js real y contexto canvas simulado. Revisión visual pendiente; sin reiniciar escritorio ni modificar datos.
+
+## 085 — Cambio de tema desde Dashboard (08/10/2026)
+
+- Botón Lucide Luna/Sol en la barra del Dashboard para alternar Claro/Oscuro, con tamaño compartido y etiqueta de destino accesible.
+- Reutiliza setTheme: persiste preferencia, sincroniza Configuración y actualiza gráficos. Revisión visual y aceptación pendientes.
+
+## 086 — Apertura de caja al restaurar sesión (08/10/2026)
+
+- Causa de código: restoreAccessSession autenticaba y entraba sin consultar cortes; la validación solo existía en login con contraseña. Además, la salida lanzaba logout sin esperar antes de cerrar Electron.
+- Restauración consulta turnos del usuario con escritura en Facturación y solicita dinero inicial si no hay corte abierto; conserva turnos abiertos sin cierre por cambio de día. Salida con/sin corte espera logout; sesión local se borra inmediatamente.
+- Validación: compilación Angular correcta y seis pruebas aprobadas con cortes cerrados/abiertos/sin registros, acceso de consulta, limpieza local y secuencia corte/logout/cierre de escritorio. Sin escrituras reales, reinicio de aplicación ni cambios de BD/backend. Revisión operativa y aceptación pendientes.
+
 ## Próximo registro
 
-El siguiente cambio independiente se documentará como **073**.
+El siguiente cambio independiente se documentará como **087**.
 
 Validación del registro 006: Chrome aislado con 125 productos y 24 códigos armados simulados; comprobadas páginas de 10 y 25, búsqueda con un resultado, selección y cancelación del diálogo de inactivación. Ventanas de alta, inactivos, códigos armados y Kardex abiertas sin errores de ejecución. No se escribieron datos reales.

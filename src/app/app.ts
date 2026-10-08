@@ -1,7 +1,7 @@
 import { NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, ElementRef, OnDestroy, ViewChild, computed, effect, signal } from '@angular/core';
-import { LucideLayoutDashboard, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
+import { LucideSun, LucideMoon, LucideGauge, LucideArrowDownWideNarrow, LucideBell, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings } from '@lucide/angular';
 import {
   ArcElement,
   BarController,
@@ -22,9 +22,14 @@ import * as Tesseract from 'tesseract.js';
 import { DatePickerComponent } from './features/shared/date-picker/date-picker.component';
 import { ProductImageComponent } from './features/shared/product-image/product-image.component';
 import { ModalTableState, ModalTableConfig } from './features/shared/modal-table/modal-table-state';
+import { applyDashboardChartDesign, dashboardGlowPlugin } from './features/dashboard/dashboard-chart-design';
 import { FacturacionApiService } from './modules/facturacion/services/facturacion-api.service';
 
+import { chartThemePlugin } from './features/shared/theme/chart-theme';
+
 Chart.register(
+  chartThemePlugin,
+  dashboardGlowPlugin,
   ArcElement,
   BarController,
   BarElement,
@@ -64,6 +69,8 @@ type AuditHistorySortKey = 'date' | 'action' | 'table' | 'record' | 'user' | 'pr
 type AuditHistorySortDirection = 'asc' | 'desc';
 type AuditHistoryAlignment = 'left' | 'center' | 'right';
 type ThemeId =
+  | 'yr-light'
+  | 'yr-dark'
   | 'black-green'
   | 'forest-light'
   | 'steel-light'
@@ -1935,7 +1942,6 @@ interface ImagePayrollWeekCard extends ImagePayrollSourceWeek {
 
 const sessionStorageKey = 'yahweh-rohi-session-user';
 const activePageStorageKey = 'yahweh-rohi-active-page';
-const defaultThemeMigrationStorageKey = 'yahweh-rohi-black-green-default-applied';
 const payrollBonusesStoragePrefix = 'yahweh-rohi-payroll-bonuses';
 const payrollHoursStoragePrefix = 'yahweh-rohi-payroll-hours';
 const payrollScheduleStorageKey = 'yahweh-rohi-payroll-schedules';
@@ -2145,7 +2151,7 @@ const availablePages: Page[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideLayoutDashboard, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
+  imports: [NgTemplateOutlet, CurrencyPipe, DatePipe, DecimalPipe, PercentPipe, ProductImageComponent, DatePickerComponent, LucideSun, LucideMoon, LucideGauge, LucideArrowDownWideNarrow, LucideBell, LucideShoppingCart, LucideCreditCard, LucidePackage, LucideShoppingBag, LucideWallet, LucideActivity, LucideHistory, LucideLogOut, LucideChevronLeft, LucideChevronRight, LucideChevronsLeft, LucideChevronsRight, LucideMinus, LucideChevronDown, LucideChevronUp, LucideCalendarDays, LucideCalendarRange, LucidePencil, LucideCalculator, LucideUsers, LucideInfo, LucideChartColumn, LucidePlus, LucideRows2, LucideRows3, LucideRows4, LucideCheck, LucideX, LucideBan, LucideDownload, LucideEye, LucideFileText, LucideRotateCcw, LucideSearch, LucideSettings],
   templateUrl: './app.html',
   styleUrls: ['./app.css', './yr-ui.css']
 })
@@ -3256,9 +3262,90 @@ export class App implements OnDestroy {
   protected readonly assembledOfferEditingId = signal<number | null>(null);
   protected readonly selectedAssembledOffer = signal<AssembledOffer | null>(null);
   protected readonly assembledOfferDraft = signal<AssembledOfferDraft>(this.createEmptyAssembledOfferDraft());
+  protected readonly dashboardCreditSearch = signal('');
+  protected readonly dashboardCreditSort = signal('balance');
+  protected readonly dashboardCreditCustomers = computed(() => {
+    const customers = new Map<number, { id: number; name: string; balance: number; invoices: Set<number> }>();
+    for (const line of this.creditLines()) {
+      const balance = Number(line.pendingAmount || 0);
+      if (!Number.isFinite(balance) || balance <= 0) continue;
+      const customer = customers.get(line.customerId) || {
+        id: line.customerId, name: line.customerName, balance: 0, invoices: new Set<number>(),
+      };
+      customer.balance += balance;
+      customer.invoices.add(line.invoiceId);
+      customers.set(line.customerId, customer);
+    }
+    return [...customers.values()]
+      .map(customer => ({ ...customer, balance: this.roundMoney(customer.balance), invoiceCount: customer.invoices.size }))
+      .sort((a, b) => b.balance - a.balance);
+  });
+  protected readonly dashboardCreditBalance = computed(() =>
+    this.dashboardCreditCustomers().reduce((sum, row) => sum + row.balance, 0));
+  protected readonly dashboardCreditRows = computed(() => {
+    const query = this.modalTables.text(this.dashboardCreditSearch());
+    const rows = this.dashboardCreditCustomers().filter(row => !query || this.modalTables.text(row.name).includes(query));
+    return (this.dashboardCreditSort() === 'name'
+      ? [...rows].sort((a, b) => a.name.localeCompare(b.name, 'es')) : rows).slice(0, 8);
+  });
+  protected readonly dashboardSalesTrendTotal = computed(() => this.salesTrendData().reduce((sum, row) =>
+    sum + Number(row.efectivo || 0) + Number(row.credito || 0) + Number(row.transferencia || 0), 0));
+  protected readonly dashboardPurchasesTrendTotal = computed(() =>
+    this.purchasesTrendData().reduce((sum, row) => sum + row.value, 0));
+  protected readonly dashboardSummaryCollapsed=signal(true);
+  protected toggleDashboardSummary(): void {
+    this.dashboardSummaryCollapsed.update(value => !value);
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
   protected readonly financePanels=signal<Record<string,boolean>>({});
   protected financePanelOpen(key:string):boolean{return !!this.financePanels()[key];}
   protected toggleFinancePanel(key:string):void{this.financePanels.update(all=>({...all,[key]:!all[key]}));requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));}
+  protected readonly financeColumnDefinitions: Record<string, string[]> = {"history":["Fecha","Accion","Tabla","Registro","Usuario","Stock anterior","Stock nuevo"],"cost-changes": ["Producto", "Categoria", "Costo anterior", "Costo actual", "Aumento", "%", "Cambio"], "cost-products": ["Producto", "Categoria", "Movimiento", "Rotacion mensual", "Venta", "Costo", "Utilidad", "% ganancia"], "finance-movements": ["Fecha", "Tipo", "Metodo", "Aplica a", "Categoria", "Descripcion", "Monto", "Usuario", "Estado"], "finance-cash": ["Acciones", "Fecha", "Cajero", "Monto inicial", "Monto final", "Facturacion turno", "Caja chica", "Queda registradora", "Billetera cambio", "Total caja chica", "Salidas", "Motivo", "Total real", "Comentarios", "Beneficio / dividendo", "Catorceavo / aguinaldo"], "finance-sold": ["Producto", "Cantidad", "Ventas", "Utilidad", "Margen"], "finance-profit": ["Producto", "Precio", "Costo", "Utilidad", "Margen"], "finance-customers": ["Cliente", "Facturas", "Ventas", "Utilidad", "Ultima venta"], "finance-kardex": ["Fecha", "Documento", "Movimiento", "Producto", "Entrada", "Salida", "Existencia", "Costo unitario", "Costo promedio", "Usuario"]};
+  private readonly financeHiddenColumns = signal<Record<string, string[]>>(this.restoreFinanceColumns());
+  private restoreFinanceColumns(): Record<string, string[]> {
+    try {
+      const saved = JSON.parse(localStorage.getItem('yahweh-rohi-finance-columns-v1') || '{}');
+      const result: Record<string,string[]> = {};
+      for (const [key,value] of Object.entries(saved)) {
+        const columns = this.financeColumnDefinitions[key];
+        if (!columns || !Array.isArray(value)) continue;
+        const hidden = [...new Set(value.filter((item): item is string => typeof item === 'string' && columns.includes(item)))];
+        result[key] = hidden.length < columns.length ? hidden : [];
+      }
+      return result;
+    } catch { return {}; }
+  }
+  protected financeColumnVisible(key: string, index: number): boolean {
+    return index === 0 || !(this.financeHiddenColumns()[key] || []).includes(this.financeColumnDefinitions[key]?.[index - 1]);
+  }
+  protected financeVisibleColumnCount(key: string): number {
+    return (this.financeColumnDefinitions[key] || []).filter((_,index) => this.financeColumnVisible(key,index + 1)).length;
+  }
+  protected financeColumnSpan(key: string, start: number, count: number): number {
+    return Array.from({length:count},(_,index) => this.financeColumnVisible(key,start + index)).filter(Boolean).length;
+  }
+  protected openFinanceColumns(key: string, event: MouseEvent): void {
+    const panel = document.getElementById('finance-columns-' + key);
+    if (!panel) return;
+    if (panel.matches(':popover-open')) { panel.hidePopover(); return; }
+    const trigger = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    panel.style.left = Math.max(12,Math.min(trigger.right - 280,window.innerWidth - 292)) + 'px';
+    panel.style.top = Math.max(12,Math.min(trigger.bottom + 8,window.innerHeight - Math.min(window.innerHeight * .55,420) - 12)) + 'px';
+    panel.showPopover();
+  }
+  protected toggleFinanceColumn(key: string, column: string): void {
+    if (!this.financeColumnDefinitions[key]?.includes(column)) return;
+    const hidden = this.financeHiddenColumns()[key] || [];
+    if (!hidden.includes(column) && this.financeVisibleColumnCount(key) <= 1) return;
+    this.financeHiddenColumns.update(all => ({...all,[key]:hidden.includes(column) ? hidden.filter(item => item !== column) : [...hidden,column]}));
+    this.saveFinanceColumns();
+  }
+  protected resetFinanceColumns(key: string): void {
+    this.financeHiddenColumns.update(all => ({...all,[key]:[]}));this.saveFinanceColumns();
+  }
+  private saveFinanceColumns(): void {
+    try { localStorage.setItem('yahweh-rohi-finance-columns-v1',JSON.stringify(this.financeHiddenColumns())); } catch { /* Preferences remain usable in memory. */ }
+  }
   protected readonly financeTableConfigs:Record<string,ModalTableConfig>={"cost-changes": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "category", "label": "Categoria"}, {"key": "previousCost", "label": "Costo anterior"}, {"key": "currentCost", "label": "Costo actual"}, {"key": "difference", "label": "Aumento"}, {"key": "variation", "label": "%"}, {"key": "difference", "label": "Cambio"}], "filterKey": "category"}, "cost-products": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "category", "label": "Categoria"}, {"key": "quantity", "label": "Movimiento"}, {"key": "monthlyRotation", "label": "Rotacion mensual"}, {"key": "sales", "label": "Venta"}, {"key": "cost", "label": "Costo"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "% ganancia"}], "filterKey": "category"}, "finance-movements": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "movementType", "label": "Tipo"}, {"key": "paymentMethod", "label": "Metodo"}, {"key": "target", "label": "Aplica a"}, {"key": "category", "label": "Categoria"}, {"key": "description", "label": "Descripcion"}, {"key": "amount", "label": "Monto"}, {"key": "userName", "label": "Usuario"}, {"key": "status", "label": "Estado"}], "filterKey": "status"}, "finance-cash": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "userName", "label": "Cajero"}, {"key": "initialAmount", "label": "Monto inicial"}, {"key": "finalAmount", "label": "Monto final"}, {"key": "turnBilling", "label": "Facturacion turno"}, {"key": "cashToPetty", "label": "Caja chica"}, {"key": "registerBalance", "label": "Queda registradora"}, {"key": "changeWallet", "label": "Billetera cambio"}, {"key": "pettyCashTotal", "label": "Total caja chica"}, {"key": "cashOut", "label": "Salidas"}, {"key": "reason", "label": "Motivo"}, {"key": "realCashTotal", "label": "Total real"}, {"key": "comments", "label": "Comentarios"}, {"key": "dividendReserve", "label": "Beneficio / dividendo"}, {"key": "fourteenthReserve", "label": "Catorceavo / aguinaldo"}], "filterKey": "userName"}, "finance-sold": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "quantity", "label": "Cantidad"}, {"key": "sales", "label": "Ventas"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "Margen"}], "filterKey": "category"}, "finance-profit": {"columns": [{"key": "productName", "label": "Producto"}, {"key": "salePrice", "label": "Precio"}, {"key": "cost", "label": "Costo"}, {"key": "utility", "label": "Utilidad"}, {"key": "margin", "label": "Margen"}], "filterKey": "category"}, "finance-customers": {"columns": [{"key": "customerName", "label": "Cliente"}, {"key": "invoices", "label": "Facturas"}, {"key": "sales", "label": "Ventas"}, {"key": "utility", "label": "Utilidad"}, {"key": "lastSale", "label": "Ultima venta"}]}, "finance-kardex": {"columns": [{"key": "date", "label": "Fecha"}, {"key": "document", "label": "Documento"}, {"key": "movementType", "label": "Movimiento"}, {"key": "productName", "label": "Producto"}, {"key": "entrada", "label": "Entrada"}, {"key": "salida", "label": "Salida"}, {"key": "existencia", "label": "Existencia"}, {"key": "unitCost", "label": "Costo unitario"}, {"key": "averageCost", "label": "Costo promedio"}, {"key": "userName", "label": "Usuario"}], "filterKey": "movementType"}};
   protected financeTableRows(key:string):any[]{
     switch(key){
@@ -3345,7 +3432,7 @@ export class App implements OnDestroy {
   }
   protected readonly activeSettingsTab = signal<SettingsTabId>('appearance');
   protected readonly themeMenuOpen = signal(false);
-  protected readonly activeThemeId = signal<ThemeId>('black-green');
+  protected readonly activeThemeId = signal<ThemeId>('yr-light');
   protected readonly systemFont = signal<SystemFontId>('inter');
   protected readonly interfaceDensity = signal<InterfaceDensity>('normal');
   protected readonly defaultTableRows = signal(10);
@@ -3573,20 +3660,8 @@ export class App implements OnDestroy {
   protected readonly kardexPage = signal(1);
   protected readonly kardexPageSize = signal(10);
   protected readonly themes: ThemeOption[] = [
-    { id: 'black-green', name: 'Black green', tone: 'Oscuro' },
-    { id: 'forest-light', name: 'Bosque claro', tone: 'Claro' },
-    { id: 'steel-light', name: 'Acero claro', tone: 'Claro' },
-    { id: 'ember-dark', name: 'Carbon gradiente', tone: 'Oscuro' },
-    { id: 'emerald-dark', name: 'Esmeralda gradiente', tone: 'Oscuro' },
-    { id: 'analytics-dark', name: 'Analytics noche', tone: 'Oscuro' },
-    { id: 'crm-dark', name: 'CRM neon', tone: 'Oscuro' },
-    { id: 'combo-mono', name: 'Combo mono', tone: '#2F2F33 / #F5F6F7' },
-    { id: 'soft-blue', name: 'Soft blue', tone: '#ADDFF1 / #003152' },
-    { id: 'deep-onyx', name: 'Deep onyx', tone: '#07191E / #02F5A1' },
-    { id: 'monaco-orange', name: 'Monaco orange', tone: '#000000 / #EE7900' },
-    { id: 'uniform-yellow', name: 'Uniform yellow', tone: '#122837 / #FBFC09' },
-    { id: 'red-combo', name: 'Red combo', tone: '#000F08 / #FB3640' },
-    { id: 'coral-black', name: 'Coral black', tone: '#171616 / #F95C4B' },
+    { id: 'yr-light', name: 'Claro', tone: 'Inventory 2.0' },
+    { id: 'yr-dark', name: 'Oscuro', tone: 'Inventory 2.0' },
   ];
   protected readonly settingsTabs: SettingsTab[] = [
     { id: 'users', label: 'Usuarios' },
@@ -3852,7 +3927,8 @@ export class App implements OnDestroy {
   }
 
   protected updateAuditHistoryPageSize(event: Event): void {
-    this.auditHistoryPageSize.set(Number((event.target as HTMLSelectElement).value) || 8);
+    const size = Number((event.target as HTMLSelectElement).value);
+    this.auditHistoryPageSize.set([10,25,50,100].includes(size) ? size : 10);
     this.auditHistoryPageIndex.set(0);
   }
 
@@ -4423,7 +4499,17 @@ export class App implements OnDestroy {
   protected readonly auditHistoryUserFilter = signal('all');
   protected readonly auditHistoryTableFilter = signal('all');
   protected readonly auditHistorySearchFilter = signal('');
-  protected readonly auditHistoryPageSize = signal(8);
+  protected readonly historySummaryCollapsed = signal(true);
+  protected toggleHistorySummary(): void {
+    this.historySummaryCollapsed.update(value => !value);
+    this.scheduleVisibleChartsRefresh();
+  }
+  protected readonly historyTableConfig: ModalTableConfig = {columns:[
+    {key:'date',label:'Fecha'},{key:'action',label:'Acción'},{key:'tableName',label:'Tabla'},
+    {key:'recordKey',label:'Registro'},{key:'user',label:'Usuario'},
+    {key:'previousData',label:'Dato anterior'},{key:'newData',label:'Dato nuevo'}
+  ]};
+  protected readonly auditHistoryPageSize = signal(10);
   protected readonly auditHistoryPageIndex = signal(0);
   protected readonly auditHistorySortKey = signal<AuditHistorySortKey>('date');
   protected readonly auditHistorySortDirection = signal<AuditHistorySortDirection>('desc');
@@ -7520,17 +7606,12 @@ export class App implements OnDestroy {
 
     try {
       const savedTheme = localStorage.getItem('yahweh-rohi-theme') as ThemeId | null;
-      const defaultThemeMigrationApplied = localStorage.getItem(defaultThemeMigrationStorageKey);
       const savedFavoriteProductIds = localStorage.getItem('yahweh-rohi-favorite-products');
       const savedSidebarCollapsed = localStorage.getItem('yahweh-rohi-sidebar-collapsed');
       const savedPageZoom = Number(localStorage.getItem('yahweh-rohi-page-zoom') || 100);
-      if (!defaultThemeMigrationApplied && (!savedTheme || savedTheme === 'forest-light')) {
-        this.activeThemeId.set('black-green');
-        localStorage.setItem('yahweh-rohi-theme', 'black-green');
-        localStorage.setItem(defaultThemeMigrationStorageKey, '1');
-      } else if (savedTheme && this.themes.some((theme) => theme.id === savedTheme)) {
-        this.activeThemeId.set(savedTheme);
-      }
+      const theme = savedTheme === 'yr-dark' ? 'yr-dark' : 'yr-light';
+      this.activeThemeId.set(theme);
+      localStorage.setItem('yahweh-rohi-theme', theme);
 
       if (savedFavoriteProductIds) {
         this.favoriteProductIds.set(JSON.parse(savedFavoriteProductIds) as number[]);
@@ -7554,7 +7635,7 @@ export class App implements OnDestroy {
         void this.restoreAccessSession(this.restoreSavedActivePage(),JSON.parse(savedUser));
       }
     } catch {
-      this.activeThemeId.set('black-green');
+      this.activeThemeId.set('yr-light');
     }
   }
 
@@ -8649,6 +8730,7 @@ export class App implements OnDestroy {
   // RECARGA loadTodayInvoices(), QUE CONSULTA /api/invoices/today O electronAPI.getTodayInvoices().
   // EL BACKEND TERMINA EJECUTANDO listTodayInvoices() EN server/data-access.js.
   protected openDailySalesModal(): void {
+    if(this.activePage()==='dashboard')this.modalSummaries.update(all=>({...all,sales:true}));
     this.dailySalesSelected.set(new Set());
     this.dailySalesPage.set(1);
     this.dailySalesModalOpen.set(true);
@@ -8708,6 +8790,7 @@ export class App implements OnDestroy {
   }
 
   protected openSalesDropAlertModal(): void {
+    if(this.activePage()==='dashboard')this.modalSummaries.update(all=>({...all,'dashboard-sales-alert':true}));
     this.salesDropAlertModalOpen.set(true);
     void this.loadSalesDropAlert();
   }
@@ -9024,7 +9107,7 @@ export class App implements OnDestroy {
       if (this.activePage() === 'petty-cash') {
         await this.loadPettyCashData();
       }
-      this.logout();
+      await this.logout();
 
       if (this.desktopApi?.closeApp) {
         await this.desktopApi.closeApp();
@@ -9042,7 +9125,7 @@ export class App implements OnDestroy {
 
     try {
       this.closeLogoutCutModal();
-      this.logout();
+      await this.logout();
 
       if (this.desktopApi?.closeApp) {
         await this.desktopApi.closeApp();
@@ -11079,11 +11162,10 @@ export class App implements OnDestroy {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   }
 
-  protected logout(): void {
-    if(this.currentUser()?.sessionToken){
-      const request=this.desktopApi?this.desktopApi.logoutAccessSession():firstValueFrom(this.http.post('/api/auth/logout',{}));
-      void request.catch(()=>{});
-    }
+  protected async logout(): Promise<void> {
+    const logoutRequest = this.currentUser()?.sessionToken
+      ? (this.desktopApi ? this.desktopApi.logoutAccessSession() : firstValueFrom(this.http.post('/api/auth/logout', {}))).catch(() => {})
+      : Promise.resolve();
     this.settingsModalOpen.set(false);
     this.userMenuOpen.set(false);
     this.selfAttendanceMarkModalOpen.set(false);
@@ -11103,9 +11185,11 @@ export class App implements OnDestroy {
     this.expiringProductsError.set('');
     this.salesDropAlertError.set('');
     this.clearSession();
+    this.openingCutModalOpen.set(false);
+    await logoutRequest;
   }
 
-  private async shouldPromptOpeningCut(date: string): Promise<boolean> {
+  private async shouldPromptOpeningCut(): Promise<boolean> {
     const currentUser = this.currentUser();
 
     if (!currentUser) {
@@ -11137,10 +11221,9 @@ export class App implements OnDestroy {
   private async authenticateUser(usuario: string, pass: string): Promise<void> {
     try {
       const response = await this.requestLogin(usuario, pass);
-      const today = this.todayDateKey();
       this.currentUser.set(response.user);
       this.saveSession(response.user);
-      const shouldOpenOpeningCut = this.canAccessModule('billing','write') ? await this.shouldPromptOpeningCut(today) : false;
+      const shouldOpenOpeningCut = this.canAccessModule('billing','write') ? await this.shouldPromptOpeningCut() : false;
       this.isAuthenticated.set(true);
       this.logoutCutModalOpen.set(false);
       this.logoutCutError.set('');
@@ -13776,6 +13859,8 @@ export class App implements OnDestroy {
   }
 
   private resetAttendancePayrollPanels(page: Page): void {
+    if (page === 'history') this.historySummaryCollapsed.set(true);
+    if(page==='dashboard'){this.dashboardSummaryCollapsed.set(true);this.dashboardCreditSearch.set('');}
     if(['costs','petty-cash','financial-movements','sales-profitability'].includes(page)){this.financePanels.set({});this.expandedFinancialDayKeys.set([]);this.expandedFinancialTypeKeys.set([]);this.expandedFinancialPaymentKeys.set([]);}
 
     if (page === 'attendance') {
@@ -13798,8 +13883,18 @@ export class App implements OnDestroy {
   private async restoreAccessSession(page:Page,saved:LoginResponse['user']):Promise<void>{
     try{
       const response=this.desktopApi?await this.desktopApi.getAccessSession():await firstValueFrom(this.http.get<LoginResponse>('/api/auth/session'));
-      const user={...response.user,sessionToken:saved.sessionToken};this.currentUser.set(user);this.saveSession(user);this.isAuthenticated.set(true);
-      this.activatePage(this.canAccessModule(page)?page:this.firstAccessiblePage(),false);
+      const user = { ...response.user, sessionToken: saved.sessionToken };
+      this.currentUser.set(user);
+      // Restoring authentication must also restore the cashier opening gate.
+      // A saved access token does not mean the previous shift is still open.
+      const needsOpening = this.canAccessModule('billing', 'write')
+        ? await this.shouldPromptOpeningCut() : false;
+      this.saveSession(user);
+      this.openingCashAmount.set('');
+      this.openingCutError.set('');
+      this.openingCutModalOpen.set(needsOpening);
+      this.isAuthenticated.set(true);
+      this.activatePage(this.canAccessModule(page) ? page : this.firstAccessiblePage(), false);
     }catch{this.clearSession();this.currentUser.set(null);this.isAuthenticated.set(false);}
   }
   protected canAccessModule(module: string, level: 'read'|'write'='read'): boolean {
@@ -13846,6 +13941,7 @@ export class App implements OnDestroy {
     }
 
     if (page === 'dashboard') {
+      if (this.isAuthenticated() && this.canAccessModule('credits')) void this.loadCredits();
       void this.loadDashboardSalesSummary();
       void this.loadDashboardSalesTrend();
       void this.loadSalesDropAlert();
@@ -16577,6 +16673,7 @@ export class App implements OnDestroy {
   protected setTheme(themeId: ThemeId): void {
     this.activeThemeId.set(themeId);
     this.themeMenuOpen.set(false);
+    this.scheduleVisibleChartsRefresh();
 
     try {
       localStorage.setItem('yahweh-rohi-theme', themeId);
@@ -20064,7 +20161,7 @@ export class App implements OnDestroy {
     const canvases = Array.from(document.querySelectorAll<HTMLCanvasElement>('canvas[aria-label]'));
 
     for (const canvas of canvases) {
-      if (canvas.dataset['chartExpandReady'] === '1' || canvas.closest('.expanded-chart-modal')) {
+      if (canvas.dataset['chartExpandReady'] === '1' || canvas.closest('.expanded-chart-modal, .dashboard-premium')) {
         continue;
       }
 
@@ -20116,6 +20213,18 @@ export class App implements OnDestroy {
     this.expandedChartPreview.set(null);
   }
 
+  protected downloadDashboardChart(kind: 'sales' | 'purchases' | 'salary'): void {
+    const canvas = (kind === 'sales' ? this.salesTrendCanvas
+      : kind === 'purchases' ? this.purchasesTrendCanvas : this.dashboardPayrollChartCanvas)?.nativeElement;
+    if (!canvas) return;
+    const imageUrl = this.captureChartCanvas(canvas);
+    if (!imageUrl) return;
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `dashboard-${kind}.png`;
+    link.click();
+  }
+
   protected downloadExpandedChart(): void {
     const preview = this.expandedChartPreview();
 
@@ -20131,6 +20240,18 @@ export class App implements OnDestroy {
 
   private captureChartCanvas(canvas: HTMLCanvasElement): string {
     try {
+      if (canvas.closest('.dashboard-premium')) {
+        const snapshot = document.createElement('canvas');
+        snapshot.width = canvas.width;
+        snapshot.height = canvas.height;
+        const context = snapshot.getContext('2d');
+        if (context) {
+          context.fillStyle = this.activeThemeId() === 'yr-dark' ? '#1b2430' : '#ffffff';
+          context.fillRect(0, 0, snapshot.width, snapshot.height);
+          context.drawImage(canvas, 0, 0);
+          return snapshot.toDataURL('image/png', 1);
+        }
+      }
       return canvas.toDataURL('image/png', 1);
     } catch {
       return '';
@@ -20449,6 +20570,7 @@ export class App implements OnDestroy {
     this.purchasesTrendChart.data.datasets[0].backgroundColor = lineStyle.background;
     this.purchasesTrendChart.data.datasets[0].pointBackgroundColor = lineStyle.border;
     this.purchasesTrendChart.data.datasets[0].data = purchasesTrendData.map((item) => item.value);
+    applyDashboardChartDesign(this.purchasesTrendChart, this.activeThemeId() === 'yr-dark');
     this.purchasesTrendChart.resize();
     this.purchasesTrendChart.update();
   }
@@ -20584,6 +20706,7 @@ export class App implements OnDestroy {
         tension: 0.38,
       };
     });
+    applyDashboardChartDesign(this.dashboardPayrollChart, this.activeThemeId() === 'yr-dark');
     this.dashboardPayrollChart.update();
     this.dashboardPayrollChart.resize();
   }
@@ -20696,6 +20819,7 @@ export class App implements OnDestroy {
     chart.data.datasets[0].data = trendData.map((item) => item.efectivo);
     chart.data.datasets[1].data = trendData.map((item) => item.credito);
     chart.data.datasets[2].data = trendData.map((item) => item.transferencia);
+    applyDashboardChartDesign(chart, this.activeThemeId() === 'yr-dark');
     chart.resize();
     chart.update();
   }
@@ -20705,7 +20829,14 @@ export class App implements OnDestroy {
   }
 
   private chartLinePalette(): Array<{ border: string; background: string }> {
-    if(['costs','petty-cash','financial-movements','sales-profitability'].includes(this.activePage()))return [
+    if (this.activeThemeId() === 'yr-dark') return [
+      {border:'#75dbc6',background:'rgba(117,219,198,.14)'},
+      {border:'#87bbff',background:'rgba(135,187,255,.14)'},
+      {border:'#f4d677',background:'rgba(244,214,119,.14)'},
+      {border:'#c9a8f5',background:'rgba(201,168,245,.14)'},
+      {border:'#f49fae',background:'rgba(244,159,174,.14)'}
+    ];
+    if(['dashboard','costs','petty-cash','financial-movements','sales-profitability'].includes(this.activePage()))return [
       {border:'#087568',background:'rgba(8,117,104,.12)'},
       {border:'#397cad',background:'rgba(57,124,173,.12)'},
       {border:'#af771d',background:'rgba(175,119,29,.12)'},
@@ -20789,8 +20920,8 @@ export class App implements OnDestroy {
   }
 
   private createSalesTrendChart(canvas: HTMLCanvasElement, shaded = false): Chart<'line', number[], string> {
-    const lightInvoiceChart = this.activePage() === 'invoices';
-    const chartText = lightInvoiceChart ? '#536a76' : 'rgb(203 213 225 / 70%)';
+    const lightInvoiceChart = this.activeThemeId() !== 'yr-dark';
+    const chartText = lightInvoiceChart ? '#536a76' : (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 70%)');
     const chartGrid = lightInvoiceChart ? 'rgb(83 106 118 / 16%)' : 'rgb(148 163 184 / 12%)';
     const chartBorder = lightInvoiceChart ? 'rgb(83 106 118 / 26%)' : 'rgb(148 163 184 / 24%)';
     return new Chart(canvas, {
@@ -20978,7 +21109,7 @@ export class App implements OnDestroy {
           x: {
             grid: { display: false },
             ticks: {
-              color: 'rgb(203 213 225 / 60%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 60%)'),
               font: { size: 10, weight: 800 },
             },
           },
@@ -20986,7 +21117,7 @@ export class App implements OnDestroy {
             beginAtZero: true,
             grid: { color: 'rgb(148 163 184 / 14%)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               callback: (value) => currencyValues ? this.formatCompactCurrency(Number(value)) : this.formatNumber(Number(value)),
               font: { size: 10, weight: 800 },
               precision: currencyValues ? undefined : 0,
@@ -21023,7 +21154,7 @@ export class App implements OnDestroy {
             position: 'bottom',
             labels: {
               boxWidth: 10,
-              color: 'rgb(203 213 225 / 74%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 74%)'),
               font: { size: 10, weight: 800 },
               padding: 10,
             },
@@ -21069,7 +21200,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 22,
-              color: 'rgb(203 213 225 / 72%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 72%)'),
               font: { size: 10, weight: 800 },
             },
           },
@@ -21090,7 +21221,7 @@ export class App implements OnDestroy {
           x: {
             grid: { color: 'rgb(148 163 184 / 10%)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               font: { size: 10, weight: 800 },
             },
           },
@@ -21099,7 +21230,7 @@ export class App implements OnDestroy {
             grid: { color: 'rgb(148 163 184 / 14%)' },
             ticks: {
               precision: 0,
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               callback: (value) => this.formatNumber(Number(value)),
               font: { size: 10, weight: 800 },
             },
@@ -21157,7 +21288,7 @@ export class App implements OnDestroy {
           x: {
             grid: { color: 'rgb(148 163 184 / 10%)' },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               font: { size: 10, weight: 800 },
             },
           },
@@ -21166,7 +21297,7 @@ export class App implements OnDestroy {
             grid: { color: 'rgb(148 163 184 / 14%)' },
             ticks: {
               precision: 0,
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               callback: (value) => this.formatNumber(Number(value)),
               font: { size: 10, weight: 800 },
             },
@@ -21208,7 +21339,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: light ? '#536a76' : 'rgb(203 213 225 / 70%)',
+              color: light ? '#536a76' : (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 70%)'),
               font: {
                 size: 11,
                 weight: 800,
@@ -21239,7 +21370,7 @@ export class App implements OnDestroy {
               drawTicks: false,
             },
             ticks: {
-              color: light ? '#536a76' : 'rgb(203 213 225 / 72%)',
+              color: light ? '#536a76' : (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 72%)'),
               font: {
                 size: 11,
                 weight: 700,
@@ -21255,7 +21386,7 @@ export class App implements OnDestroy {
               color: 'rgb(148 163 184 / 10%)',
             },
             ticks: {
-              color: light ? '#536a76' : 'rgb(203 213 225 / 72%)',
+              color: light ? '#536a76' : (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 72%)'),
               callback: (value) => formatTrendTick(Number(value)),
               font: {
                 size: 11,
@@ -21380,7 +21511,7 @@ export class App implements OnDestroy {
             labels: {
               boxHeight: 3,
               boxWidth: 28,
-              color: 'rgb(203 213 225 / 70%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 70%)'),
               font: {
                 size: 11,
                 weight: 800,
@@ -21410,7 +21541,7 @@ export class App implements OnDestroy {
               color: 'rgb(148 163 184 / 12%)',
             },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               font: {
                 size: 10,
                 weight: 800,
@@ -21426,7 +21557,7 @@ export class App implements OnDestroy {
               color: 'rgb(148 163 184 / 18%)',
             },
             ticks: {
-              color: 'rgb(203 213 225 / 56%)',
+              color: (this.activePage()==='dashboard' ? '#536a76' : 'rgb(203 213 225 / 56%)'),
               callback: (value) => this.formatNumber(Number(value)),
               font: {
                 size: 10,

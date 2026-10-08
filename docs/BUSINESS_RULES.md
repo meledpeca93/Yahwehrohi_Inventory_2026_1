@@ -146,3 +146,9 @@
 ## Usuarios y permisos (05/10/2026)
 
 Administrador gestiona usuarios y tiene acceso completo. Operador inicia con gestión de módulos excepto Usuarios y lectura en Configuración; Consulta inicia con lectura excepto Usuarios. El administrador puede ajustar cada módulo por usuario a sin acceso, lectura o gestión; Usuarios sigue reservado al perfil Administrador. Cambiar de perfil en el formulario restablece sus valores base. Baja lógica conserva historial; puede reactivarse mediante edición. No se permite quitar el propio acceso administrativo ni dejar sin administrador activo. Cambiar contraseña o desactivar revoca sesiones; otros cambios se comprueban en la siguiente petición. Sesiones duran 12 horas; contraseña nueva entre 8 y 128 caracteres. Las restricciones anteriores por rol de ciertas operaciones se mantienen.
+
+## Restauración de sesión y apertura de caja (086)
+
+- Restaurar una sesión de acceso no equivale a restaurar un turno de caja. Tanto el login como la restauración consultan los cortes del usuario con permiso de escritura en Facturación.
+- Si no existe un corte en estado Abierto (1), se solicita el dinero inicial; un turno abierto se conserva aunque atraviese medianoche. No se cierran turnos ni se crean cortes en cero automáticamente.
+- Tras guardar el corte de salida, se elimina la sesión local y se espera la finalización de la solicitud de logout antes de cerrar Electron. La sesión se limpia localmente incluso si falla la revocación remota.

@@ -50,4 +50,33 @@ describe('Finance presentation',()=>{
  it('uses readable chart colors for finance only',()=>{const app=setup();app.activePage.set('costs');expect(app.chartLinePalette()[0].border).toBe('#087568');});
  it('keeps customer selection independent between rows',()=>{const app=setup();app.salesProfitabilityAnalytics.set({customers:{topRevenue:[{customerId:1,customerName:'Ana'},{customerId:2,customerName:'Luis'}]}});const rows=app.financeTableRows('finance-customers');app.modalTables.toggle('finance-customers',rows[0]);expect(app.modalTables.selected('finance-customers',rows[1])).toBe(false);});
 
+ it('keeps column preferences independent and restores them without changing rows',()=>{
+   const app=setup();const rows=[{id:1,date:'2026-10-07',amount:10}];app.financialMovements.set(rows);
+   app.toggleFinanceColumn('finance-movements','Fecha');
+   expect(app.financeColumnVisible('finance-movements',1)).toBe(false);
+   expect(app.financeColumnVisible('finance-cash',2)).toBe(true);
+   expect(app.financialMovements()).toEqual(rows);
+   const restored=setup();expect(restored.financeColumnVisible('finance-movements',1)).toBe(false);
+   restored.resetFinanceColumns('finance-movements');expect(restored.financeColumnVisible('finance-movements',1)).toBe(true);
+ });
+ it('aligns grouped spans and keeps at least one data column visible in all eight tables',()=>{
+   const app=setup();expect(Object.keys(app.financeTableConfigs)).toHaveLength(8);
+   app.toggleFinanceColumn('finance-movements','Fecha');expect(app.financeColumnSpan('finance-movements',0,4)).toBe(3);
+   for(const key of Object.keys(app.financeColumnDefinitions)){
+     for(const column of app.financeColumnDefinitions[key])app.toggleFinanceColumn(key,column);
+     expect(app.financeVisibleColumnCount(key)).toBe(1);expect(app.financeColumnVisible(key,0)).toBe(true);
+   }
+ });
+ it('opens history with summary collapsed and resets it on reentry',()=>{
+   const app=setup();expect(app.historySummaryCollapsed()).toBe(true);
+   app.toggleHistorySummary();expect(app.historySummaryCollapsed()).toBe(false);
+   app.resetAttendancePayrollPanels('history');expect(app.historySummaryCollapsed()).toBe(true);
+ });
+ it('keeps history filtering, sorting, page sizes and column preferences independent of the log data',()=>{
+   const app=setup();const rows=Array.from({length:26},(_,i)=>({id:i+1,date:'2026-10-07T10:00:00',action:'INSERT',tableName:'producto',recordKey:String(i),user:i===0?'Ana':'Luis',previousData:'Stock: 2',newData:'Stock: 3'}));
+   app.auditHistory.set(rows);expect(app.auditHistoryPageSize()).toBe(10);expect(app.visibleAuditHistory()).toHaveLength(10);
+   app.auditHistorySearchFilter.set('Ana');expect(app.filteredAuditHistory()).toHaveLength(1);
+   app.toggleFinanceColumn('history','Stock anterior');expect(app.financeColumnVisible('history',6)).toBe(false);
+   expect(app.auditHistory()).toEqual(rows);app.resetFinanceColumns('history');expect(app.financeColumnVisible('history',6)).toBe(true);
+ });
 });

@@ -1,4 +1,4 @@
-/* Inventory 2.0 light foundation. Opt-in screens only; other modules keep their theme. */
+/* Inventory 2.0 theme foundation. Light defaults; selected dark tokens are inherited by screens and dialogs. */
 :host {
   --yr-bg: #f2f5f7;
   --yr-surface: #ffffff;
@@ -24,7 +24,7 @@
   --yr-shadow: 0 16px 42px #263f5010, inset 0 1px 0 #ffffff;
   --yr-shadow-soft: 0 4px 14px #263f500b, inset 0 1px 0 #ffffff;
 }
-.yr-ui { color-scheme: light; color: var(--yr-text); }
+.yr-ui { color-scheme: var(--yr-color-scheme, light); color: var(--yr-text); }
 .yr-ui .yr-icon { width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .yr-ui :is(button, input, select, a, [role="button"]) { transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 .yr-ui :is(button, input, select, a, [role="button"]):focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 3px; }
@@ -60,7 +60,7 @@
 .yr-ui .login-field :is(input, select):focus { border-color: var(--yr-primary); box-shadow: 0 0 0 4px #08756815; }
 .yr-ui .login-field :is(input, select):hover { border-color: #69877f; }
 .yr-ui .yr-password-toggle { position: absolute; right: 6px; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--yr-text-muted); }
-.yr-ui .login-button { display: flex; justify-content: center; align-items: center; gap: 14px; min-height: 52px; margin: 0; border: 1px solid #087568; border-radius: var(--yr-radius-md); background: var(--yr-primary); color: #ffffff; font-weight: 750; box-shadow: 0 6px 18px #23445315, inset 0 1px 0 #ffffff50; }
+.yr-ui .login-button { display: flex; justify-content: center; align-items: center; gap: 14px; min-height: 52px; margin: 0; border: 1px solid #087568; border-radius: var(--yr-radius-md); background: var(--yr-primary); color: var(--yr-on-primary); font-weight: 750; box-shadow: 0 6px 18px #23445315, inset 0 1px 0 #ffffff50; }
 .yr-ui .login-button:hover:not(:disabled) { background: #066b60; }
 .yr-ui .login-actions { display: flex; flex-wrap: wrap; gap: 14px; }
 .yr-ui .login-actions :is(label, a) { color: var(--yr-text-muted); font-size: .75rem; }
@@ -101,10 +101,10 @@
 :host .app-shell .billing-workspace.yr-ui .billing-heading-actions > span { width: 100%; font-size: .75rem; }
 :host .app-shell .billing-workspace.yr-ui :is(button, .yr-button) { border-radius: var(--yr-radius-sm); font-weight: 600; box-shadow: none; }
 :host .app-shell .billing-workspace.yr-ui :is(.daily-sales-button, .cut-open-button, .selector-chip, .ghost-button, .yr-button-secondary, .quantity button, .quick-received-buttons button, .inventory-pagination button, .topbar-alert-button) { min-width: 0; min-height: 34px; height: auto; padding: 7px 11px; border: 1px solid var(--yr-border); background: var(--yr-surface-elevated); color: var(--yr-text); font-size: .75rem; white-space: normal; box-shadow: var(--yr-shadow-soft); }
-:host .app-shell .billing-workspace.yr-ui :is(.primary-button, .yr-button-primary) { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; background: var(--yr-primary); color: #ffffff; border: 1px solid #087568; font-size: .9rem; box-shadow: var(--yr-shadow-soft); }
+:host .app-shell .billing-workspace.yr-ui :is(.primary-button, .yr-button-primary) { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; background: var(--yr-primary); color: var(--yr-on-primary); border: 1px solid #087568; font-size: .9rem; box-shadow: var(--yr-shadow-soft); }
 :host .app-shell .billing-workspace.yr-ui :is(.ghost-button, .yr-button-ghost) { background: transparent; }
 :host .app-shell .billing-workspace.yr-ui :is(.remove-button, .yr-button-danger, .checkout-inline-reset) { color: var(--yr-danger); background: var(--yr-danger-soft); border: 1px solid #e7b8bf; box-shadow: none; }
-:host .app-shell .billing-workspace.yr-ui :is(.daily-sales-button, .selector-chip, .ghost-button, .quantity button, .quick-received-buttons button):hover:not(:disabled) { border-color: var(--yr-primary); background: #e1f3ed; }
+:host .app-shell .billing-workspace.yr-ui :is(.daily-sales-button, .selector-chip, .ghost-button, .quantity button, .quick-received-buttons button):hover:not(:disabled) { border-color: var(--yr-primary); background: var(--yr-primary-soft); }
 :host .app-shell .billing-workspace.yr-ui :is(button, [role="button"], input, select):focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 3px; }
 :host .app-shell .billing-workspace.yr-ui button:active:not(:disabled) { box-shadow: inset 2px 3px 8px #23445318; }
 :host .app-shell .billing-workspace.yr-ui .filters { grid-template-columns: minmax(0, 1fr) minmax(120px, .45fr); padding: 14px 16px; background: var(--yr-surface); }
@@ -192,7 +192,7 @@
 }
 /* Light shell and shared dialogs only while POS is the active page. */
 :host .app-shell.yr-pos {
-  color-scheme: light;
+  color-scheme: var(--yr-color-scheme, light);
   --bg: var(--yr-bg); --panel: var(--yr-surface); --panel-soft: var(--yr-surface-soft);
   --item-bg: var(--yr-surface); --field-bg: var(--yr-surface-soft); --visual-bg: var(--yr-surface-elevated);
   --ink: var(--yr-text); --muted: var(--yr-text-muted); --line: var(--yr-border);
@@ -362,14 +362,14 @@
 }
 
 /* Native select popups follow OS colors; this disclosure owns its light palette. */
-:host .app-shell .billing-workspace.yr-ui .yr-category-menu { position: relative; min-width: 0; color: #374151; }
-:host .app-shell .billing-workspace.yr-ui .yr-category-menu summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--yr-border); border-radius: 10px; background: #fff; cursor: pointer; list-style: none; font-size: .85rem; font-weight: 600; }
+:host .app-shell .billing-workspace.yr-ui .yr-category-menu { position: relative; min-width: 0; color: var(--yr-text); }
+:host .app-shell .billing-workspace.yr-ui .yr-category-menu summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--yr-border); border-radius: 10px; background: var(--yr-surface); cursor: pointer; list-style: none; font-size: .85rem; font-weight: 600; }
 :host .app-shell .billing-workspace.yr-ui .yr-category-menu summary::-webkit-details-marker { display: none; }
-:host .app-shell .billing-workspace.yr-ui .yr-category-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 25; padding: 6px; border: 1px solid var(--yr-border); border-radius: 12px; background: #fff; box-shadow: var(--yr-shadow); }
+:host .app-shell .billing-workspace.yr-ui .yr-category-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 25; padding: 6px; border: 1px solid var(--yr-border); border-radius: 12px; background: var(--yr-surface); box-shadow: var(--yr-shadow); }
 :host .app-shell .billing-workspace.yr-ui .yr-category-options > div { display: grid; max-height: 320px; overflow-y: auto; }
-:host .app-shell .billing-workspace.yr-ui .yr-category-options button { min-width: 0; min-height: 32px; padding: 6px 10px; border: 0; border-radius: 6px; background: #fff; color: #374151; text-align: left; font: inherit; font-size: .8rem; cursor: pointer; }
+:host .app-shell .billing-workspace.yr-ui .yr-category-options button { min-width: 0; min-height: 32px; padding: 6px 10px; border: 0; border-radius: 6px; background: var(--yr-surface); color: var(--yr-text); text-align: left; font: inherit; font-size: .8rem; cursor: pointer; }
 :host .app-shell .billing-workspace.yr-ui .yr-category-options button:hover:not(:disabled),
-:host .app-shell .billing-workspace.yr-ui .yr-category-options button[aria-pressed="true"] { background: #eef2f5; }
+:host .app-shell .billing-workspace.yr-ui .yr-category-options button[aria-pressed="true"] { background: var(--yr-surface-soft); }
 :host .app-shell .billing-workspace.yr-ui .yr-category-options nav { display: flex; justify-content: center; align-items: center; gap: 3px; padding-top: 6px; border-top: 1px solid var(--yr-border); font-size: .75rem; }
 :host .app-shell .billing-workspace.yr-ui .yr-category-options button:disabled { opacity: .4; cursor: default; }
 :host .app-shell .billing-workspace.yr-ui .yr-category-menu :is(summary, button):focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
@@ -386,7 +386,7 @@
 :host .app-shell .billing-workspace.yr-ui .daily-sales-summary span { font-weight: 600; color: var(--yr-text-muted); }
 :host .app-shell .billing-workspace.yr-ui .yr-sales-toolbar { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr) auto; align-items: end; gap: 12px; }
 :host .app-shell .billing-workspace.yr-ui .yr-sales-toolbar label { display: grid; gap: 6px; color: var(--yr-text-muted); font-size: .75rem; font-weight: 600; }
-:host .app-shell .billing-workspace.yr-ui .yr-sales-toolbar :is(input, select) { width: 100%; min-height: 40px; background: #fff; color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 10px; padding: 8px 12px; }
+:host .app-shell .billing-workspace.yr-ui .yr-sales-toolbar :is(input, select) { width: 100%; min-height: 40px; background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 10px; padding: 8px 12px; }
 :host .app-shell .billing-workspace.yr-ui .yr-sales-selection { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: .8rem; color: var(--yr-text-muted); }
 :host .app-shell .billing-workspace.yr-ui .yr-sales-selection > span { margin-right: auto; }
 :host .app-shell .billing-workspace.yr-ui .daily-sales-table-wrap { border: 1px solid var(--yr-border); border-radius: 12px; overflow: auto; min-height: 120px; }
@@ -454,10 +454,10 @@
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-summary span { color: var(--yr-text-muted); font-weight: 600; font-size: .75rem; }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-summary strong { color: var(--yr-text); font-weight: 650; font-size: 1.1rem; }
 :host .app-shell .billing-workspace.yr-ui .yr-detail-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr); gap: 12px; }
-:host .app-shell .billing-workspace.yr-ui .yr-detail-filters :is(input,select) { width: 100%; min-height: 40px; border: 1px solid var(--yr-border); border-radius: 10px; padding: 8px 12px; background: #fff; color: var(--yr-text); }
+:host .app-shell .billing-workspace.yr-ui .yr-detail-filters :is(input,select) { width: 100%; min-height: 40px; border: 1px solid var(--yr-border); border-radius: 10px; padding: 8px 12px; background: var(--yr-surface); color: var(--yr-text); }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-table-wrap { max-height: 46vh; overflow: auto; border: 1px solid var(--yr-border); border-radius: 12px; }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table { width: 100%; min-width: 850px; border-collapse: collapse; border-spacing: 0; table-layout: auto; }
-:host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table :is(th,td) { width: auto; padding: 12px; text-align: left; border: 0; border-bottom: 1px solid var(--yr-border); border-radius: 0; color: var(--yr-text); font-size: .85rem; background: #fff; }
+:host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table :is(th,td) { width: auto; padding: 12px; text-align: left; border: 0; border-bottom: 1px solid var(--yr-border); border-radius: 0; color: var(--yr-text); font-size: .85rem; background: var(--yr-surface); }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table th { position: sticky; top: 0; z-index: 1; background: var(--yr-surface-soft); text-transform: none; }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table input[type=checkbox] { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; appearance: auto; accent-color: var(--yr-primary); }
 :host .app-shell .billing-workspace.yr-ui .invoice-detail-lines-table tr.yr-sales-row-selected td { background: var(--yr-primary-soft); }
@@ -498,7 +498,7 @@
 :host .app-shell .invoices-page-workspace.yr-ui .dashboard-topbar .eyebrow { margin: 0 0 3px; color: var(--yr-primary); font-size: .68rem; font-weight: 750; letter-spacing: .09em; }
 :host .app-shell .invoices-page-workspace.yr-ui .dashboard-topbar p { margin: 4px 0 0; color: var(--yr-text-muted); font-size: .86rem; }
 :host .app-shell .invoices-page-workspace.yr-ui .user-pill { border: 1px solid var(--yr-border); background: var(--yr-surface); color: var(--yr-text); box-shadow: var(--yr-shadow-soft); }
-:host .app-shell .invoices-page-workspace.yr-ui .user-pill span { background: var(--yr-primary); color: #fff; }
+:host .app-shell .invoices-page-workspace.yr-ui .user-pill span { background: var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .invoices-page-workspace.yr-ui .dashboard-actions { flex: 0 0 auto; min-width: 0; }
 :host .app-shell .invoices-page-workspace.yr-ui .user-pill { min-width: max-content; padding: 6px 10px 6px 6px; white-space: nowrap; }
 :host .app-shell .invoices-page-workspace.yr-ui .user-pill strong { overflow: visible; text-overflow: clip; white-space: nowrap; }
@@ -526,7 +526,7 @@
 :host .app-shell .invoices-page-workspace.yr-ui .trend-period-tabs button.active,
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-section-toggle { border-color: var(--yr-primary); background: var(--yr-primary-soft); color: var(--yr-primary); }
 :host .app-shell .invoices-page-workspace.yr-ui .chartjs-trend-shell { height: 230px; min-height: 230px; border-top: 1px solid var(--yr-border); }
-:host .app-shell .invoices-page-workspace.yr-ui .chartjs-trend-shell canvas { background: #fff; }
+:host .app-shell .invoices-page-workspace.yr-ui .chartjs-trend-shell canvas { background: var(--yr-surface); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-heading-actions { display: flex; align-items: center; gap: 8px; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-month-count-select { display: inline-flex; align-items: center; gap: 7px; color: var(--yr-text-muted); font-size: .75rem; font-weight: 650; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-month-count-select select { border-color: var(--yr-border); background: var(--yr-surface-soft); color: var(--yr-text); }
@@ -542,15 +542,15 @@
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-monthly-sales-table,.invoice-master-table) :is(th,td) { height: auto; padding: 11px 10px; border: 0; border-bottom: 1px solid var(--yr-border); border-radius: 0; background: var(--yr-surface); color: var(--yr-text); font-size: .78rem; text-align: center; }
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-monthly-sales-table,.invoice-master-table) th { position: static; background: var(--yr-surface-soft); color: var(--yr-text-muted); font-size: .72rem; font-weight: 700; white-space: nowrap; }
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-monthly-sales-table,.invoice-master-table) td:first-child { text-align: left; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table tbody tr:hover td { background: #f8fbfc; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-monthly-sales-table tbody tr:nth-child(even) td { background: #f8fbfc; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table tbody tr:hover td { background: var(--yr-surface-soft); }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-monthly-sales-table tbody tr:nth-child(even) td { background: var(--yr-surface-soft); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-monthly-sales-table td:first-child { color: var(--yr-text); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-total-cell { color: var(--yr-primary) !important; font-weight: 750; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-variation { font-weight: 700; color: var(--yr-text-muted); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-variation.positive { color: var(--yr-success); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-variation.negative { color: var(--yr-danger); }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-day-group-row td { background: #eef8f5; font-weight: 650; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-day-group-row:nth-child(odd) td { background: #e4f4ee; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-day-group-row td { background: var(--yr-primary-soft); font-weight: 650; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-day-group-row:nth-child(odd) td { background: var(--yr-primary-soft); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-group-row td { background: var(--yr-surface-elevated); font-weight: 650; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-collapse-button { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 8px; padding: 0; border: 1px solid var(--yr-border); border-radius: 50%; background: var(--yr-surface); color: var(--yr-primary); font-weight: 700; }
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-code-pill,.invoice-payment-pill,.invoice-status-pill) { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: var(--yr-surface-elevated); color: var(--yr-text); box-shadow: none; font-weight: 650; }
@@ -565,8 +565,8 @@
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-search-input { position: relative; display: flex; align-items: center; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-search-input .yr-icon { position: absolute; left: 10px; color: var(--yr-text-muted); pointer-events: none; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-search-input input { padding-left: 34px; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-filter-bar :is(input,select) { width: 100%; min-height: 35px; padding: 7px 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: #fff; color: var(--yr-text); font: inherit; font-size: .78rem; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-filter-clear { display: inline-flex; align-items: center; gap: 5px; min-height: 35px; padding: 7px 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: #fff; color: var(--yr-danger); font-size: .74rem; font-weight: 700; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-filter-bar :is(input,select) { width: 100%; min-height: 35px; padding: 7px 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface); color: var(--yr-text); font: inherit; font-size: .78rem; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-filter-clear { display: inline-flex; align-items: center; gap: 5px; min-height: 35px; padding: 7px 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface); color: var(--yr-danger); font-size: .74rem; font-weight: 700; }
 :host .app-shell .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; color: var(--yr-text-muted); font-size: .76rem; font-weight: 600; }
 :host .app-shell .invoices-page-workspace.yr-ui .yr-row-density { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
@@ -592,16 +592,16 @@
 :host .app-shell .inventory-workspace.yr-ui .inventory-kpis .inventory-card strong { font-size: 1.6rem; color: var(--yr-primary); font-weight: 700; }
 :host .app-shell .inventory-workspace.yr-ui .inventory-kpis .inventory-card :is(span,small) { color: var(--yr-text-muted); font-weight: 500; }
 :host .app-shell .inventory-workspace.yr-ui .inventory-modal-backdrop { background: #20343f80; backdrop-filter: blur(4px); }
-:host .app-shell .inventory-workspace.yr-ui .inventory-modal { max-height: calc(100dvh - 40px); padding: 24px; overflow-y: auto; border-radius: 24px; background: #fff; }
-:host .app-shell .inventory-workspace.yr-ui :is(input,select,textarea) { background: #fff; color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 10px; min-height: 38px; padding: 8px 10px; font-family: inherit; font-size: .85rem; box-shadow: none; color-scheme: light; }
+:host .app-shell .inventory-workspace.yr-ui .inventory-modal { max-height: calc(100dvh - 40px); padding: 24px; overflow-y: auto; border-radius: 24px; background: var(--yr-surface); }
+:host .app-shell .inventory-workspace.yr-ui :is(input,select,textarea) { background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 10px; min-height: 38px; padding: 8px 10px; font-family: inherit; font-size: .85rem; box-shadow: none; color-scheme: var(--yr-color-scheme, light); }
 :host .app-shell .inventory-workspace.yr-ui :is(input,select,textarea):focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
 :host .app-shell .inventory-workspace.yr-ui input[type=checkbox] { min-height: 0; width: 16px; height: 16px; padding: 0; accent-color: var(--yr-primary); }
 :host .app-shell .inventory-workspace.yr-ui label { color: var(--yr-text-muted); font-weight: 600; font-size: .8rem; }
 :host .app-shell .inventory-workspace.yr-ui button { font-family: inherit; transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
 :host .app-shell .inventory-workspace.yr-ui :is(.primary-button,.ghost-button,.inventory-actions button,.inventory-row-actions button,.quick-inventory-add-button,.quick-inventory-remove-button,.inventory-pagination button,.inventory-detail-tabs button,.inventory-detail-close-button) { border: 1px solid var(--yr-border); background: var(--yr-surface-elevated); color: var(--yr-text); border-radius: 10px; box-shadow: none; min-height: 34px; padding: 7px 11px; font-size: .8rem; font-weight: 600; }
-:host .app-shell .inventory-workspace.yr-ui .primary-button { background: var(--yr-primary); border-color: var(--yr-primary); color: #fff; }
+:host .app-shell .inventory-workspace.yr-ui .primary-button { background: var(--yr-primary); border-color: var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .inventory-workspace.yr-ui .inventory-header-actions .primary-button { background: var(--yr-surface); color: var(--yr-text); border-color: var(--yr-border); }
-:host .app-shell .inventory-workspace.yr-ui .inventory-header-actions .primary-button:last-child { background: var(--yr-primary); color: #fff; }
+:host .app-shell .inventory-workspace.yr-ui .inventory-header-actions .primary-button:last-child { background: var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .inventory-workspace.yr-ui button:hover:not(:disabled) { border-color: var(--yr-primary); box-shadow: var(--yr-shadow-soft); }
 :host .app-shell .inventory-workspace.yr-ui button:focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 3px; }
 :host .app-shell .inventory-workspace.yr-ui button:disabled { opacity: .5; cursor: not-allowed; }
@@ -610,9 +610,9 @@
 :host .app-shell .inventory-workspace.yr-ui .inventory-detail-tabs button.active { background: var(--yr-primary-soft); color: var(--yr-primary); border-color: var(--yr-primary); }
 :host .app-shell .inventory-workspace.yr-ui .inventory-table-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 :host .app-shell .inventory-workspace.yr-ui .inventory-table-filters label { margin: 0; }
-:host .app-shell .inventory-workspace.yr-ui .table-wrap { background: #fff; border: 1px solid var(--yr-border); border-radius: 12px; overflow: auto; }
-:host .app-shell .inventory-workspace.yr-ui .inventory-table { border-collapse: collapse; border-spacing: 0; background: #fff; }
-:host .app-shell .inventory-workspace.yr-ui .inventory-table :is(th,td) { background: #fff; color: var(--yr-text); border: 0; border-bottom: 1px solid var(--yr-border); border-radius: 0; padding: 12px 10px; font-size: .82rem; }
+:host .app-shell .inventory-workspace.yr-ui .table-wrap { background: var(--yr-surface); border: 1px solid var(--yr-border); border-radius: 12px; overflow: auto; }
+:host .app-shell .inventory-workspace.yr-ui .inventory-table { border-collapse: collapse; border-spacing: 0; background: var(--yr-surface); }
+:host .app-shell .inventory-workspace.yr-ui .inventory-table :is(th,td) { background: var(--yr-surface); color: var(--yr-text); border: 0; border-bottom: 1px solid var(--yr-border); border-radius: 0; padding: 12px 10px; font-size: .82rem; }
 :host .app-shell .inventory-workspace.yr-ui .inventory-table th { background: var(--yr-surface-soft); color: var(--yr-text-muted); font-weight: 600; text-transform: none; }
 :host .app-shell .inventory-workspace.yr-ui .inventory-table tr:hover td { background: var(--yr-surface-soft); }
 :host .app-shell .inventory-workspace.yr-ui :is(.inventory-code,.inventory-category-pill,.inventory-lot-pill,.inventory-quantity-box,.inventory-price-box,.inventory-product-thumb,.inventory-field-pill) { background: var(--yr-surface-soft); color: var(--yr-text); border-color: var(--yr-border); box-shadow: none; }
@@ -730,7 +730,7 @@
 :host .app-shell .inventory-workspace.yr-ui .yr-product-editor .yr-editor-sale-price input { background: var(--yr-primary-soft); color: var(--yr-primary); font-weight: 700; }
 :host .app-shell .inventory-workspace.yr-ui .yr-product-editor .yr-editor-footer { display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--yr-border); }
 :host .app-shell .inventory-workspace.yr-ui .yr-product-editor .yr-editor-footer button { width: auto; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 10px 18px; }
-:host .app-shell .inventory-workspace.yr-ui .yr-product-editor .yr-editor-footer .primary-button { background: var(--yr-primary); color: #fff; }
+:host .app-shell .inventory-workspace.yr-ui .yr-product-editor .yr-editor-footer .primary-button { background: var(--yr-primary); color: var(--yr-on-primary); }
 @media (max-width: 680px) {
  :host .app-shell .inventory-workspace.yr-ui .yr-product-editor { padding: 18px; width: calc(100vw - 24px); }
  :host .app-shell .inventory-workspace.yr-ui .yr-product-editor :is(.yr-editor-identity,.yr-editor-pair,.yr-editor-unit,.yr-editor-stock,.yr-editor-prices) { grid-template-columns: 1fr; }
@@ -801,7 +801,7 @@
   width: min(1800px, calc(100vw - 48px)); max-width: calc(100vw - 48px); max-height: calc(100dvh - 40px);
   min-width: 0; box-sizing: border-box; overflow: auto; padding: 24px; display: grid; gap: 16px; grid-template-rows: none !important; grid-auto-rows: max-content; align-content: start;
   border: 1px solid var(--yr-border); border-radius: 20px; background: var(--yr-surface); color: var(--yr-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; box-shadow: var(--yr-shadow); color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; box-shadow: var(--yr-shadow); color-scheme: var(--yr-color-scheme, light);
 }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] > * { min-width: 0; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(h2,h3,p) { margin-top: 0; }
@@ -810,13 +810,13 @@
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] h3 { color: var(--yr-text); font-size: .95rem; font-weight: 650; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(.analytics-heading,.customer-modal-header) p { color: var(--yr-text-muted); font-size: .85rem; margin: 6px 0 0; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(label,legend) { color: var(--yr-text-muted); font-size: .8rem; font-weight: 600; text-transform: none; letter-spacing: normal; }
-:host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(input,select,textarea) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--yr-border); border-radius: 9px; background: #fff; color: var(--yr-text); font: inherit; font-size: .85rem; box-shadow: none; }
+:host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(input,select,textarea) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--yr-border); border-radius: 9px; background: var(--yr-surface); color: var(--yr-text); font: inherit; font-size: .85rem; box-shadow: none; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] input[type=checkbox] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; accent-color: var(--yr-primary); }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(input,select,textarea,button):focus-visible { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] button { font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] button:disabled { opacity: .5; cursor: not-allowed; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(.ghost-button,.daily-sales-button,.customer-select-button,.primary-button) { min-height: 36px; padding: 8px 12px; border: 1px solid var(--yr-border); border-radius: 9px; background: var(--yr-surface-elevated); color: var(--yr-text); box-shadow: none; }
-:host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(.daily-sales-button,.primary-button) { background: var(--yr-primary); border-color: var(--yr-primary); color: #fff; }
+:host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(.daily-sales-button,.primary-button) { background: var(--yr-primary); border-color: var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] .danger { background: var(--yr-danger-soft); color: var(--yr-danger); border-color: var(--yr-danger); }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] :is(.customer-modal-close,.product-catalog-close) { width: 34px; height: 34px; min-width: 34px; min-height: 34px; border: 1px solid var(--yr-border); border-radius: 9px; background: var(--yr-surface-soft); color: var(--yr-text); box-shadow: none; padding: 0; font-size: 1.2rem; }
 :host .app-shell .customer-modal.yr-billing-modal[role=dialog] > .product-catalog-close { position: absolute; top: 16px; right: 16px; }
@@ -1029,7 +1029,7 @@
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-payment-breakdown,.invoice-preview-panel) { padding: 16px 18px; border: 1px solid var(--yr-border); border-radius: 12px; background: var(--yr-surface); box-shadow: var(--yr-shadow-soft); }
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-payment-breakdown,.invoice-preview-panel) h2 { margin: 0 0 14px; color: var(--yr-text); font-size: 1.02rem; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-metric { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 12px 0; font-size: .78rem; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-track { grid-column: 1 / -1; height: 7px; border-radius: 4px; background: #edf1f6; overflow: hidden; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-track { grid-column: 1 / -1; height: 7px; border-radius: 4px; background: var(--yr-surface-elevated); overflow: hidden; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-track span { display: block; height: 100%; background: #089a9f; border-radius: inherit; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-track span.credit { background: #60a5fa; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-payment-track span.other { background: #94a3b8; }
@@ -1040,13 +1040,13 @@
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-filter-bar { grid-template-columns: minmax(160px, 2fr) minmax(95px, .8fr) minmax(95px, .8fr) auto; padding: 0; border: 0; background: transparent; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-search-input input { padding-left: 34px; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-grouping-control { display: flex; align-items: center; gap: 8px; }
-:host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-grouping-control,.inventory-pagination) select { min-height: 32px; padding: 5px 8px; background: #fff; color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 7px; font: inherit; }
+:host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-grouping-control,.inventory-pagination) select { min-height: 32px; padding: 5px 8px; background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 7px; font: inherit; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-master-wrap { display: block; position: relative; contain: inline-size layout paint; min-width: 0; max-width: 100%; max-height: none; overflow-x: auto !important; overflow-y: auto !important; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-review-layout .invoice-master-table { min-width: 740px; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table td:nth-child(2) { text-align: left; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-total-cell { text-align: right; white-space: nowrap; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-select-button { border: 0; cursor: pointer; font: inherit; font-weight: 650; }
-:host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table .invoice-selected-row td { background: #e1f5f2; }
+:host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table .invoice-selected-row td { background: var(--yr-primary-soft); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-selected-row td:first-child { box-shadow: inset 3px 0 #089a9f; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-master-table .invoice-annulled-row td { color: var(--yr-text-muted); }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-status-pill:not(.annulled),
@@ -1069,7 +1069,7 @@
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-preview-note,.invoice-preview-lines span) { color: var(--yr-text-muted); font-size: .72rem; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-preview-total { display: flex; justify-content: space-between; align-items: center; margin: 18px 0; gap: 10px; font-weight: 700; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-preview-total strong { font-size: 1.4rem; }
-:host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-export-main,.invoice-preview-primary,.invoice-preview-secondary,.invoice-preview-status) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 12px; border: 1px solid var(--yr-border); border-radius: 7px; background: #fff; color: var(--yr-primary); font: inherit; font-size: .78rem; cursor: pointer; }
+:host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-export-main,.invoice-preview-primary,.invoice-preview-secondary,.invoice-preview-status) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 12px; border: 1px solid var(--yr-border); border-radius: 7px; background: var(--yr-surface); color: var(--yr-primary); font: inherit; font-size: .78rem; cursor: pointer; }
 :host .app-shell .invoices-page-workspace.yr-ui :is(.invoice-preview-primary,.invoice-preview-secondary,.invoice-preview-status) { width: 100%; margin-top: 8px; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-preview-primary { background: #078e94; color: #fff; border-color: #078e94; }
 :host .app-shell .invoices-page-workspace.yr-ui .invoice-preview-status { color: var(--yr-danger); border: 0; border-top: 1px solid var(--yr-border); border-radius: 0; margin-top: 14px; }
@@ -1157,19 +1157,19 @@
 :host .app-shell .credit-people-workspace small { font-size: .76rem; }
 :host .app-shell .credit-people-workspace .cp-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 :host .app-shell .credit-people-workspace .cp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-:host .app-shell .credit-people-workspace .cp-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); background: white; border: 1px solid var(--yr-border); border-radius: 12px; margin: 18px 0; padding: 18px; gap: 20px; }
+:host .app-shell .credit-people-workspace .cp-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); background: var(--yr-surface); border: 1px solid var(--yr-border); border-radius: 12px; margin: 18px 0; padding: 18px; gap: 20px; }
 :host .app-shell .credit-people-workspace .cp-summary > div { display: grid; gap: 3px; padding-left: 12px; border-left: 2px solid var(--yr-primary-soft); }
 :host .app-shell .credit-people-workspace .cp-summary strong { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
 :host .app-shell .credit-people-workspace .cp-layout { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(0,2fr); gap: 16px; align-items: start; }
-:host .app-shell .credit-people-workspace :is(.cp-client-list,.cp-dossier) { min-width: 0; padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; background: white; box-shadow: var(--yr-shadow-soft); }
+:host .app-shell .credit-people-workspace :is(.cp-client-list,.cp-dossier) { min-width: 0; padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; background: var(--yr-surface); box-shadow: var(--yr-shadow-soft); }
 :host .app-shell .credit-people-workspace .cp-client-list { display: grid; gap: 14px; }
 :host .app-shell .credit-people-workspace .cp-field { display: grid; gap: 5px; font-size: .78rem; color: var(--yr-text-muted); }
-:host .app-shell .credit-people-workspace .cp-field :is(input,select) { min-width: 0; width: 100%; box-sizing: border-box; background: white; color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 8px; padding: 10px; font: inherit; }
+:host .app-shell .credit-people-workspace .cp-field :is(input,select) { min-width: 0; width: 100%; box-sizing: border-box; background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 8px; padding: 10px; font: inherit; }
 :host .app-shell .credit-people-workspace .cp-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
 :host .app-shell .credit-people-workspace .cp-tabs button { border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface-soft); color: var(--yr-text); padding: 9px 12px; font: inherit; font-size: .8rem; cursor: pointer; }
-:host .app-shell .credit-people-workspace .cp-tabs button.active { background: var(--yr-primary); color: white; border-color: var(--yr-primary); }
+:host .app-shell .credit-people-workspace .cp-tabs button.active { background: var(--yr-primary); color: var(--yr-on-primary); border-color: var(--yr-primary); }
 :host .app-shell .credit-people-workspace .cp-clients { display: grid; gap: 9px; max-height: 640px; overflow: auto; padding: 3px; }
-:host .app-shell .credit-people-workspace .cp-client { display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 8px 10px; width: 100%; padding: 12px; border: 1px solid var(--yr-border); border-left: 4px solid transparent; border-radius: 10px; background: white; color: var(--yr-text); text-align: left; font: inherit; cursor: pointer; }
+:host .app-shell .credit-people-workspace .cp-client { display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 8px 10px; width: 100%; padding: 12px; border: 1px solid var(--yr-border); border-left: 4px solid transparent; border-radius: 10px; background: var(--yr-surface); color: var(--yr-text); text-align: left; font: inherit; cursor: pointer; }
 :host .app-shell .credit-people-workspace .cp-client.selected { border-left-color: var(--yr-primary); background: var(--yr-primary-soft); }
 :host .app-shell .credit-people-workspace .cp-avatar { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: #d9f1f1; color: #066774; font-weight: 700; }
 :host .app-shell .credit-people-workspace .cp-avatar-large { width: 58px; height: 58px; font-size: 1.2rem; flex: 0 0 58px; }
@@ -1191,7 +1191,7 @@
 :host .app-shell .credit-people-workspace .cp-help { margin-top: 16px; font-size: .78rem; }
 :host .app-shell .credit-people-workspace .cp-payment { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; background: var(--yr-primary-soft); padding: 16px; margin-top: 18px; border-radius: 10px; }
 :host .app-shell .credit-people-workspace .cp-payment p { font-size: .8rem; }
-:host .app-shell .credit-people-workspace .cp-primary { background: var(--yr-primary); color: white; }
+:host .app-shell .credit-people-workspace .cp-primary { background: var(--yr-primary); color: var(--yr-on-primary); }
 @media (max-width: 1250px) { :host .app-shell .credit-people-workspace .cp-dossier-grid { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 900px) {
   :host .app-shell .credit-people-workspace .cp-layout { grid-template-columns: minmax(0,1fr); }
@@ -1237,27 +1237,27 @@
 :host .app-shell .purchase-workspace p { color: var(--yr-text-muted); line-height: 1.5; }
 :host .app-shell .purchase-workspace .pw-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 :host .app-shell .purchase-workspace .pw-views { display: flex; flex-wrap: wrap; gap: 8px; }
-:host .app-shell .purchase-workspace .pw-primary { color: white; background: var(--yr-primary); }
+:host .app-shell .purchase-workspace .pw-primary { color: var(--yr-on-primary); background: var(--yr-primary); }
 :host .app-shell .purchase-workspace .pw-local { font-size: .78rem; }
 :host .app-shell .purchase-workspace .pw-notice { padding: 12px; background: var(--yr-warning-soft); color: var(--yr-warning); border-radius: 8px; }
 :host .app-shell .purchase-workspace .pw-receipt { display: grid; grid-template-columns: minmax(230px, .7fr) minmax(0,2fr); gap: 18px; align-items: start; }
-:host .app-shell .purchase-workspace :is(.pw-pending,.pw-form,.pw-column) { min-width: 0; padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; background: white; display: grid; gap: 14px; }
+:host .app-shell .purchase-workspace :is(.pw-pending,.pw-form,.pw-column) { min-width: 0; padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; background: var(--yr-surface); display: grid; gap: 14px; }
 :host .app-shell .purchase-workspace .pw-pending { max-height: 750px; overflow: auto; }
 :host .app-shell .purchase-workspace .pw-draft { display: grid; gap: 9px; padding: 16px; text-align: left; color: var(--yr-text); background: var(--yr-surface-soft); border: 1px solid var(--yr-border); border-radius: 10px; font: inherit; cursor: pointer; }
 :host .app-shell .purchase-workspace .pw-draft.selected { background: var(--yr-primary-soft); border-color: var(--yr-primary); }
 :host .app-shell .purchase-workspace .pw-board { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; align-items: start; }
 :host .app-shell .purchase-workspace .pw-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
 :host .app-shell .purchase-workspace :is(.pw-fields,.pw-pending,.pw-header) label { display: grid; gap: 6px; color: var(--yr-text-muted); font-size: .82rem; }
-:host .app-shell .purchase-workspace :is(.pw-fields,.pw-pending,.pw-header) :is(input,select) { box-sizing: border-box; max-width: 100%; min-width: 0; border: 1px solid var(--yr-border); background: white; color: var(--yr-text); border-radius: 7px; padding: 8px; }
+:host .app-shell .purchase-workspace :is(.pw-fields,.pw-pending,.pw-header) :is(input,select) { box-sizing: border-box; max-width: 100%; min-width: 0; border: 1px solid var(--yr-border); background: var(--yr-surface); color: var(--yr-text); border-radius: 7px; padding: 8px; }
 :host .app-shell .purchase-workspace .pw-fields .purchase-meta-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 :host .app-shell .purchase-workspace .pw-fields .purchase-payment-toggle { grid-column: 1 / -1; }
 :host .app-shell .purchase-workspace .pw-fields :is(.purchase-product-launcher,.purchase-real-cost-summary,.purchase-ocr-launcher) { background: var(--yr-surface-soft); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 8px; padding: 12px; }
 :host .app-shell .purchase-workspace .pw-fields :is(.daily-sales-button,.purchase-payment-toggle button) { background: var(--yr-primary-soft); color: var(--yr-primary); border: 1px solid var(--yr-border); box-shadow: none; }
 :host .app-shell .purchase-workspace .pw-fields .purchase-lines-table { min-width: 0; max-width: 100%; overflow: auto; contain: inline-size; }
-:host .app-shell .purchase-workspace .pw-fields table { min-width: 650px; width: 100%; background: white; color: var(--yr-text); border-collapse: collapse; }
-:host .app-shell .purchase-workspace .pw-fields :is(th,td) { background: white !important; color: var(--yr-text) !important; padding: 9px; border-bottom: 1px solid var(--yr-border); font-size: .8rem; }
+:host .app-shell .purchase-workspace .pw-fields table { min-width: 650px; width: 100%; background: var(--yr-surface); color: var(--yr-text); border-collapse: collapse; }
+:host .app-shell .purchase-workspace .pw-fields :is(th,td) { background: var(--yr-surface) !important; color: var(--yr-text) !important; padding: 9px; border-bottom: 1px solid var(--yr-border); font-size: .8rem; }
 :host .app-shell .purchase-workspace .pw-fields th { background: var(--yr-surface-soft) !important; }
-:host .app-shell .purchase-workspace .pw-confirm { background: white; color: var(--yr-text); padding: 24px; width: min(540px,90vw); display: grid; gap: 18px; }
+:host .app-shell .purchase-workspace .pw-confirm { background: var(--yr-surface); color: var(--yr-text); padding: 24px; width: min(540px,90vw); display: grid; gap: 18px; }
 @media (max-width: 1000px) {
   :host .app-shell .purchase-workspace :is(.pw-receipt,.pw-board) { grid-template-columns: minmax(0,1fr); }
   :host .app-shell .purchase-workspace .pw-pending { max-height: 300px; }
@@ -1271,7 +1271,7 @@
 :host .app-shell .purchase-workspace .pw-fields .daily-sales-title { background: none; -webkit-text-fill-color: var(--yr-text); color: var(--yr-text); }
 :host .app-shell .purchase-workspace .pw-fields .purchase-payment-toggle { display: flex; flex-wrap: wrap; }
 :host .app-shell .purchase-workspace .pw-fields .purchase-payment-toggle button { width: auto; padding: 8px 18px; font-weight: 600; border-radius: 8px; }
-:host .app-shell .purchase-workspace .pw-fields .purchase-payment-toggle button.active { background: var(--yr-primary); color: white; }
+:host .app-shell .purchase-workspace .pw-fields .purchase-payment-toggle button.active { background: var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .purchase-workspace .pw-fields .purchase-entry-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 :host .app-shell .purchase-workspace .pw-fields .purchase-entry-footer strong { font-size: 1.1rem; color: var(--yr-text); }
 :host .app-shell .purchase-workspace .pw-fields .purchase-entry-footer button { width: auto; padding: 10px 16px; }
@@ -1282,7 +1282,7 @@
 /* Receipt concept: compact summary, collapsible panels and line icon language. */
 :host .app-shell .purchase-workspace { gap: 14px; }
 :host .app-shell .purchase-workspace .pw-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
-:host .app-shell .purchase-workspace :is(.pw-metric,.pw-start,.pw-recent) { background: white; border: 1px solid var(--yr-border); border-radius: 10px; padding: 16px; min-width: 0; }
+:host .app-shell .purchase-workspace :is(.pw-metric,.pw-start,.pw-recent) { background: var(--yr-surface); border: 1px solid var(--yr-border); border-radius: 10px; padding: 16px; min-width: 0; }
 :host .app-shell .purchase-workspace summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
 :host .app-shell .purchase-workspace summary::-webkit-details-marker { display: none; }
 :host .app-shell .purchase-workspace summary > .yr-icon:last-child { margin-left: auto; transition: transform .18s; }
@@ -1300,7 +1300,7 @@
 :host .app-shell .purchase-workspace .pw-draft { width: 100%; box-sizing: border-box; }
 :host .app-shell .purchase-workspace .pw-start > :not(summary), :host .app-shell .purchase-workspace .pw-recent > :not(summary) { margin-top: 14px; }
 :host .app-shell .purchase-workspace .pw-start-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-:host .app-shell .purchase-workspace .pw-start-actions button { flex-direction: column; min-height: 80px; background: white; }
+:host .app-shell .purchase-workspace .pw-start-actions button { flex-direction: column; min-height: 80px; background: var(--yr-surface); }
 :host .app-shell .purchase-workspace .pw-start-actions .yr-icon { width: 30px; height: 30px; }
 :host .app-shell .purchase-workspace .pw-stepper { display: flex; justify-content: space-between; gap: 10px; padding: 0; list-style: none; color: var(--yr-text-muted); font-size: .78rem; }
 :host .app-shell .purchase-workspace .pw-stepper li { display: flex; align-items: center; gap: 8px; }
@@ -1329,21 +1329,21 @@
 /* One purchasing lifecycle: planning, receipt and registered documents. */
 :host .app-shell .purchase-workspace .pw-status { display: inline-flex; align-items: center; width: fit-content; padding: 4px 8px; border-radius: 6px; background: var(--yr-primary-soft); color: var(--yr-primary); font-size: .76rem; font-weight: 600; }
 :host .app-shell .purchase-workspace .pw-annulled { background: var(--yr-danger-soft); color: var(--yr-danger); }
-:host .app-shell .purchase-workspace .pw-registered { display: grid; gap: 14px; background: white; padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; min-width: 0; }
+:host .app-shell .purchase-workspace .pw-registered { display: grid; gap: 14px; background: var(--yr-surface); padding: 18px; border: 1px solid var(--yr-border); border-radius: 12px; min-width: 0; }
 :host .app-shell .purchase-workspace .pw-register-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
 :host .app-shell .purchase-workspace .pw-register-filters label { display: grid; gap: 5px; font-size: .8rem; min-width: 0; }
-:host .app-shell .purchase-workspace .pw-register-filters :is(input,select) { padding: 9px; background: white; color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 7px; max-width: 100%; }
+:host .app-shell .purchase-workspace .pw-register-filters :is(input,select) { padding: 9px; background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 7px; max-width: 100%; }
 :host .app-shell .purchase-workspace .pw-records { display: grid; gap: 8px; max-height: 500px; overflow: auto; }
-:host .app-shell .purchase-workspace .pw-record { display: grid; grid-template-columns: minmax(0,1fr) auto auto 20px; gap: 14px; align-items: center; border: 1px solid var(--yr-border); border-radius: 8px; padding: 14px; background: white; color: var(--yr-text); text-align: left; font: inherit; cursor: pointer; }
+:host .app-shell .purchase-workspace .pw-record { display: grid; grid-template-columns: minmax(0,1fr) auto auto 20px; gap: 14px; align-items: center; border: 1px solid var(--yr-border); border-radius: 8px; padding: 14px; background: var(--yr-surface); color: var(--yr-text); text-align: left; font: inherit; cursor: pointer; }
 :host .app-shell .purchase-workspace .pw-record > span:first-child { display: grid; gap: 5px; overflow-wrap: anywhere; }
 :host .app-shell .purchase-workspace .pw-record small { color: var(--yr-text-muted); }
-:host .app-shell .purchase-workspace .pw-record-detail { background: white; color: var(--yr-text); padding: 24px; width: min(1000px,94vw); max-width: 94vw; max-height: 90vh; overflow: auto; display: grid; gap: 20px; }
+:host .app-shell .purchase-workspace .pw-record-detail { background: var(--yr-surface); color: var(--yr-text); padding: 24px; width: min(1000px,94vw); max-width: 94vw; max-height: 90vh; overflow: auto; display: grid; gap: 20px; }
 :host .app-shell .purchase-workspace .pw-detail-meta { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 0; }
 :host .app-shell .purchase-workspace .pw-detail-meta dt { font-size: .78rem; color: var(--yr-text-muted); }
 :host .app-shell .purchase-workspace .pw-detail-meta dd { margin: 5px 0 0; overflow-wrap: anywhere; }
 :host .app-shell .purchase-workspace .pw-detail-table { overflow: auto; min-width: 0; }
 :host .app-shell .purchase-workspace .pw-detail-table table { border-collapse: collapse; min-width: 650px; width: 100%; }
-:host .app-shell .purchase-workspace .pw-detail-table :is(th,td) { padding: 10px; border-bottom: 1px solid var(--yr-border); color: var(--yr-text); background: white; font-size: .82rem; }
+:host .app-shell .purchase-workspace .pw-detail-table :is(th,td) { padding: 10px; border-bottom: 1px solid var(--yr-border); color: var(--yr-text); background: var(--yr-surface); font-size: .82rem; }
 :host .app-shell .purchase-workspace .pw-detail-table th { background: var(--yr-surface-soft); }
 :host .app-shell .purchase-workspace .pw-planning { border: 1px solid var(--yr-border); padding: 12px; border-radius: 8px; }
 :host .app-shell .purchase-workspace .pw-planning[open] > div { margin: 14px 0; }
@@ -1379,7 +1379,7 @@
 :host .app-shell .purchase-workspace .pw-metric header .yr-icon { width: 20px; height: 20px; flex-basis: 20px; }
 :host .app-shell .purchase-workspace .pw-metric > div { margin-left: 30px; }
 
-:host .app-shell .purchase-workspace .pw-fields .pw-planned-date { position: relative; display: flex; align-items: center; min-height: 40px; padding: 0 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: white; color: var(--yr-text); }
+:host .app-shell .purchase-workspace .pw-fields .pw-planned-date { position: relative; display: flex; align-items: center; min-height: 40px; padding: 0 10px; border: 1px solid var(--yr-border); border-radius: 8px; background: var(--yr-surface); color: var(--yr-text); }
 :host .app-shell .purchase-workspace .pw-planned-date > span { display: flex; align-items: center; gap: 8px; }
 :host .app-shell .purchase-workspace .pw-planned-date input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 :host .app-shell .purchase-workspace .pw-planned-date:focus-within { outline: 2px solid var(--yr-primary); outline-offset: 2px; }
@@ -1394,7 +1394,7 @@
 :host .app-shell .purchase-product-picker-modal.yr-billing-modal .purchase-product-add-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: normal; height: auto !important; }
 
 /* Planillas: superficies y controles de Inventory 2.0; detalle jerárquico conservado. */
-:host .app-shell .payroll-workspace.yr-ui { --bg: var(--yr-bg); --ink: var(--yr-text); --muted: var(--yr-text-muted); --line: var(--yr-border); --panel: var(--yr-surface); --panel-soft: var(--yr-surface-soft); --card-bg: var(--yr-surface); --field-bg: #fff; --primary: var(--yr-primary); background: var(--yr-bg); font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; gap: 16px; min-width: 0; }
+:host .app-shell .payroll-workspace.yr-ui { --bg: var(--yr-bg); --ink: var(--yr-text); --muted: var(--yr-text-muted); --line: var(--yr-border); --panel: var(--yr-surface); --panel-soft: var(--yr-surface-soft); --card-bg: var(--yr-surface); --field-bg: var(--yr-surface); --primary: var(--yr-primary); background: var(--yr-bg); font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; gap: 16px; min-width: 0; }
 :host .app-shell .payroll-workspace.yr-ui > * { min-width: 0; }
 :host .app-shell .payroll-workspace.yr-ui :is(h1,h2,h3,th,.eyebrow) { text-transform: none; letter-spacing: normal; }
 :host .app-shell .payroll-workspace.yr-ui h1 { font-size: clamp(1.3rem,2vw,1.8rem); font-weight: 650; margin: 0; }
@@ -1404,10 +1404,10 @@
 :host .app-shell .payroll-workspace.yr-ui .yr-payroll-title { display: flex; align-items: center; gap: 12px; }
 :host .app-shell .payroll-workspace.yr-ui .payroll-topbar { flex-wrap: wrap; }
 :host .app-shell .payroll-workspace.yr-ui :is(.primary-button,.ghost-button,.trend-period-tabs button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 8px 12px; border: 1px solid var(--yr-border); border-radius: 10px; background: var(--yr-surface); color: var(--yr-text); box-shadow: none; font: inherit; font-size: .82rem; font-weight: 600; }
-:host .app-shell .payroll-workspace.yr-ui .primary-button { background: var(--yr-primary); border-color: var(--yr-primary); color: #fff; }
-:host .app-shell .payroll-workspace.yr-ui :is(input,select) { min-width: 0; min-height: 40px; max-width: 100%; box-sizing: border-box; border: 1px solid var(--yr-border); border-radius: 9px; padding: 8px 10px; background: #fff; color: var(--yr-text); font: inherit; font-size: .85rem; font-weight: 500; box-shadow: none; }
+:host .app-shell .payroll-workspace.yr-ui .primary-button { background: var(--yr-primary); border-color: var(--yr-primary); color: var(--yr-on-primary); }
+:host .app-shell .payroll-workspace.yr-ui :is(input,select) { min-width: 0; min-height: 40px; max-width: 100%; box-sizing: border-box; border: 1px solid var(--yr-border); border-radius: 9px; padding: 8px 10px; background: var(--yr-surface); color: var(--yr-text); font: inherit; font-size: .85rem; font-weight: 500; box-shadow: none; }
 :host .app-shell .payroll-workspace.yr-ui input[type=checkbox] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; accent-color: var(--yr-primary); }
-:host .app-shell .payroll-workspace.yr-ui select option { background: #fff; color: var(--yr-text); }
+:host .app-shell .payroll-workspace.yr-ui select option { background: var(--yr-surface); color: var(--yr-text); }
 :host .app-shell .payroll-workspace.yr-ui :is(.payroll-card,.payroll-chart-card) { background: var(--yr-surface); color: var(--yr-text); border: 1px solid var(--yr-border); border-radius: 16px; box-shadow: var(--yr-shadow-soft); }
 :host .app-shell .payroll-workspace.yr-ui .payroll-kpis[hidden] { display: none; }
 :host .app-shell .payroll-workspace.yr-ui .kpi-card { min-height: 0; padding: 16px 20px; gap: 8px; }
@@ -1597,7 +1597,7 @@
 :host .app-shell .yr-attendance-main > :is(.attendance-schedule-card,.attendance-grid) { margin: 0; min-height: 0; }
 
 /* Configuración y gestión de usuarios: estilos claros independientes del tema guardado. */
-:host .app-shell .settings-modal.yr-ui { --bg:var(--yr-bg); --ink:var(--yr-text); --muted:var(--yr-text-muted); --line:var(--yr-border); --panel:var(--yr-surface); --panel-soft:var(--yr-surface-soft); --field-bg:#fff; --card-bg:var(--yr-surface); --primary:var(--yr-primary); background:var(--yr-surface); color:var(--yr-text); padding:20px; align-content:start; grid-auto-rows:max-content; }
+:host .app-shell .settings-modal.yr-ui { --bg:var(--yr-bg); --ink:var(--yr-text); --muted:var(--yr-text-muted); --line:var(--yr-border); --panel:var(--yr-surface); --panel-soft:var(--yr-surface-soft); --field-bg: var(--yr-surface); --card-bg:var(--yr-surface); --primary:var(--yr-primary); background:var(--yr-surface); color:var(--yr-text); padding:20px; align-content:start; grid-auto-rows:max-content; }
 :host .app-shell .settings-modal.yr-ui .settings-modal-header { padding:0; border:0; min-height:38px; background:transparent; }
 :host .app-shell .settings-modal.yr-ui .yr-settings-title { display:flex; align-items:center; gap:12px; }
 :host .app-shell .settings-modal.yr-ui .settings-modal-header h2 { margin:0; font-size:1.35rem; font-weight:650; color:var(--yr-text); }
@@ -1707,7 +1707,7 @@
 :host .app-shell .finance-ui .kpi-card :is(span,strong) { color:var(--yr-text); }
 :host .app-shell .finance-ui .kpi-card strong { font-size:26px; }
 :host .app-shell .finance-ui :is(.daily-sales-button,.ghost-button,.product-catalog-close,.petty-cash-row-action) { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width:38px; min-height:38px; padding:8px 12px; border:1px solid var(--yr-border); border-radius:10px; background:var(--yr-surface); color:var(--yr-text); box-shadow:none; }
-:host .app-shell .finance-ui .daily-sales-button { background:var(--yr-primary); border-color:var(--yr-primary); color:white; }
+:host .app-shell .finance-ui .daily-sales-button { background:var(--yr-primary); border-color:var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .finance-ui .yr-button-icon.active { background:var(--yr-primary-soft); color:var(--yr-primary); border-color:var(--yr-primary); }
 :host .app-shell .finance-ui :is(.analytics-heading,.payroll-chart-header) { margin-bottom:16px; }
 :host .app-shell .finance-ui :is(.chart-panel,.payroll-chart-panel,.costs-chart-panel) { background:var(--yr-surface-soft); border-radius:12px; }
@@ -1735,7 +1735,7 @@
 :host .app-shell .finance-modal :is(.customer-modal-header,.petty-cash-modal-header) { padding:18px 20px; background:var(--yr-surface); border-bottom:1px solid var(--yr-border); }
 :host .app-shell .finance-modal :is(.petty-cash-modal-grid,.financial-modal-grid,.operational-cost-modal-grid) { gap:14px; padding:20px; }
 :host .app-shell .finance-modal :is(.petty-cash-modal-footer,.operational-cost-modal-footer) { background:var(--yr-surface-soft); border-top:1px solid var(--yr-border); padding:14px 20px; }
-:host .app-shell .finance-ui .petty-cash-toast { background:var(--yr-primary); color:white; }
+:host .app-shell .finance-ui .petty-cash-toast { background:var(--yr-primary); color: var(--yr-on-primary); }
 :host .app-shell .finance-ui .petty-cash-toast :is(strong,span) { color:white; }
 @media(max-width:800px) { :host .app-shell .finance-ui { padding:12px; } :host .app-shell .finance-ui :is(.dashboard-kpis,.payroll-kpis) { grid-template-columns:repeat(2,minmax(0,1fr)); } :host .app-shell .finance-ui :is(.profitability-table-grid,.profitability-financial-grid,.profitability-chart-grid,.costs-trend-grid) { grid-template-columns:minmax(0,1fr); } }
 :host .app-shell .finance-sidebar-icon { width:20px; height:20px; flex-shrink:0; }
@@ -1757,33 +1757,33 @@
 :host .app-shell .finance-ui .invoice-collapse-button { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:3px; background:var(--yr-surface); border:1px solid var(--yr-border); color:var(--yr-primary); border-radius:7px; }
 :host .app-shell .finance-ui .analytics-heading p { margin:4px 0 0; font-size:12px; }
 :host .app-shell .finance-modal :is(.ghost-button,.daily-sales-button,.product-catalog-close) { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:8px 12px; border:1px solid var(--yr-border); border-radius:10px; color:var(--yr-text); background:var(--yr-surface); }
-:host .app-shell .finance-modal .daily-sales-button { color:white; background:var(--yr-primary); }
+:host .app-shell .finance-modal .daily-sales-button { color: var(--yr-on-primary); background:var(--yr-primary); }
 
 /* Navegación: Lucide uniforme y acordeones accesibles. */
 :host .app-shell { transition:grid-template-columns .22s ease; }
 :host .app-shell .modern-sidebar { width:100%; padding:16px 12px; background:var(--sidebar); scrollbar-width:thin; scrollbar-color:#536a7655 transparent; }
 :host .app-shell .modern-sidebar .sidebar-header { gap:8px; margin-bottom:22px; }
 :host .app-shell .modern-sidebar .brand { gap:10px; min-width:0; }
-:host .app-shell .modern-sidebar .brand-mark { width:36px; height:36px; border-radius:11px; font-size:14px; flex-shrink:0; background:#087568; box-shadow:0 4px 12px #0002; }
+:host .app-shell .modern-sidebar .brand-mark { width:36px; height:36px; border-radius:11px; font-size:14px; flex-shrink:0; background: #087568; box-shadow:0 4px 12px #0002; }
 :host .app-shell .modern-sidebar .brand-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:650; line-height:1.4; }
-:host .app-shell .modern-sidebar .brand-name small { display:block; font-size:10px; color:#94a9b7; letter-spacing:.3px; font-weight:400; }
-:host .app-shell .modern-sidebar .sidebar-collapse-button { width:30px; height:30px; padding:5px; border:1px solid #ffffff18; border-radius:9px; background:#ffffff08; color:#cedce4; }
+:host .app-shell .modern-sidebar .brand-name small { display:block; font-size:10px; color: #94a9b7; letter-spacing:.3px; font-weight:400; }
+:host .app-shell .modern-sidebar .sidebar-collapse-button { width:30px; height:30px; padding:5px; border:1px solid #ffffff18; border-radius:9px; background:#ffffff08; color: #cedce4; }
 :host .app-shell .modern-sidebar .sidebar-collapse-button::before { display:none; }
 :host .app-shell .modern-sidebar svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
 :host .app-shell .modern-sidebar .sidebar-toggle-icon { transition:transform .22s ease; }
 :host .app-shell .modern-sidebar .sidebar-toggle-icon.rotated { transform:rotate(180deg); }
 :host .app-shell .modern-sidebar .nav-list { display:grid; gap:5px; margin:0; padding:0; }
-:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { display:flex; align-items:center; justify-content:flex-start; width:100%; gap:11px; min-height:43px; padding:9px 11px; margin:0; border:1px solid transparent; border-radius:10px; background:transparent; color:#c4d1db; font-size:13px; font-weight:500; line-height:1.3; text-transform:none; letter-spacing:0; text-align:left; transition:background .16s,color .16s,border-color .16s; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { display:flex; align-items:center; justify-content:flex-start; width:100%; gap:11px; min-height:43px; padding:9px 11px; margin:0; border:1px solid transparent; border-radius:10px; background:transparent; color: #c4d1db; font-size:13px; font-weight:500; line-height:1.3; text-transform:none; letter-spacing:0; text-align:left; transition:background .16s,color .16s,border-color .16s; }
 :host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title)::before,:host .app-shell .modern-sidebar .nav-subitem::after { display:none; }
-:host .app-shell .modern-sidebar .nav-icon { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; flex:0 0 22px; color:#9cb1bf; background:transparent; }
+:host .app-shell .modern-sidebar .nav-icon { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; flex:0 0 22px; color: #9cb1bf; background:transparent; }
 :host .app-shell .modern-sidebar .nav-label { flex:1; min-width:0; }
 :host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title):hover { color:#fff; background:#ffffff09; }
-:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color:#e1f8f1; border-color:#35b99c36; font-weight:600; box-shadow:inset 3px 0 0 #35b99c; }
-:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color:#6de0c2; }
+:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color: #e1f8f1; border-color:#35b99c36; font-weight:600; box-shadow:inset 3px 0 0 #35b99c; }
+:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color: #6de0c2; }
 :host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title,.sidebar-collapse-button):focus-visible { outline:2px solid #6de0c2; outline-offset:2px; }
 :host .app-shell .modern-sidebar .nav-module { display:block; margin:2px 0; padding:0; border:0; background:transparent; box-shadow:none; border-radius:0; }
-:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color:#d3efe5; }
-:host .app-shell .modern-sidebar .nav-group-chevron { width:15px; height:15px; margin-left:auto; color:#8da3b2; transition:transform .22s ease; }
+:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color: #d3efe5; }
+:host .app-shell .modern-sidebar .nav-group-chevron { width:15px; height:15px; margin-left:auto; color: #8da3b2; transition:transform .22s ease; }
 :host .app-shell .modern-sidebar .nav-group-chevron.expanded { transform:rotate(180deg); }
 :host .app-shell .modern-sidebar .nav-module-content { display:grid; grid-template-rows:0fr; visibility:hidden; opacity:0; transition:grid-template-rows .22s ease,opacity .18s ease,visibility .22s; }
 :host .app-shell .modern-sidebar .nav-module-content.open { grid-template-rows:1fr; visibility:visible; opacity:1; }
@@ -1806,17 +1806,241 @@
 
 /* El menú conserva su superficie oscura en todos los módulos y anchos. */
 :host .app-shell .modern-sidebar,
-:host .app-shell.yr-pos .modern-sidebar { --sidebar:#1f2937; --sidebar-soft:#ffffff09; background:#1f2937; color:#e2eaf0; border-right:1px solid #ffffff12; }
-:host .app-shell .modern-sidebar :is(.brand,.sidebar-user-button,.sidebar-user-name) { color:#e2eaf0; }
-:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { color:#c4d1db; }
-:host .app-shell .modern-sidebar .nav-icon { color:#9cb1bf; }
+:host .app-shell.yr-pos .modern-sidebar { --sidebar:#1f2937; --sidebar-soft:#ffffff09; background: #1f2937; color: #e2eaf0; border-right:1px solid #ffffff12; }
+:host .app-shell .modern-sidebar :is(.brand,.sidebar-user-button,.sidebar-user-name) { color: #e2eaf0; }
+:host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title) { color: #c4d1db; }
+:host .app-shell .modern-sidebar .nav-icon { color: #9cb1bf; }
 :host .app-shell .modern-sidebar :is(.nav-item,.nav-module-title,.sidebar-user-button):hover { background:#ffffff09; color:#fff; }
-:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color:#e1f8f1; border-color:#35b99c36; box-shadow:inset 3px 0 0 #35b99c; }
-:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color:#6de0c2; }
-:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color:#d3efe5; }
-:host .app-shell .modern-sidebar .sidebar-collapse-button { color:#cedce4; background:#ffffff08; border-color:#ffffff18; }
+:host .app-shell .modern-sidebar .nav-item.active { background:#08756835; color: #e1f8f1; border-color:#35b99c36; box-shadow:inset 3px 0 0 #35b99c; }
+:host .app-shell .modern-sidebar .nav-item.active .nav-icon { color: #6de0c2; }
+:host .app-shell .modern-sidebar .nav-module.active .nav-module-title { color: #d3efe5; }
+:host .app-shell .modern-sidebar .sidebar-collapse-button { color: #cedce4; background:#ffffff08; border-color:#ffffff18; }
 :host .app-shell .modern-sidebar .sidebar-user-panel { border-top-color:#ffffff12; }
-:host .app-shell .modern-sidebar .sidebar-user-menu { background:#263443; border-color:#ffffff18; box-shadow:0 12px 30px #0003; }
-:host .app-shell .modern-sidebar .sidebar-user-menu button { background:transparent; color:#e2eaf0; }
+:host .app-shell .modern-sidebar .sidebar-user-menu { background: #263443; border-color:#ffffff18; box-shadow:0 12px 30px #0003; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button { background:transparent; color: #e2eaf0; }
 :host .app-shell .modern-sidebar .sidebar-user-menu button:hover { background:#ffffff0c; }
-:host .app-shell .modern-sidebar .sidebar-user-menu button.danger { color:#ffb4bc; }
+:host .app-shell .modern-sidebar .sidebar-user-menu button.danger { color: #ffb4bc; }
+
+/* Dashboard: mismas superficies y controles que Inventory 2.0. */
+:host .app-shell .dashboard-ui { padding:12px 20px 20px; gap:16px; grid-template-rows:none; align-content:start; min-height:0; color:var(--yr-text); background:var(--yr-bg); }
+:host .app-shell .dashboard-ui [hidden],:host .app-shell .dashboard-modal [hidden] { display:none !important; }
+:host .app-shell .dashboard-ui .dashboard-topbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:0; margin:0; background:transparent; border:0; min-height:0; }
+:host .app-shell .dashboard-title { display:flex; align-items:center; gap:12px; }
+:host .app-shell .dashboard-ui h1 { margin:0; font-size:clamp(23px,2.4vw,30px); letter-spacing:-.6px; color:var(--yr-text); text-transform:none; }
+:host .app-shell .dashboard-ui :is(h2,h3,h4) { color:var(--yr-text); text-transform:none; letter-spacing:normal; }
+:host .app-shell .dashboard-ui h2 { font-size:17px; }
+:host .app-shell .dashboard-ui :is(p,small) { color:var(--yr-text-muted); }
+:host .app-shell .dashboard-ui .dashboard-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+:host .app-shell .dashboard-ui :is(.system-update-button,.price-change-alert-button,.activity-bell-button,.dashboard-sales-alert-selector,.yr-button-icon) { position:relative; display:inline-flex; justify-content:center; align-items:center; gap:6px; min-width:40px; min-height:40px; padding:8px; border:1px solid var(--yr-border); border-radius:10px; background:var(--yr-surface); color:var(--yr-primary); box-shadow:var(--yr-shadow-soft); }
+:host .app-shell .dashboard-ui .dashboard-actions button strong { font-size:11px; }
+:host .app-shell .dashboard-ui .yr-button-icon.active { background:var(--yr-primary-soft); border-color:var(--yr-primary); }
+:host .app-shell .dashboard-ui :is(.analytics-card,.chartjs-trend-shell) { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:16px; box-shadow:var(--yr-shadow-soft); }
+:host .app-shell .dashboard-ui .analytics-card { padding:20px; min-height:0; }
+:host .app-shell .dashboard-ui .kpi-card { background:var(--yr-surface-soft); }
+:host .app-shell .dashboard-ui .kpi-card :is(span,strong) { color:var(--yr-text); }
+:host .app-shell .dashboard-ui .kpi-card strong { font-size:26px; }
+:host .app-shell .dashboard-ui :is(.kpi-period-tabs,.trend-period-tabs) { background:var(--yr-surface-soft); border:1px solid var(--yr-border); border-radius:10px; padding:3px; }
+:host .app-shell .dashboard-ui :is(.kpi-period-tabs,.trend-period-tabs) button { color:var(--yr-text-muted); background:transparent; border:0; box-shadow:none; }
+:host .app-shell .dashboard-ui :is(.kpi-period-tabs,.trend-period-tabs) button.active { color:var(--yr-primary); background:var(--yr-primary-soft); }
+:host .app-shell .dashboard-ui .chart-empty-label { color:var(--yr-text-muted); }
+:host .app-shell .dashboard-ui .chart-expand-button { background:var(--yr-surface); border-color:var(--yr-border); color:var(--yr-primary); }
+:host .app-shell .dashboard-modal { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:18px; box-shadow:var(--yr-shadow); }
+:host .app-shell .dashboard-modal :is(h2,h3,h4,label,strong) { color:var(--yr-text); text-transform:none; letter-spacing:normal; }
+:host .app-shell .dashboard-modal :is(p,small,span) { color:var(--yr-text-muted); }
+:host .app-shell .dashboard-modal .eyebrow { display:none; }
+:host .app-shell .dashboard-modal :is(.customer-modal-header,.activity-notification-header,.expanded-chart-header) { padding:18px 20px; border-bottom:1px solid var(--yr-border); background:var(--yr-surface); }
+:host .app-shell .dashboard-modal :is(.price-change-alert-card,.expiring-alert-highlight-card,.expiring-alerts-summary,.activity-notification-item,.activity-notification-empty,.daily-sales-summary article) { background:var(--yr-surface-soft); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:12px; }
+:host .app-shell .dashboard-modal :is(button,input,select) { color:var(--yr-text); background:var(--yr-surface); border-color:var(--yr-border); border-radius:10px; }
+:host .app-shell .dashboard-modal button { min-height:36px; }
+:host .app-shell .dashboard-modal :is(.primary-button,.daily-sales-button) { color: var(--yr-on-primary); background:var(--yr-primary); }
+:host .app-shell .dashboard-modal .trend-period-tabs button.active { background:var(--yr-primary-soft); color:var(--yr-primary); }
+:host .app-shell .dashboard-modal .yr-icon { width:20px; height:20px; }
+:host .app-shell .dashboard-modal .activity-notification-footer { background:var(--yr-surface-soft); border-top:1px solid var(--yr-border); }
+:host .app-shell .dashboard-modal .customer-modal-title { font-size:20px; }
+@media(max-width:800px) { :host .app-shell .dashboard-ui { padding:12px; } :host .app-shell .dashboard-ui :is(.dashboard-trend-grid,.dashboard-module-charts) { grid-template-columns:minmax(0,1fr); } :host .app-shell .dashboard-ui .dashboard-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+/* Finanzas del Dashboard: tema claro y efecto luminoso inspirado en la referencia. */
+:host .app-shell .dashboard-ui .dashboard-financial-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:stretch; }
+:host .app-shell .dashboard-ui .analytics-card.dashboard-premium { position:relative; isolation:isolate; overflow:hidden; padding:22px; background:radial-gradient(ellipse at 100% 0%,#08756808,transparent 65%),var(--yr-surface); border:1px solid var(--yr-border); border-radius:22px; box-shadow:0 12px 26px #2034400c,inset 0 1px 0 var(--yr-surface-soft); color:var(--yr-text); }
+:host .app-shell .dashboard-ui .dashboard-premium::before { content:""; position:absolute; z-index:-1; inset:0; background-image:radial-gradient(#08756812 .75px,transparent .75px); background-size:14px 14px; mask-image:linear-gradient(145deg,transparent 15%,black 100%); pointer-events:none; }
+:host .app-shell .dashboard-ui .dashboard-premium .analytics-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:20px; }
+:host .app-shell .dashboard-ui .dashboard-premium .analytics-heading h2 { margin:0; color:var(--yr-text); font-size:17px; font-weight:500; letter-spacing:-.3px; }
+:host .app-shell .dashboard-ui .dashboard-premium .analytics-heading p { margin:5px 0 0; color:var(--yr-text-muted); font-size:11px; line-height:1.5; }
+:host .app-shell .dashboard-ui .dashboard-premium .trend-period-tabs { flex-shrink:0; gap:2px; border:1px solid var(--yr-border); border-radius:999px; padding:3px; background:var(--yr-surface-soft); box-shadow:none; }
+:host .app-shell .dashboard-ui .dashboard-premium .trend-period-tabs button { background:transparent; color:var(--yr-text-muted); border-radius:999px; font-size:11px; font-weight:400; min-height:30px; padding:5px 11px; border:0; box-shadow:none; }
+:host .app-shell .dashboard-ui .dashboard-premium .trend-period-tabs button.active { color:var(--yr-primary); background:var(--yr-primary-soft); box-shadow:0 2px 8px #20344012; }
+:host .app-shell .dashboard-ui .dashboard-premium .premium-metric { display:flex; flex-direction:column; gap:5px; margin:0 0 16px; }
+:host .app-shell .dashboard-ui .dashboard-premium .premium-metric strong { color:var(--yr-text); font-size:clamp(28px,2.6vw,40px); font-weight:400; line-height:1.2; letter-spacing:-1.4px; font-variant-numeric:tabular-nums; }
+:host .app-shell .dashboard-ui .dashboard-premium .premium-metric span { color:var(--yr-text-muted); font-size:11px; }
+:host .app-shell .dashboard-ui .dashboard-premium :is(.chartjs-trend-shell,.dashboard-module-chart-shell) { height:290px; min-height:290px; border:0; border-radius:0; box-shadow:none; background:transparent; }
+:host .app-shell .dashboard-ui .dashboard-premium :is(.chart-empty-label,.module-chart-empty,.premium-empty) { color:var(--yr-text-muted); font-size:13px; }
+:host .app-shell .dashboard-ui .dashboard-premium .chart-expand-button { width:30px; height:30px; border-radius:50%; background:var(--yr-surface-soft); border-color:var(--yr-border); color:var(--yr-primary); box-shadow:none; }
+:host .app-shell .dashboard-ui .dashboard-premium .chart-expand-button svg { width:16px; height:16px; }
+:host .app-shell .dashboard-ui .dashboard-premium :is(button,input,select):focus-visible { outline:2px solid var(--yr-primary); outline-offset:3px; }
+:host .app-shell .dashboard-ui .dashboard-credit-ranking { display:flex; flex-direction:column; }
+:host .app-shell .dashboard-ui .dashboard-premium .premium-icon-button { display:grid; place-items:center; width:34px; height:34px; padding:6px; color:var(--yr-primary); border:1px solid var(--yr-border); background:var(--yr-surface-soft); border-radius:50%; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tools { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tools label { display:flex; align-items:center; gap:7px; flex:1; min-width:120px; padding:0 10px; border:1px solid var(--yr-border); border-radius:10px; background:var(--yr-surface-soft); color:var(--yr-text-muted); }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tools input { width:100%; min-width:0; padding:9px 0; color:var(--yr-text); background:transparent; border:0; font:inherit; font-size:12px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tools input::placeholder { color:var(--yr-text-muted); }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tools select { border:1px solid var(--yr-border); border-radius:10px; background:var(--yr-surface-soft); color:var(--yr-text); padding:8px; font:inherit; font-size:12px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-list { max-height:250px; min-height:0; overflow:auto; display:grid; align-content:start; gap:8px; scrollbar-width:thin; scrollbar-color:#92b5be transparent; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-row { display:flex; align-items:center; gap:10px; padding:8px; border:1px solid var(--yr-border); background:linear-gradient(110deg,var(--yr-surface-soft),var(--yr-surface)); border-radius:12px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-avatar { display:grid; place-items:center; flex:0 0 38px; height:38px; border-radius:10px; background: #e9e1f5; color: #745699; font-size:12px; font-weight:600; border:1px solid #d8caea; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-avatar-mint { background:var(--yr-primary-soft); border-color: #b8ded5; color:var(--yr-primary); }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-avatar-gold { background: #fff5dc; border-color: #edda9c; color: #8b651a; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-person { flex:1; min-width:0; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-person strong { display:block; color:var(--yr-text); font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-person div { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:5px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-tag { color:var(--yr-primary); background:var(--yr-primary-soft); border-radius:5px; padding:2px 5px; font-size:9px; font-weight:500; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-person small { color:var(--yr-text-muted); font-size:9px; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-amount { flex-shrink:0; padding:10px 8px; border:1px solid #d8caea; border-radius:10px; background:radial-gradient(ellipse at top left,#8060ae12,transparent),var(--yr-surface-soft); color:var(--yr-text); font-weight:400; font-size:15px; font-variant-numeric:tabular-nums; box-shadow:inset 0 1px 0 var(--yr-surface-soft); }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-footer { display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; gap:8px; padding-top:14px; margin-top:auto; }
+:host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-footer span { color:var(--yr-text-muted); font-size:10px; }
+:host .app-shell .dashboard-ui .dashboard-premium .premium-link { display:flex; align-items:center; gap:5px; background:transparent; border:0; color:var(--yr-primary); font-size:11px; padding:5px 0; }
+@media(max-width:1000px) { :host .app-shell .dashboard-ui .dashboard-financial-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:500px) { :host .app-shell .dashboard-ui .analytics-card.dashboard-premium { padding:16px; } :host .app-shell .dashboard-ui .dashboard-premium .credit-ranking-amount { font-size:12px; } }
+
+:host .app-shell .dashboard-ui .dashboard-premium .analytics-heading > div:first-child { flex:1; }
+
+:host .app-shell .dashboard-ui .dashboard-premium .premium-icon-button:hover { background:var(--yr-primary-soft); border-color: #9ecfc4; }
+
+:host .app-shell .dashboard-ui .dashboard-premium .premium-icon-button.active { background:var(--yr-primary-soft); border-color: #9ecfc4; }
+
+/* Notificaciones claras: evita heredar los textos del panel oscuro. */
+:host .app-shell .activity-notification-panel.dashboard-modal :is(.activity-notification-header h2,.activity-notification-copy strong,.activity-notification-empty strong) { color:var(--yr-text); }
+:host .app-shell .activity-notification-panel.dashboard-modal :is(.activity-notification-copy span,.activity-notification-copy small,.activity-notification-item time) { color:var(--yr-text-muted); }
+:host .app-shell .activity-notification-panel.dashboard-modal .activity-notification-footer button { color:var(--yr-primary); }
+
+/* Barra del Dashboard: botones uniformes y ayuda sobre las gráficas. */
+:host .app-shell .dashboard-ui .dashboard-topbar { position:relative; z-index:10; overflow:visible; }
+:host .app-shell .dashboard-ui .dashboard-topbar :is(.system-update-button,.price-change-alert-button,.activity-bell-button,.dashboard-sales-alert-selector,.yr-button-icon) {
+  box-sizing:border-box; flex:0 0 46px; width:46px; height:46px; min-width:46px; max-width:46px; min-height:46px; max-height:46px; padding:0;
+}
+:host .app-shell .dashboard-ui .dashboard-topbar button > .yr-icon { width:22px; height:22px; flex-shrink:0; }
+:host .app-shell .dashboard-ui .price-change-alert-button strong {
+  position:absolute; top:-5px; right:-5px; display:inline-grid; place-items:center; box-sizing:border-box; min-width:22px; height:22px; padding:0 6px;
+  border:2px solid var(--yr-surface); border-radius:999px; background: #22c55e; font-size:11px; line-height:1;
+}
+:host .app-shell .dashboard-ui .dashboard-sales-alert-selector strong {
+  position:absolute; width:1px; height:1px; min-width:0; min-height:0; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap;
+}
+:host .app-shell .dashboard-ui .dashboard-sales-alert-selector::after { z-index:1; }
+
+/* Dos temas compartidos: claro actual y oscuro. El menú mantiene su fondo oscuro. */
+:host .app-shell[data-theme="yr-light"] {
+  --bg:var(--yr-bg); --panel:var(--yr-surface); --panel-soft:var(--yr-surface-soft);
+  --ink:var(--yr-text); --muted:var(--yr-text-muted); --line:var(--yr-border);
+  --field-bg:var(--yr-surface); --item-bg:var(--yr-surface); --primary:var(--yr-primary);
+}
+:host :is(.app-shell,.login-shell)[data-theme="yr-dark"] {
+  --yr-bg:#121923; --yr-surface:#1b2430; --yr-surface-soft:#222e3c; --yr-surface-elevated:#293747;
+  --yr-border:#3b4e60; --yr-text:#edf3f8; --yr-text-muted:#b4c5d2;
+  --yr-primary:#75dbc6; --yr-primary-soft:#203f3c; --yr-on-primary:#102b26;
+  --yr-success:#91dfb0; --yr-warning:#f1ca7b; --yr-danger:#f59aa6;
+  --yr-success-soft:#203b30; --yr-warning-soft:#3d3322; --yr-danger-soft:#432a32;
+  --yr-shadow:0 16px 42px #0003; --yr-shadow-soft:0 4px 14px #0002;
+  --bg:var(--yr-bg); --panel:var(--yr-surface); --panel-soft:var(--yr-surface-soft);
+  --ink:var(--yr-text); --muted:var(--yr-text-muted); --line:var(--yr-border);
+  --field-bg:var(--yr-surface); --item-bg:var(--yr-surface); --primary:var(--yr-primary);
+}
+:host .app-shell[data-theme="yr-dark"] .yr-ui { color-scheme:dark; }
+:host .app-shell[data-theme="yr-dark"] .dashboard-premium :is(.credit-ranking-avatar,.credit-ranking-amount) { background:var(--yr-surface-elevated); border-color:var(--yr-border); color:var(--yr-text); }
+:host .app-shell[data-theme="yr-dark"] .dashboard-topbar .price-change-alert-button strong { border-color:var(--yr-surface); }
+
+:host .app-shell[data-theme="yr-dark"] .dashboard-modal :is(.primary-button,.daily-sales-button) { color:var(--yr-on-primary); }
+
+/* Alias del tema para módulos y ventanas anteriores a Inventory 2.0. */
+:host .app-shell:is([data-theme="yr-light"],[data-theme="yr-dark"]) {
+  --card-bg:var(--yr-surface); --visual-bg:var(--yr-surface-elevated);
+  --shadow:var(--yr-shadow); --primary-dark:var(--yr-primary); --accent:var(--yr-warning); --danger:var(--yr-danger);
+  color-scheme:var(--yr-color-scheme,light); color:var(--yr-text);
+}
+:host :is(.app-shell,.login-shell)[data-theme="yr-dark"] { --yr-color-scheme:dark; }
+:host .app-shell[data-theme="yr-dark"] :is(input,select,textarea) { color-scheme:dark; }
+:host .app-shell[data-theme="yr-dark"] :is(.cp-avatar,.cp-summary-icon,.cp-icon-history,.invoice-payment-pill) { background:var(--yr-surface-elevated); color:var(--yr-primary); border-color:var(--yr-border); }
+:host .app-shell[data-theme="yr-dark"] :is(.system-health-workspace,.history-workspace) :is(.analytics-card,.history-summary-card,.system-health-card,.table-wrap) { background:var(--yr-surface); color:var(--yr-text); border-color:var(--yr-border); }
+:host .app-shell[data-theme="yr-dark"] :is(.yr-button-primary,.primary-button,.daily-sales-button,.cp-primary,.pw-primary,.settings-nav-icon) { color:var(--yr-on-primary); }
+:host .app-shell[data-theme="yr-dark"] .petty-cash-toast :is(strong,span) { color:var(--yr-on-primary); }
+
+:host .login-shell[data-theme="yr-dark"] .yr-login-story { background:var(--yr-surface-elevated); color:var(--yr-text); }
+:host .login-shell[data-theme="yr-dark"] :is(.yr-login-story p:not(.yr-kicker),.yr-login-signature) { color:var(--yr-text-muted); }
+:host .app-shell[data-theme="yr-dark"] .activity-notification-panel { background:var(--yr-surface); color:var(--yr-text); border-color:var(--yr-border); }
+:host .app-shell[data-theme="yr-dark"] :is(.activity-notification-header,.activity-notification-item,.activity-notification-footer) { background:var(--yr-surface-soft); }
+:host .app-shell[data-theme="yr-dark"] .activity-notification-copy :is(strong,span,small) { color:var(--yr-text); }
+
+:host .login-shell[data-theme="yr-dark"] .login-button:hover:not(:disabled) { background:color-mix(in srgb,var(--yr-primary) 90%,white); color:var(--yr-on-primary); }
+
+/* Filtros de Finanzas compactos, sin ocupar el ancho del listado. */
+:host .app-shell .finance-ui .finance-table-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+:host .app-shell .finance-ui .finance-table-tools > input[type=search] { box-sizing:border-box; flex:0 1 280px; width:280px; max-width:100%; min-width:140px; }
+:host .app-shell .finance-ui .finance-table-tools > select { box-sizing:border-box; flex:0 1 auto; width:auto; min-width:120px; max-width:240px; field-sizing:content; }
+:host .app-shell .finance-ui :is(.costs-period-selector,.finance-icon-filter) { box-sizing:border-box; flex:0 0 40px; min-width:40px; max-width:40px; width:40px; }
+:host .app-shell .finance-ui .profitability-kardex-filters { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+:host .app-shell .finance-ui .profitability-kardex-filters > :is(input,select) { box-sizing:border-box; flex:0 1 auto; width:auto; max-width:240px; min-width:120px; }
+:host .app-shell .finance-ui .profitability-kardex-filters > input[type=search] { width:280px; max-width:100%; }
+:host .app-shell .finance-ui .costs-category-filter { width:auto; max-width:240px; justify-self:start; }
+:host .app-shell .finance-ui .costs-category-filter select { width:auto; min-width:120px; max-width:240px; }
+:host .app-shell .finance-ui .finance-column-panel { position:fixed; inset:auto; margin:0; width:280px; box-sizing:border-box; max-width:calc(100vw - 24px); max-height:min(55vh,420px); overflow:auto; padding:14px; border:1px solid var(--yr-border); border-radius:12px; background:var(--yr-surface); color:var(--yr-text); box-shadow:var(--yr-shadow); }
+:host .app-shell .finance-ui .finance-column-panel header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+:host .app-shell .finance-ui .finance-column-panel label { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; }
+:host .app-shell .finance-ui .finance-column-panel input[type=checkbox] { min-height:0; width:16px; height:16px; accent-color:var(--yr-primary); }
+:host .app-shell .finance-ui .invoice-master-table :is(th,td)[hidden] { display:none !important; }
+@media(max-width:580px) { :host .app-shell .finance-ui .finance-table-tools .yr-modal-density { margin-left:0; } }
+
+/* Salud del sistema: encabezado compacto sin filas estiradas. */
+:host .app-shell .system-health-workspace { display:grid; grid-template-rows:none; grid-auto-rows:max-content; align-content:start; padding:12px 20px 20px; gap:16px; }
+:host .app-shell .system-health-topbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; min-height:0; height:auto; padding:0; margin:0; border:0; background:transparent; box-shadow:none; gap:12px; }
+:host .app-shell .system-health-topbar h1 { margin:0; color:var(--yr-text); font-size:clamp(23px,2.4vw,30px); text-transform:none; }
+/* Histórico: tema compartido, resumen cerrado y tabla adaptable. */
+:host .app-shell .history-ui { display:grid; grid-template-rows:none; grid-auto-rows:max-content; align-content:start; gap:16px; padding:12px 20px 20px; background:var(--yr-bg); color:var(--yr-text); min-width:0; }
+:host .app-shell .history-ui [hidden] { display:none !important; }
+:host .app-shell .history-ui .history-topbar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; padding:0; margin:0; min-height:0; border:0; background:transparent; box-shadow:none; }
+:host .app-shell .history-ui .history-title { display:flex; align-items:center; gap:12px; }
+:host .app-shell .history-ui h1 { margin:0; color:var(--yr-text); font-size:clamp(23px,2.4vw,30px); text-transform:none; }
+:host .app-shell .history-ui :is(.history-panel,.history-summary-card) { background:var(--yr-surface); color:var(--yr-text); border:1px solid var(--yr-border); border-radius:16px; padding:18px; min-height:0; }
+:host .app-shell .history-ui :is(h2,.history-summary-card strong) { color:var(--yr-text); text-transform:none; }
+:host .app-shell .history-ui :is(p,small,.history-summary-card span) { color:var(--yr-text-muted); }
+:host .app-shell .history-ui :is(.history-table-toolbar,.history-table-footer) { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 0; background:transparent; border-color:var(--yr-border); color:var(--yr-text-muted); }
+:host .app-shell .history-ui .history-table-toolbar > input { width:280px; max-width:100%; }
+:host .app-shell .history-ui .history-table-toolbar > select { width:auto; max-width:240px; }
+:host .app-shell .history-ui .yr-modal-density { display:flex; margin-left:auto; gap:6px; }
+:host .app-shell .history-ui .history-table-footer nav { display:flex; align-items:center; justify-content:center; gap:6px; margin:auto; }
+:host .app-shell .history-ui .history-table-footer label { display:flex; align-items:center; gap:8px; }
+:host .app-shell .history-ui .history-table-wrap { overflow:auto; border:0; background:var(--yr-surface); }
+:host .app-shell .history-ui .history-audit-table { width:100%; min-width:0; table-layout:auto; border-collapse:separate; border-spacing:0 7px; }
+:host .app-shell .history-ui .history-audit-table :is(th,td) { background:var(--yr-surface); color:var(--yr-text); border-color:var(--yr-border); }
+:host .app-shell .history-ui .history-audit-table th { background:var(--yr-surface-soft); color:var(--yr-text-muted); text-transform:none; font-size:12px; letter-spacing:normal; }
+:host .app-shell .history-ui .history-audit-table td { border-top:1px solid var(--yr-border); border-bottom:1px solid var(--yr-border); padding:12px 10px; }
+:host .app-shell .history-ui .history-audit-table :is(strong,span,em) { color:inherit; }
+:host .app-shell .history-ui .history-audit-table[data-density=compact] td { height:48px !important; max-height:none; padding:7px 10px; }
+:host .app-shell .history-ui .history-audit-table[data-density=normal] td { height:64px !important; max-height:none; }
+:host .app-shell .history-ui .history-audit-table[data-density=spacious] td { height:82px !important; max-height:none; padding:16px 10px; }
+:host .app-shell .history-ui .history-audit-table input[type=checkbox] { width:16px; height:16px; min-height:0; accent-color:var(--yr-primary); }
+:host .app-shell .history-log-detail-modal :is(.history-log-detail-summary article,.history-log-detail-block) { background:var(--yr-surface-soft); color:var(--yr-text); border-color:var(--yr-border); }
+@media(max-width:700px) { :host .app-shell .history-ui .history-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } :host .app-shell .history-ui .history-table-toolbar .yr-modal-density { margin-left:0; } }
+
+:host .app-shell .history-ui .history-audit-table .yr-modal-selected td { background:var(--yr-primary-soft); }
+
+:host .app-shell .history-ui .history-action-badge.insert { background:var(--yr-success-soft); color:var(--yr-success); }
+:host .app-shell .history-ui .history-action-badge.update { background:var(--yr-warning-soft); color:var(--yr-warning); }
+:host .app-shell .history-ui .history-action-badge.delete { background:var(--yr-danger-soft); color:var(--yr-danger); }
+:host .app-shell .history-ui .history-table-footer label select { width:76px; }
+
+/* Kardex: horizontal totals and a compact, wrapping filter bar. */
+:host .app-shell .finance-ui .profitability-kardex-card { padding:16px; }
+:host .app-shell .finance-ui .profitability-kardex-card > .analytics-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin:0 0 12px; min-height:0; }
+:host .app-shell .finance-ui .profitability-kardex-card > .analytics-heading > div:first-child { flex:1 1 280px; }
+:host .app-shell .finance-ui .profitability-kardex-summary { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:8px; width:auto; min-width:0; }
+:host .app-shell .finance-ui .profitability-kardex-summary article { padding:10px 12px; gap:4px; background:var(--yr-surface-soft); border-color:var(--yr-border); }
+:host .app-shell .finance-ui .profitability-kardex-summary span { color:var(--yr-text-muted); font-size:11px; text-transform:none; }
+:host .app-shell .finance-ui .profitability-kardex-summary strong { font-size:17px; color:var(--yr-text); font-variant-numeric:tabular-nums; }
+:host .app-shell .finance-ui .finance-kardex-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:8px; }
+:host .app-shell .finance-ui .finance-kardex-toolbar .profitability-kardex-filters { margin:0; padding:0; gap:8px; flex:0 1 auto; }
+:host .app-shell .finance-ui .finance-kardex-toolbar .finance-table-tools { flex:1 1 auto; width:auto; margin:0; padding:0; border:0; gap:8px; }
+:host .app-shell .finance-ui .profitability-kardex-card > .table-wrap { margin-top:0; padding-top:0; }
+@media (max-width:700px) {
+  :host .app-shell .finance-ui .profitability-kardex-summary { width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  :host .app-shell .finance-ui .profitability-kardex-summary article { padding:8px; }
+  :host .app-shell .finance-ui .profitability-kardex-summary strong { font-size:14px; overflow-wrap:anywhere; }
+}

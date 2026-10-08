@@ -68,6 +68,10 @@
 
 ## Reportes, dashboard y analitica
 
+- Tema de ejes/leyendas/tooltips compartido: `src/app/features/shared/theme/chart-theme.ts`; lee variables de la pantalla sin modificar valores ni callbacks de las gráficas.
+
+- Diseño de gráficas financieras del Dashboard: `src/app/features/dashboard/dashboard-chart-design.ts`, aplicado solo a ventas/compras/salarios. Ranking usa líneas de crédito agrupadas por cliente y consulta al entrar con permiso, independiente de filtros de la cartera; sin endpoints nuevos. Cuatro paneles financieros fijos en tema claro/oscuro seleccionado en Configuración, con PNG directo en las tres gráficas; indicadores superiores colapsables.
+
 - Responsabilidad: resumen de ventas, tendencias, rentabilidad, costos por categoria, alertas de caida de ventas, exportacion PDF/HTML.
 - Frontend: `dashboard`, `sales-profitability`, `costs`.
 - Backend: `getDashboardSalesSummary`, `getDashboardSalesTrend`, `getSalesDropAlert`, `getSalesProfitabilityAnalytics`, `getSalesTotalByPeriod`, `getSalesByCategoryForPeriod`, `listMonthlyCostIncreaseAlerts`.
@@ -75,6 +79,8 @@
 - Estado: implementado; varias consultas son pesadas y no deben cargarse desde Facturacion.
 
 ## Historico
+
+- Presentación (082): resumen/tendencia cerrados al entrar, filtros/orden originales, selección/CSV mediante ModalTableState, densidad y columnas compartidas con preferencias independientes para `history`; tabla/ventana de detalle respetan el tema.
 
 - Responsabilidad: historial/auditoria de movimientos operativos y consulta de cambios registrados.
 - Frontend: pagina `history` en `src/app/app.ts/html`.
@@ -132,5 +138,7 @@
 Configuración → Usuarios, visible para administradores. UI en `src/app/app.ts`, `app.html`, `yr-ui.css`; transporte HTTP/IPC en `server/modules/users`, `server/server.js`, `electron/main.js` y `preload.js`. CRUD, baja lógica, reactivación y permisos por módulo; pruebas `server/modules/users/users.test.js` y `src/app/users-management.spec.ts`.
 
 ### Presentación Finanzas UI 2.0 (05/10/2026)
+
+Desde el registro 081, las ocho tablas incluyen columnas visibles mediante engranaje/popover nativo, preferencias locales independientes (`yahweh-rohi-finance-columns-v1`) y colspans adaptados para grupos financieros; filtros compactos.
 
 Los cuatro submódulos de Finanzas comparten `finance-ui`, paneles contraíbles en `financePanels` y configuración de ocho tablas con `ModalTableState`. `src/app/finance-presentation.spec.ts` cubre entrada cerrada, filtros/páginas sin cambiar KPIs, CSV/selección y colores. No cambia transportes ni reglas de cálculo.
